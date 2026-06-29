@@ -1,14 +1,14 @@
-# Daily plan — YYYY-MM-DD
+# Daily plan — 2026-06-29
 
-<!--
-  Forward-looking companion to log.md. Single-day scope. Always overwritten,
-  never appended. Aggregated across repos by ai-project-status into
-  daily-plan-summary.md.
+- Land the project `README.md` (philosophy + dual-interface overview). ✅
+- Tidy onboarding docs so a newcomer can grasp the kit at a glance.
+- Keep `SPEC.md` / `open-questions.md` cross-links coherent with the new README.
+- Defer pipeline scripting; today is documentation, not generator code.
 
-  - First line MUST be `# Daily plan — YYYY-MM-DD` (the date is the staleness signal).
-  - Body: a short bullet list of the day's intent + a small ASCII diagram of the day's shape.
-  - At end-of-session signoff, overwrite with tomorrow's plan (Friday writes Monday's).
-  - On Saturday/Sunday a Friday plan is still considered fresh.
--->
+```
+docs day:  README ──> onboarding polish ──> SPEC/OQ cross-check
+           [done]        [in progress]          [if time]
 
-(no plan yet — replace this body and update the date in the header above)
+           (generator scripts → later)
+```
+</content>

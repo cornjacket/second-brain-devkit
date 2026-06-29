@@ -1,0 +1,150 @@
+# Second Brain Developer Kit
+
+> **Write for Humans, Index for Machines.**
+
+A dev kit for building a **dual-interface knowledge graph** — a Second Brain that
+serves a human (via [Obsidian](https://obsidian.md)) and an AI (via models like
+Claude or Gemini) from the same local, plain-text source of truth.
+
+## The Problem
+
+Humans and machines explore knowledge differently:
+
+- **Humans** excel at spatial organization, visual linking, and iterative writing.
+- **AI** excels at semantic search, pattern recognition across massive datasets,
+  and structured data extraction.
+
+A standard Obsidian vault is great for a human, but feeding raw, unindexed
+Markdown to an AI is messy, slow, and expensive against context-window limits.
+Conversely, a pure database is a terrible interface for a human trying to write a
+journal entry or map out a project.
+
+## The Philosophy
+
+This kit creates a **symbiotic relationship** between the two interfaces instead
+of forcing a choice between them:
+
+```
+[ Human Interface ]  --->  Obsidian (.md files)
+                                 │
+                                 ▼  (Automated Tooling / Scripts)
+[ Machine Interface ] --->  SQLite Cache (vec0)  --->  AI Agents / LLMs
+```
+
+You write plain Markdown. Tooling mirrors those notes — with their tags, links,
+and vector embeddings — into a local SQLite cache that AI agents can query
+deterministically and cheaply.
+
+## Value for Each Interface
+
+### For the Obsidian User (Human Interface)
+
+- **Zero-friction writing** — keep the clean, future-proof, local-first
+  experience of raw Markdown plus Obsidian's plugin ecosystem and graph view.
+- **Local ownership** — your notes stay yours, unproprietary, and fully readable
+  even if the database layer disappears.
+- **Enhanced by AI** — the SQLite layer powers local tools for semantic search,
+  backlink suggestions, and structured insights fed back into Obsidian.
+
+### For AI Models (Machine Interface)
+
+- **Structured context (deterministic retrieval)** — query exact context
+  (e.g. *"all notes from the last 7 days tagged `#architecture`"*) instead of
+  making an LLM parse hundreds of loose text files.
+- **Vector / semantic readiness** — `sqlite-vec` stores embeddings alongside
+  notes for fast, fully local RAG.
+- **Token efficiency** — agents consume dense, clean query results rather than
+  burning budget on raw frontmatter, blank lines, and irrelevant file structure.
+
+## How It Works
+
+The pipeline keeps the human-authored Markdown and the machine-readable cache in
+sync automatically:
+
+1. **Source Note** → staged → **pre-commit hook** updates a per-note
+   `*.embed.json` sidecar (a 768-dim vector array).
+2. **Sidecar vectors** → bulk scan → **hydrate** a SQLite `vec0` virtual-table
+   cache.
+3. **Claude / Gemini terminal input** → Python CLI matcher → SIMD-accelerated
+   cosine-distance results.
+
+Embeddings use `nomic-embed-text` (local, via [Ollama](https://ollama.com)). The
+**same** model must produce both the committed note vectors and the search-query
+vectors — mismatched models yield incomparable results.
+
+### Sidecar schema (`*.embed.json`)
+
+```json
+{
+  "source_file": "path/to/note.md",
+  "vector": [0.0, 0.0, "... 768 floating point numbers"]
+}
+```
+
+## The Kit's Mission
+
+This repository is a **generator**. Spinning up a new Second Brain with it should
+instantly configure:
+
+- A standardized directory structure (PARA-style or similar clean layout).
+- A parsing pipeline that mirrors notes, tags, and links into a local SQLite file.
+- An AI-ready interface layer, so pointing a local script, a Claude wrapper, or a
+  Gemini pipeline at the cache is trivial.
+
+The result scales: no matter how large the knowledge base grows, it stays
+structured enough for an AI to read instantly, yet simple enough to open and edit
+in plain text.
+
+## Tech Stack
+
+- **Runtime:** Python 3.11+
+- **Storage:** flat-file SQLite 3 with the `sqlite-vec` extension (768-dim
+  vectors, cosine distance)
+- **Embeddings:** `nomic-embed-text` (local, via Ollama)
+- **Encoding:** UTF-8 (strict)
+- **Frontends:** Claude (Claude Code) and Gemini (Gemini CLI) share one project
+  memory file — `GEMINI.md` is a symlink to `CLAUDE.md`.
+
+## Commands
+
+```bash
+# Build / hydrate the SQLite cache from sidecar vectors
+python3 scripts/hydrate_cache.py
+
+# Run a semantic search over the vault
+python3 scripts/search_vault.py "<query>"
+
+# Environment sanity check
+python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
+```
+
+## Safety Prohibitions
+
+- **Never** use third-party cloud vector stores (Pinecone, Milvus, Supabase) —
+  this kit is local-first by design.
+- **Never** allow git conflict markers into sidecar files (`merge=binary` is
+  enforced for `.*.embed.json`).
+
+## Project Layout
+
+| Path                 | Purpose                                                        |
+| -------------------- | ------------------------------------------------------------- |
+| `CLAUDE.md`          | System memory & conventions (shared with Gemini via symlink). |
+| `SPEC.md`            | System specification & feature roadmap.                       |
+| `open-questions.md`  | Unresolved design decisions (resolve before finalizing).      |
+| `daily-plan.md`      | Forward-looking, single-day plan (aggregated cross-repo).     |
+| `scripts/`           | Generator and pipeline scripts.                               |
+| `second-brain-test/` | Golden reference — the known-good expected output.            |
+| `sandbox/`           | Throwaway generated output for validation (gitignored).       |
+
+> **Development model:** *Prototype* a feature by hand in the golden reference,
+> *productize* it into the kit, then *validate* by regenerating into
+> `sandbox/scratch/` and diffing against the golden. A clean diff is the
+> acceptance test. See [CLAUDE.md](CLAUDE.md) for the full workflow and
+> [open-questions.md](open-questions.md) for unresolved items.
+
+## License
+
+See [LICENSE](LICENSE).
+</content>
+</invoke>
