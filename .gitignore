@@ -1,0 +1,9 @@
+# Throwaway repos generated when validating the devkit's code generation.
+# Wiped and regenerated on every harness run; never committed.
+sandbox/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
