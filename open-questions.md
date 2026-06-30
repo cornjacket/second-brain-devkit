@@ -8,7 +8,7 @@ referenced from) SPEC.md as a decided convention.
 
 ## OQ-1: How should the golden reference repo be stored inside the devkit?
 
-**Status:** OPEN
+**Status:** DECIDED (interim) — see [Decision](#decision).
 
 ### Context
 
@@ -56,4 +56,20 @@ is that the nested golden would **drift**, which defeats the entire purpose.
 
 ### Decision
 
-_Pending._
+**Interim (2026-06-29): Option B — standalone sibling repo.**
+
+For now the golden lives at `../second-brain-test/` as its own real git repo
+with its own GitHub remote (`cornjacket/second-brain-test`). It has a live
+`.git`, so the pre-commit hook fires for real when notes are committed — which
+is exactly what we want while hand-building and proving the pipeline.
+
+This was chosen to **make progress now** rather than to settle the long-term
+storage question. The accepted trade-off: the devkit does **not** track the
+golden's contents, so the two can drift and must be kept in sync by hand.
+
+**Revisit when:** drift becomes painful, or we wire up the automated
+wipe-and-regenerate harness (`sandbox/scratch/` diff against golden). At that
+point Option A (plain tracked files inside the devkit, `git init` a copy at test
+time) becomes the likely target, since it makes the golden a non-drifting,
+version-tracked baseline. The pipeline is being built embedder-agnostic and
+path-agnostic specifically so this move stays cheap.

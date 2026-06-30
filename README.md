@@ -72,14 +72,11 @@ Embeddings use `nomic-embed-text` (local, via [Ollama](https://ollama.com)). The
 **same** model must produce both the committed note vectors and the search-query
 vectors — mismatched models yield incomparable results.
 
-### Sidecar schema (`*.embed.json`)
-
-```json
-{
-  "source_file": "path/to/note.md",
-  "vector": [0.0, 0.0, "... 768 floating point numbers"]
-}
-```
+> **Authoritative specs.** This README is an overview. The contracts live in two
+> places: the **system spec** ([SPEC.md](SPEC.md)) for the three-repo workflow,
+> roles, and lifecycle; and the **product spec** (`../second-brain-test/SPEC.md`)
+> for a single brain's PARA layout, sidecar schema, embedding contract, cache
+> DDL, search CLI, and `register`. Details below are summaries — defer to those.
 
 ## The Kit's Mission
 
@@ -134,14 +131,19 @@ python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
 | `open-questions.md`  | Unresolved design decisions (resolve before finalizing).      |
 | `daily-plan.md`      | Forward-looking, single-day plan (aggregated cross-repo).     |
 | `scripts/`           | Generator and pipeline scripts.                               |
-| `second-brain-test/` | Golden reference — the known-good expected output.            |
 | `sandbox/`           | Throwaway generated output for validation (gitignored).       |
 
-> **Development model:** *Prototype* a feature by hand in the golden reference,
-> *productize* it into the kit, then *validate* by regenerating into
-> `sandbox/scratch/` and diffing against the golden. A clean diff is the
-> acceptance test. See [CLAUDE.md](CLAUDE.md) for the full workflow and
-> [open-questions.md](open-questions.md) for unresolved items.
+The **golden reference** lives outside this repo as a standalone sibling at
+`../second-brain-test/` (its own `.git` + remote) so its pre-commit hook fires
+for real. The devkit does not track its contents, so they are synced by hand —
+an interim choice (OQ-1) to be revisited once the regenerate-and-diff harness
+lands.
+
+> **Development model:** *Prototype* a feature by hand in the golden reference
+> (`../second-brain-test/`), *productize* it into the kit, then *validate* by
+> regenerating into `sandbox/scratch/` and diffing against the golden. A clean
+> diff is the acceptance test. See [CLAUDE.md](CLAUDE.md) for the full workflow
+> and [open-questions.md](open-questions.md) for unresolved items.
 
 ## License
 

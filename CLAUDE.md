@@ -1,34 +1,37 @@
-# Second Brain Developer Kit — System Memory
+# Second Brain Devkit — Agent Memory
 
-## Tech Stack
-- Runtime: Python 3.11+
-- Databases: Flat-file SQLite 3 (utilizing the `sqlite-vec` binary extension)
-- Embeddings: `nomic-embed-text` (local, via Ollama) — 768-dimension vectors, cosine distance. The SAME model MUST be used by the pre-commit hook (note embedding) and the search query path; mismatched models produce incomparable vectors.
-- Encoding: UTF-8 strict
+This is memory for working **on the devkit** — the generator and system home. It
+is *not* the memory for working inside a brain; that lives in the product repo at
+`../second-brain-test/CLAUDE.md`.
 
-## Style & Conventions
-- Naming: Lowercase kebab-case for all source notes (`sample-note.md`)
-- Vector Payload: Dotted prefix with explicit suffix naming convention (`.sample-note.embed.json`) in the same directory. This ensures it is hidden by default.
-- Imports: Use standard library unless explicitly defined in requirements.txt
+## Where things are specified
 
-## Execution Commands
-- Build/Hydrate Cache: `python3 scripts/hydrate_cache.py`
-- Execute Search: `python3 scripts/search_vault.py "<query>"`
-- Environment Sanity Check: `python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"`
+Do **not** duplicate product (per-brain) contracts here — link to the product
+spec so they cannot drift.
 
-## Safety Prohibitions
-- NEVER use third-party cloud vector stores (Pinecone, Milvus, Supabase)
-- NEVER allow git conflict markers to inject into sidecar files (`merge=binary` enforced for `.*.embed.json`)
+- System workflow, roles, lifecycle, generator/validation loop → [SPEC.md](SPEC.md)
+- Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search,
+  `register`) → `../second-brain-test/SPEC.md` (canonical product spec, for now)
+- Unresolved design decisions → [open-questions.md](open-questions.md)
+
+## Style & conventions (devkit code)
+
+- Imports: standard library unless declared in `requirements.txt`.
+- Match the surrounding code's style and comment density.
+- The devkit is **disjoint from `ai-project-status`**: nothing the generator
+  emits may depend on it. (This repo is itself *tracked by* `ai-project-status`
+  for its own development — see the managed block below — but that must never
+  leak into a generated brain.)
 
 ## Development Workflow
 This repo is a **generator**: it produces a `second-brain/` repo. Build each feature with this loop:
-1. **Prototype** the feature by hand in the golden reference (`second-brain-test/`) and confirm it behaves as expected. The golden is the known-good *expected output* and serves as the regression baseline.
+1. **Prototype** the feature by hand in the golden reference (`../second-brain-test/`, a standalone sibling repo — see OQ-1) and confirm it behaves as expected. The golden is the known-good *expected output* and serves as the regression baseline.
 2. **Productize** it into the devkit — the script, prompt, or harness that generates the feature.
 3. **Validate** by running the devkit against a throwaway repo at `sandbox/scratch/`. The harness must **wipe-and-regenerate** `sandbox/scratch/` on every run (never test against stale state), then **diff** the generated output against the golden reference. A clean diff is the acceptance test.
 
 - `sandbox/` is gitignored — it is regenerated output, never committed.
-- `second-brain-test/` (golden) answers *"does the feature work?"*; `sandbox/scratch/` answers *"does the devkit generate it correctly?"*
-- **Note:** where the golden reference physically lives (and how it stays version-controlled while still exercising the pre-commit hook) is unresolved — see OQ-1 in [open-questions.md](open-questions.md).
+- `../second-brain-test/` (golden) answers *"does the feature work?"*; `sandbox/scratch/` answers *"does the devkit generate it correctly?"*
+- **Golden location (OQ-1, interim):** the golden currently lives as a **standalone sibling repo** at `../second-brain-test/` with its own `.git` + remote, so its pre-commit hook fires for real. The devkit does **not** track its contents, so the two are synced by hand and can drift. This is a deliberate "make progress now" choice; revisit toward tracked-files-inside-the-devkit when the regenerate-and-diff harness lands. See OQ-1 in [open-questions.md](open-questions.md).
 
 <!-- ai-project-status:begin -->
 <!--
