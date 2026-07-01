@@ -20,7 +20,10 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - [x] `README.md` — authoritative-specs callout; removed the duplicated sidecar schema
 - [x] `open-questions.md` — OQ-1 decided (interim: golden = standalone sibling repo)
 
-## Milestone G1 — Generator (after the brain works)
+## Milestone G1 — Generator core (after the brain works)
+The generator is a **pure function** `generate(target, params)` that writes a
+brain scaffold into `target` — the shared core both generation modes call
+([SPEC §5.1](SPEC.md); validation = Mode A, production = Mode B).
 - [ ] Choose template strategy (how to productize the brain's `SPEC.md`/`CLAUDE.md`/`scripts/` into templates)
 - [ ] Scaffold a brain repo: PARA dirs, scripts, hook, config, docs
 - [ ] Emit AI memory + `GEMINI.md` symlink
@@ -41,7 +44,19 @@ Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
   - [ ] Exercises the real production path (Ollama call, dims, L2-normalize) that `test` never touches
   - [ ] Gated on Ollama being available; not part of the portable/CI acceptance gate
 
-## Milestone G3 — Lifecycle
+## Milestone G3 — Production generation (Mode B)
+The durable product path ([SPEC §5.1](SPEC.md)): generate a real, persistent brain
+the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
+- [ ] Generate to a **user-chosen path** (not `sandbox/`) — same generator core as G1/G2
+- [ ] Refuse to overwrite a non-empty target unless explicitly forced (protect user data)
+- [ ] Bootstrap the generated repo as its **own** git repo: `git init`,
+      `core.hooksPath`, first commit — history starts at generation, owned by the user
+- [ ] **Never** nest the generated repo inside the devkit's git (OQ-1 antipattern)
+- [ ] Assert Mode A ≡ Mode B: the scaffold a user gets is byte-identical to what the
+      harness diffs against the golden (so production is trusted without re-diffing)
+- [ ] Document the end-user "generate your brain" flow (README / a `generate` entry point)
+
+## Milestone G4 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit as a template (`SPEC.md` §4 lifecycle)
 - [ ] Mothball `second-brain-test` once generation + harness are trustworthy
 - [ ] Resolve OQ-1 long-term (golden storage → Option A, tracked files in devkit) — `open-questions.md`

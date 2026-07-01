@@ -123,6 +123,40 @@ The devkit builds each feature with a three-step loop:
 - Determinism of the golden's sidecars (via the `test` embedding backend) is what
   makes the diff meaningful — see the product spec's embedding contract.
 
+### 5.1 Two generation modes: validation vs production
+
+Generation happens in **two modes that share one generator core but have opposite
+lifecycles.** The generator is a pure function — `generate(target, params)` writes
+a brain scaffold into `target`; only the target and the post-step differ.
+
+| | **Validation (Mode A)** | **Production (Mode B)** |
+| --- | --- | --- |
+| Purpose | prove the generator is correct | produce a real brain for a user |
+| Target | `sandbox/scratch/` (inside devkit) | a user-chosen path (e.g. `~/my-brain`) |
+| Post-step | diff vs golden → **discard** | `git init` + first commit → **kept** |
+| Git | gitignored; never tracked | its **own** repo, tracked by the **user** |
+| Owner | the devkit's test harness | the end user |
+
+```
+generator core ─▶ sandbox/scratch/ ─diff─▶ golden      (Mode A: throwaway self-test)
+generator core ─▶ ~/my-brain ─git init─▶ user's repo   (Mode B: the durable product)
+```
+
+Consequences:
+
+- **The product is Mode B and is never thrown away.** `sandbox/scratch/` is only a
+  test artifact — a stand-in for "what a user would get" — so it can be discarded.
+  The real output lands at a user path and persists.
+- **A generated brain is tracked by its own git**, created at generation time
+  (`git init`, `core.hooksPath`, first commit). Its history *starts* at generation
+  and is owned by the user. It is **never** nested inside the devkit's git (the
+  repo-inside-a-repo antipattern — see [OQ-1](open-questions.md#oq-1-how-should-the-golden-reference-repo-be-stored-inside-the-devkit)).
+- **The diff-vs-golden only governs a *freshly* generated brain** (default seed).
+  Once the user adds notes, their brain diverges from the golden — expected, not a
+  failure.
+- The two modes must produce **byte-identical** scaffolds at generation time; Mode
+  A is what proves that, so Mode B can be trusted without re-diffing.
+
 ## 6. Where the contracts live
 
 | Concern | Authoritative source |
