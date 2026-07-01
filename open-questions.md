@@ -117,3 +117,46 @@ same machine — why not use it for the acceptance diff?
 **Revisit when:** we formalize the semantic tier's assertions (exact top-k /
 threshold values) and decide whether it runs in a nightly/local job vs. purely
 on-demand. Tracked as a G2 sub-item in `PLAN.md`.
+
+---
+
+## OQ-3: What sidecars/vectors does a generated brain commit?
+
+**Status:** DECIDED — see [Decision](#decision-2). Mirrors the golden
+(`second-brain-test`, Task 0004).
+
+### Context
+
+The brain's embed pipeline writes a per-note `.embed.json` **sidecar**. Original
+design committed them ("the expected output"). But (a) real semantic vectors are
+machine/model-dependent (float drift across CPU/GPU/BLAS/model versions), bloaty,
+and always regenerable, and (b) querying needs the model anyway (same-model
+invariant), so committing them only adds churn. Meanwhile the generator needs a
+**byte-stable** artifact to diff against — which only the deterministic `test`
+backend provides.
+
+### Decision
+
+A generated brain (like the golden, Task 0004) must emit:
+
+1. **`vault/` sidecars git-ignored** — semantic vectors are *derived*; regenerated
+   locally, never committed. The generator does **not** emit committed vault
+   vectors.
+2. **`tests/fixtures/vault/` sidecars committed** — a tiny fixed note set embedded
+   with the `test` backend; the *only* committed sidecars. These anchor both the
+   brain's self-test and the devkit's G2 structural byte-diff.
+3. **`scripts/self_test.py`** — ships in every generated brain; re-embeds the
+   fixtures with `test` and byte-compares to the committed sidecars, so a user can
+   confirm their pipeline is wired correctly on their machine with no model.
+4. **Sidecar `type` field** (`test` | `ollama:<model>`) so a mixed index is
+   detectable; the golden is pinned to `test`.
+
+### Implications for the generator (G1) and harness (G2)
+
+- G1 templates must gitignore vault sidecars and emit the fixture vault + self-test.
+- G2's structural diff compares the generated scaffold + fixtures against the
+  golden — both byte-stable because fixtures use `test`. The semantic tier
+  (OQ-2) stays opt-in/local.
+
+**Revisit when:** we decide whether generated brains also ship the semantic-tier
+E2E harness, or only the structural self-test.

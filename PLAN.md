@@ -24,6 +24,10 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - [ ] Choose template strategy (how to productize the brain's `SPEC.md`/`CLAUDE.md`/`scripts/` into templates)
 - [ ] Scaffold a brain repo: PARA dirs, scripts, hook, config, docs
 - [ ] Emit AI memory + `GEMINI.md` symlink
+- [ ] Sidecar policy ([OQ-3](open-questions.md#oq-3)): gitignore live-vault
+      sidecars; emit committed `tests/fixtures/vault/` (`test` backend) + a `type`
+      field pinned to `test`
+- [ ] Emit `scripts/self_test.py` (structural self-test) into every generated brain
 
 ## Milestone G2 — Validation harness
 Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
