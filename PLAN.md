@@ -22,7 +22,7 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## Milestone G1 — Generator core (after the brain works)  ← IN PROGRESS
 The brain (`../second-brain-test`) is complete through M2 + Task 0004, so G1 is
-unblocked. Template strategy is decided; **next: author the manifest, then scaffold.**
+unblocked. Strategy + manifest are done; **next: build the cleaned template tree, then scaffold.**
 The generator is a **pure function** `generate(target, params)` that writes a
 brain scaffold into `target` — the shared core both generation modes call
 ([SPEC §5.1](SPEC.md); validation = Mode A, production = Mode B).
@@ -30,11 +30,11 @@ brain scaffold into `target` — the shared core both generation modes call
       tree** (no engine); the template is a *curated, cleaned subset* of the
       golden ([SPEC §5.2](SPEC.md)). No parameterization exists yet, so a copy
       suffices; revisit if a real per-brain variable appears.
-- [ ] Author the emit **manifest**: classify every golden file as product /
-      dev-process. Exclude dev-process (`PLAN.md`, `tasks/`, `daily-plan.md`,
-      `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` SessionStart).
-      This manifest is the source of truth for "what a brain contains" (G1) and
-      the G2 diff's include/exclude list.
+- [x] Author the emit **manifest** — `emit-manifest.toml`: every golden file
+      classified into `verbatim` / `cleaned` / `generated` / `exclude` (25/4/5/8).
+      Source of truth for "what a brain contains" (G1) + the G2 diff's include
+      list. `tools/check_manifest_partition.py` proves it partitions the golden's
+      42 tracked files exactly (no missing/extra/dup) — verified passing.
 - [ ] Scrub **all** `ai-project-status` references from emitted files (hard
       invariant, [SPEC §5.2](SPEC.md)): the cleaned `CLAUDE.md`/`GEMINI.md` lose
       the managed block + Commit-schema + Daily-plan sections; `SPEC.md` and
