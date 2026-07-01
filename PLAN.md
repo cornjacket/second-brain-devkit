@@ -26,9 +26,16 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - [ ] Emit AI memory + `GEMINI.md` symlink
 
 ## Milestone G2 — Validation harness
-- [ ] `sandbox/scratch/` wipe-and-regenerate runner (never test stale state)
-- [ ] Diff generated output vs the golden (`../second-brain-test`) → clean diff = acceptance test
-- [ ] Confirm determinism (the `test` embedder) makes the diff stable
+Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
+- **Structural tier** — the acceptance oracle. `test` embedder, byte-exact diff.
+  - [ ] `sandbox/scratch/` wipe-and-regenerate runner (never test stale state)
+  - [ ] Diff generated output vs the golden (`../second-brain-test`) → clean diff = acceptance test
+  - [ ] Confirm determinism (the `test` embedder) makes the diff stable
+- **Semantic tier** — opt-in, local, real `ollama` embedder. Asserts *behavior*,
+  not bytes (never byte-diff a neural model — brittle even same-machine).
+  - [ ] Retrieval-quality check: known queries put expected notes in top-k / above a cosine threshold
+  - [ ] Exercises the real production path (Ollama call, dims, L2-normalize) that `test` never touches
+  - [ ] Gated on Ollama being available; not part of the portable/CI acceptance gate
 
 ## Milestone G3 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit as a template (`SPEC.md` §4 lifecycle)

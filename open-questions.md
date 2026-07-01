@@ -73,3 +73,47 @@ point Option A (plain tracked files inside the devkit, `git init` a copy at test
 time) becomes the likely target, since it makes the golden a non-drifting,
 version-tracked baseline. The pipeline is being built embedder-agnostic and
 path-agnostic specifically so this move stays cheap.
+
+---
+
+## OQ-2: How do we validate with the real (semantic) embedder, not just `test`?
+
+**Status:** DECIDED (direction) — two tiers; see [Decision](#decision-1).
+
+### Context
+
+The G2 acceptance test regenerates a brain and **byte-diffs** it against the
+golden. That diff uses the deterministic `test` embedder (pure SHA-256 math), so
+the committed sidecars are **byte-identical on any machine**. Reasonable question:
+the real embedder (`nomic-embed-text` via Ollama) is also deterministic on the
+same machine — why not use it for the acceptance diff?
+
+### The conflict
+
+- **Same-machine deterministic ≠ reproducible everywhere.** Real neural
+  embeddings drift in low-order float bits across CPU/GPU, BLAS, Ollama/model
+  versions, and quantization. The golden's sidecars are **committed frozen bytes**;
+  a byte-diff must reproduce them on CI and every contributor's machine, which a
+  real model cannot guarantee. Any Ollama/model upgrade would also force a full
+  re-baseline.
+- **Dependency.** The acceptance gate must run anywhere with no Ollama server or
+  model pull. `test` is stdlib-only.
+- **But** the byte-diff proves *structure*, never *retrieval quality*, and never
+  exercises the real Ollama path.
+
+### Decision
+
+**Two complementary tiers (do NOT extend the byte-diff to real embeddings):**
+
+1. **Structural tier — the acceptance oracle.** `test` embedder, byte-exact diff
+   vs golden. Portable, dependency-free, runs in CI. This is the generator
+   correctness gate. (G2 as originally written.)
+2. **Semantic tier — opt-in, local.** Real `ollama` embedder. Asserts **behavior,
+   not bytes** — e.g. a known query ranks the expected note in top-k, or cosine ≥
+   a threshold. Deliberately avoids float-exact assertions (brittle by nature even
+   same-machine). This checks the one thing `test` can't (relevance) and exercises
+   the real production path (Ollama call, dimension check, L2-normalize).
+
+**Revisit when:** we formalize the semantic tier's assertions (exact top-k /
+threshold values) and decide whether it runs in a nightly/local job vs. purely
+on-demand. Tracked as a G2 sub-item in `PLAN.md`.
