@@ -20,7 +20,9 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - [x] `README.md` — authoritative-specs callout; removed the duplicated sidecar schema
 - [x] `open-questions.md` — OQ-1 decided (interim: golden = standalone sibling repo)
 
-## Milestone G1 — Generator core (after the brain works)
+## Milestone G1 — Generator core (after the brain works)  ← NEXT
+The brain (`../second-brain-test`) is complete through M2 + Task 0004, so G1 is
+unblocked. **Start here:** decide the template strategy, then scaffold.
 The generator is a **pure function** `generate(target, params)` that writes a
 brain scaffold into `target` — the shared core both generation modes call
 ([SPEC §5.1](SPEC.md); validation = Mode A, production = Mode B).
