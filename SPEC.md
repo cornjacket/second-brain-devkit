@@ -181,17 +181,25 @@ separate:
 
 | Class | Examples | In a generated brain? |
 | --- | --- | --- |
-| **Product scaffold** | `scripts/`, `.githooks/pre-commit`, `config/`, `data/.gitkeep`, `seeds/`, `vault/*.md`, `tests/`, `SPEC.md`, `README.md`, `GEMINI.md`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** |
-| **Product doc with a dev-process section** | `CLAUDE.md` — its `ai-project-status` managed block + Commit-schema + Daily-plan sections | **Yes, but cleaned** — the template carries a product-only `CLAUDE.md` with the dev-process block removed |
+| **Product scaffold** | `scripts/`, `.githooks/pre-commit`, `config/`, `data/.gitkeep`, `seeds/`, `vault/*.md`, `tests/`, `README.md`, `GEMINI.md`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** |
+| **Product file with a forbidden reference** | `CLAUDE.md` (its `ai-project-status` managed block + Commit-schema + Daily-plan sections); `SPEC.md` and `register.py` (their lone `ai-project-status` "independence" mentions) | **Yes, but cleaned** — every `ai-project-status` reference scrubbed, not reworded |
 | **Dev-process artifact** | `PLAN.md`, `tasks/`, `daily-plan.md`, `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` (its `SessionStart` daily-plan hook) | **No — never emitted** |
 
 Why the exclusions: `PLAN.md` / `tasks/` / `daily-plan.md` and the daily-plan
 hook are about *using AI to build and track a repo* — work the devkit generator
 performs itself, so a generated brain has no use for them. Emitting them would
 also leak `ai-project-status` dev machinery into every user brain, violating the
-non-goal (§7). (`SPEC.md` and `register.py` *mention* `ai-project-status` only to
-declare independence from it — those stay; they are correct product-boundary
-statements.)
+non-goal (§7).
+
+**Hard invariant — zero forbidden references.** No emitted file may contain the
+string `ai-project-status` (or any other devkit-internal dependency) — *not even
+to declare independence from it*: an end user has never heard of it, so naming it
+only confuses. This is **deterministically enforced**, not trusted — the
+validation harness greps the generated tree against a denylist and fails on any
+hit (`tools/check_no_forbidden_refs.py`, [§5.3](#53-forbidden-reference-guard)).
+So `CLAUDE.md` loses its whole dev-process block, and `SPEC.md` / `register.py`
+lose their lone independence mentions; the *concept* of independence from meta
+tooling may remain, just never named.
 
 **Consequence for the G2 diff.** Because the template is a curated subset, the
 acceptance diff is **not** "generated tree == golden working tree." It compares
@@ -200,6 +208,16 @@ files are excluded, and `CLAUDE.md` is compared against the cleaned product
 variant (or excluded from the byte-diff and checked on its own). That manifest is
 the single source of truth for "what a brain contains" — authored in G1, consumed
 in G2.
+
+### 5.3 Forbidden-reference guard
+
+A deterministic linter — `tools/check_no_forbidden_refs.py` — scans a target tree
+for a **denylist** of tokens that must never appear in a generated brain (seeded
+with `ai-project-status`) and exits non-zero on any hit, printing `file:line` for
+each. It is not a per-brain product artifact; it lives in the devkit and runs as
+part of the Mode-A validation harness against the freshly generated
+`sandbox/scratch/`. This turns the §5.2 "zero forbidden references" invariant into
+a machine-checked gate rather than a manual promise.
 
 ## 6. Where the contracts live
 

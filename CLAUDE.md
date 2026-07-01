@@ -22,6 +22,15 @@ spec so they cannot drift.
   emits may depend on it. (This repo is itself *tracked by* `ai-project-status`
   for its own development — see the managed block below — but that must never
   leak into a generated brain.)
+- **Hard invariant — zero forbidden references in a generated brain.** No file
+  the generator emits may contain the string `ai-project-status` (or any other
+  devkit-internal dependency) — not even to *declare independence* from it; an
+  end user has never heard of it, so naming it only confuses. This is
+  **deterministically enforced**, not trusted: the validation harness greps the
+  generated tree for a denylist and fails on any hit
+  (`tools/check_no_forbidden_refs.py`). When you clean a golden file into a
+  template, scrub the reference entirely rather than reword it. See
+  [SPEC §5.2](SPEC.md).
 
 ## Development Workflow
 This repo is a **generator**: it produces a `second-brain/` repo. Build each feature with this loop:

@@ -35,9 +35,11 @@ brain scaffold into `target` — the shared core both generation modes call
       `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` SessionStart).
       This manifest is the source of truth for "what a brain contains" (G1) and
       the G2 diff's include/exclude list.
-- [ ] Produce the cleaned product `CLAUDE.md` template — strip the
-      `ai-project-status` managed block + Commit-schema + Daily-plan sections;
-      keep the product (record/query/invariants/setup) content.
+- [ ] Scrub **all** `ai-project-status` references from emitted files (hard
+      invariant, [SPEC §5.2](SPEC.md)): the cleaned `CLAUDE.md`/`GEMINI.md` lose
+      the managed block + Commit-schema + Daily-plan sections; `SPEC.md` and
+      `register.py` lose their "independence" mentions. Scrub, don't reword — the
+      guard greps for the literal token.
 - [ ] Scaffold a brain repo: PARA dirs, scripts, hook, config, docs
 - [ ] Emit AI memory (cleaned `CLAUDE.md`) + `GEMINI.md` symlink
 - [ ] Sidecar policy ([OQ-3](open-questions.md#oq-3)): gitignore live-vault
@@ -51,6 +53,10 @@ Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
   - [ ] `sandbox/scratch/` wipe-and-regenerate runner (never test stale state)
   - [ ] Diff generated output vs the golden (`../second-brain-test`) → clean diff = acceptance test
   - [ ] Confirm determinism (the `test` embedder) makes the diff stable
+  - [~] Forbidden-reference guard ([SPEC §5.3](SPEC.md)) — `tools/check_no_forbidden_refs.py`
+        greps the generated tree against a denylist (`ai-project-status`) and
+        fails on any hit. **Script written & verified against the golden;** wire
+        it into the wipe-and-regenerate runner once generation emits a tree.
 - **Semantic tier** — opt-in, local, real `ollama` embedder. Asserts *behavior*,
   not bytes (never byte-diff a neural model — brittle even same-machine).
   - [ ] Retrieval-quality check: known queries put expected notes in top-k / above a cosine threshold
