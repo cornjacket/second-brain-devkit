@@ -157,6 +157,50 @@ Consequences:
 - The two modes must produce **byte-identical** scaffolds at generation time; Mode
   A is what proves that, so Mode B can be trusted without re-diffing.
 
+### 5.2 Template strategy — how the generator stores & emits a scaffold
+
+**Decision (2026-07-01):** the generator emits by **copying a tracked template
+tree**, not by rendering a templating engine. Two findings drive this:
+
+- **No parameterization exists yet.** The golden's product files contain no
+  brain-name, author, or path variables (`git grep second-brain-test` over
+  product files is empty). A fill-in-the-blank engine would solve a problem the
+  product doesn't have. Revisit if a real per-brain variable appears — a copy
+  tree is a strict subset of what an engine could do, so the move stays cheap.
+- **The template must be tracked *by the devkit*** (OQ-1 Option A direction) so it
+  cannot drift and the copy is byte-exact.
+
+So `generate(target, params)` is, in essence: copy the template tree into
+`target`, then run the post-steps (seed the vault from `seeds/`, embed the
+committed `test`-backend fixtures — [OQ-3](open-questions.md#oq-3)).
+
+**The template is a *curated, cleaned subset* of the golden — not a raw copy of
+its working tree.** The golden is at once the reference implementation *and* a
+repo we build with AI assistance, so it mixes two things the generator must
+separate:
+
+| Class | Examples | In a generated brain? |
+| --- | --- | --- |
+| **Product scaffold** | `scripts/`, `.githooks/pre-commit`, `config/`, `data/.gitkeep`, `seeds/`, `vault/*.md`, `tests/`, `SPEC.md`, `README.md`, `GEMINI.md`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** |
+| **Product doc with a dev-process section** | `CLAUDE.md` — its `ai-project-status` managed block + Commit-schema + Daily-plan sections | **Yes, but cleaned** — the template carries a product-only `CLAUDE.md` with the dev-process block removed |
+| **Dev-process artifact** | `PLAN.md`, `tasks/`, `daily-plan.md`, `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` (its `SessionStart` daily-plan hook) | **No — never emitted** |
+
+Why the exclusions: `PLAN.md` / `tasks/` / `daily-plan.md` and the daily-plan
+hook are about *using AI to build and track a repo* — work the devkit generator
+performs itself, so a generated brain has no use for them. Emitting them would
+also leak `ai-project-status` dev machinery into every user brain, violating the
+non-goal (§7). (`SPEC.md` and `register.py` *mention* `ai-project-status` only to
+declare independence from it — those stay; they are correct product-boundary
+statements.)
+
+**Consequence for the G2 diff.** Because the template is a curated subset, the
+acceptance diff is **not** "generated tree == golden working tree." It compares
+only the product intersection, driven by an explicit **manifest**: dev-process
+files are excluded, and `CLAUDE.md` is compared against the cleaned product
+variant (or excluded from the byte-diff and checked on its own). That manifest is
+the single source of truth for "what a brain contains" — authored in G1, consumed
+in G2.
+
 ## 6. Where the contracts live
 
 | Concern | Authoritative source |

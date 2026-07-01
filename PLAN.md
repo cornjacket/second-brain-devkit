@@ -20,15 +20,26 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - [x] `README.md` — authoritative-specs callout; removed the duplicated sidecar schema
 - [x] `open-questions.md` — OQ-1 decided (interim: golden = standalone sibling repo)
 
-## Milestone G1 — Generator core (after the brain works)  ← NEXT
+## Milestone G1 — Generator core (after the brain works)  ← IN PROGRESS
 The brain (`../second-brain-test`) is complete through M2 + Task 0004, so G1 is
-unblocked. **Start here:** decide the template strategy, then scaffold.
+unblocked. Template strategy is decided; **next: author the manifest, then scaffold.**
 The generator is a **pure function** `generate(target, params)` that writes a
 brain scaffold into `target` — the shared core both generation modes call
 ([SPEC §5.1](SPEC.md); validation = Mode A, production = Mode B).
-- [ ] Choose template strategy (how to productize the brain's `SPEC.md`/`CLAUDE.md`/`scripts/` into templates)
+- [x] Choose template strategy — DECIDED (2026-07-01): **copy a tracked template
+      tree** (no engine); the template is a *curated, cleaned subset* of the
+      golden ([SPEC §5.2](SPEC.md)). No parameterization exists yet, so a copy
+      suffices; revisit if a real per-brain variable appears.
+- [ ] Author the emit **manifest**: classify every golden file as product /
+      dev-process. Exclude dev-process (`PLAN.md`, `tasks/`, `daily-plan.md`,
+      `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` SessionStart).
+      This manifest is the source of truth for "what a brain contains" (G1) and
+      the G2 diff's include/exclude list.
+- [ ] Produce the cleaned product `CLAUDE.md` template — strip the
+      `ai-project-status` managed block + Commit-schema + Daily-plan sections;
+      keep the product (record/query/invariants/setup) content.
 - [ ] Scaffold a brain repo: PARA dirs, scripts, hook, config, docs
-- [ ] Emit AI memory + `GEMINI.md` symlink
+- [ ] Emit AI memory (cleaned `CLAUDE.md`) + `GEMINI.md` symlink
 - [ ] Sidecar policy ([OQ-3](open-questions.md#oq-3)): gitignore live-vault
       sidecars; emit committed `tests/fixtures/vault/` (`test` backend) + a `type`
       field pinned to `test`
