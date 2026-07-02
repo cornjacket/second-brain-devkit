@@ -22,7 +22,8 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## Milestone G1 — Generator core (after the brain works)  ← IN PROGRESS
 The brain (`../second-brain-test`) is complete through M2 + Task 0004, so G1 is
-unblocked. Strategy + manifest are done; **next: build the cleaned template tree, then scaffold.**
+unblocked. Strategy + manifest are done; **next: rework the golden (prototype-first),
+then templatize.**
 The generator is a **pure function** `generate(target, params)` that writes a
 brain scaffold into `target` — the shared core both generation modes call
 ([SPEC §5.1](SPEC.md); validation = Mode A, production = Mode B).
@@ -31,17 +32,26 @@ brain scaffold into `target` — the shared core both generation modes call
       golden ([SPEC §5.2](SPEC.md)). No parameterization exists yet, so a copy
       suffices; revisit if a real per-brain variable appears.
 - [x] Author the emit **manifest** — `emit-manifest.toml`: every golden file
-      classified into `verbatim` / `cleaned` / `generated` / `exclude` (25/4/5/8).
-      Source of truth for "what a brain contains" (G1) + the G2 diff's include
-      list. `tools/check_manifest_partition.py` proves it partitions the golden's
-      42 tracked files exactly (no missing/extra/dup) — verified passing.
-- [ ] Scrub **all** `ai-project-status` references from emitted files (hard
-      invariant, [SPEC §5.2](SPEC.md)): the cleaned `CLAUDE.md`/`GEMINI.md` lose
-      the managed block + Commit-schema + Daily-plan sections; `SPEC.md` and
-      `register.py` lose their "independence" mentions. Scrub, don't reword — the
-      guard greps for the literal token.
-- [ ] Scaffold a brain repo: PARA dirs, scripts, hook, config, docs
-- [ ] Emit AI memory (cleaned `CLAUDE.md`) + `GEMINI.md` symlink
+      classified into `verbatim`/`cleaned`/`generated`/`promote_to_devkit`/`exclude`
+      (17/11/5/1/8). Source of truth for "what a brain contains" (G1) + the G2
+      diff's include list. `tools/check_manifest_partition.py` proves it partitions
+      the golden's 42 tracked files exactly (no missing/extra/dup) — verified passing.
+- [ ] **Golden rework (prototype-first, in `../second-brain-test`)** before
+      templatizing ([OQ-4](open-questions.md#oq-4)):
+  - [ ] Expand `README.md` into the brain's operational doc (record / query /
+        setup) — the one doc a brain user (human or AI) needs. Include a
+        **provenance back-reference to the devkit** (origin + canonical spec home)
+        so the local AI has a path to the internals — provenance, not a dependency.
+  - [ ] Relocate `SPEC.md`'s design internals into the devkit as the canonical
+        product spec (pulls [G4](#milestone-g4--lifecycle) forward); `SPEC.md` is
+        not emitted into brains.
+  - [ ] Scrub every `ai-project-status` reference and every `SPEC.md §X` /
+        cross-repo pointer from the files the manifest marks `cleaned`. Both guards
+        (forbidden-ref + partition) must stay green.
+- [ ] Templatize the reworked golden into a devkit-tracked template tree; run
+      `tools/check_no_forbidden_refs.py` over it → zero hits.
+- [ ] Scaffold a brain repo from the template: PARA dirs, scripts, hook, config,
+      the operational `README.md`, cleaned `CLAUDE.md` + `GEMINI.md` symlink.
 - [ ] Sidecar policy ([OQ-3](open-questions.md#oq-3)): gitignore live-vault
       sidecars; emit committed `tests/fixtures/vault/` (`test` backend) + a `type`
       field pinned to `test`
@@ -76,6 +86,9 @@ the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
 - [ ] Document the end-user "generate your brain" flow (README / a `generate` entry point)
 
 ## Milestone G4 — Lifecycle
-- [ ] Promote the canonical product spec into the devkit as a template (`SPEC.md` §4 lifecycle)
+- [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).
+      **Pulled forward by [OQ-4](open-questions.md#oq-4):** since brains don't ship
+      `SPEC.md`, the design internals need their canonical devkit home during the
+      G1 golden rework — not after mothballing.
 - [ ] Mothball `second-brain-test` once generation + harness are trustworthy
 - [ ] Resolve OQ-1 long-term (golden storage → Option A, tracked files in devkit) — `open-questions.md`

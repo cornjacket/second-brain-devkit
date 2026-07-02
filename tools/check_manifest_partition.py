@@ -26,7 +26,7 @@ import sys
 import tomllib
 from pathlib import Path
 
-BUCKETS = ("verbatim", "cleaned", "generated", "exclude")
+BUCKETS = ("verbatim", "cleaned", "generated", "promote_to_devkit", "exclude")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GOLDEN = REPO_ROOT.parent / "second-brain-test"

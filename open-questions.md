@@ -160,3 +160,67 @@ A generated brain (like the golden, Task 0004) must emit:
 
 **Revisit when:** we decide whether generated brains also ship the semantic-tier
 E2E harness, or only the structural self-test.
+
+---
+
+## OQ-4: Does a generated brain ship the product design spec (`SPEC.md`)?
+
+**Status:** DECIDED (direction) — **no.** The devkit owns the design internals; the
+brain ships an operational `README.md`. See [Decision](#decision-3).
+
+### Context
+
+The golden's `SPEC.md` is the product spec — sidecar schema, embedding contract,
+cache DDL, search/`register` behavior. The emit manifest first classified it
+`cleaned` (emit it after scrubbing `ai-project-status`). But `SPEC.md` is
+*design-internal*: the definition of *how the pipeline is built*, not what a
+brain's user (human or AI) needs to *operate* the brain. It is also deeply
+cross-referenced — ~11 "see `SPEC.md §X`" pointers across the scripts, hook, and
+memory — and was authored to build the reference implementation.
+
+### The conflict
+
+- **A brain must be self-documenting for its user** (human writing notes, AI
+  querying) → that audience needs *operational* guidance (record / query / setup),
+  which belongs in `README.md`.
+- **Design internals have one true home.** Schema / DDL / embedding contract are
+  *defined* in the devkit (the generator + system home, and the eventual canonical
+  owner — [SPEC §4](SPEC.md) lifecycle). Shipping the full internal spec into every
+  brain duplicates the definition, invites drift, and leaves cross-repo/dependency
+  references inside a product that should stand alone.
+
+### Decision
+
+1. **`SPEC.md` is NOT emitted into a generated brain.** Its design internals are
+   owned by the **devkit** (canonical) — consistent with lifecycle §4 and OQ-1's
+   long-term direction.
+2. **The brain's `README.md` carries everything the user (human or AI) needs to
+   operate it** — record / query / setup — with **no** design internals and **no**
+   dependency references.
+3. **Emitted files are scrubbed of `SPEC.md §X` pointers** (they would dangle in a
+   brain with no `SPEC.md`) and of any cross-repo reference (e.g. `tests/README.md`
+   → "devkit `OQ-2`").
+4. If a spec-like doc is ever shipped, it must first be stripped of dependency
+   references and design internals — but the default is that it is not shipped.
+5. **The brain's `README.md` carries a provenance back-reference to the devkit**
+   (the repo that generated it and the canonical home of the design internals).
+   This is *not* a runtime dependency — the brain stands alone — but a documented
+   path for the brain's local AI (or a curious user) to reach the internals if
+   ever needed. It resolves the "where did the design spec go?" gap left by (1)
+   without duplicating the spec into the brain. It is exempt from the forbidden-
+   reference rule (which targets `ai-project-status`, unrelated meta-tooling); the
+   devkit *is* the brain's legitimate origin, not a foreign dependency.
+
+### Implications (G1 build + golden rework, prototype-first)
+
+- Manifest: `SPEC.md` → **not emitted** (`promote_to_devkit`). Every file carrying
+  a `SPEC.md §X` pointer moves from `verbatim` to `cleaned` (scrub the pointer);
+  `README.md` is *expanded* into the operational doc.
+- The **golden is reworked first** (prototype-first): grow `README.md`, relocate
+  the design internals to the devkit as the canonical spec, scrub the refs — then
+  the devkit templatizes the reworked golden.
+- Pulls the lifecycle §4 "promote the product spec into the devkit" step forward
+  (see PLAN G4).
+
+**Revisit when:** the golden rework lands and we see whether any residual design
+detail genuinely needs to live *inside* a brain.

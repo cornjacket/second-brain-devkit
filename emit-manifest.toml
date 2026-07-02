@@ -6,38 +6,34 @@
 #   • the G2 structural diff — the include-list (dev-process files are excluded,
 #     so they never count as differences vs the golden);
 #   • the forbidden-reference guard (tools/check_no_forbidden_refs.py) — its scope
-#     is the emitted tree, which by construction excludes every `exclude` entry.
+#     is the emitted tree, which by construction excludes every non-emitted entry.
 #
-# Invariant: the four path sets below must PARTITION the golden's tracked files —
-# every tracked file appears in exactly one, none appears twice. tools/check_
-# manifest_partition.py enforces this against `git ls-files` in the golden.
+# Invariant: the FIVE path sets below must PARTITION the golden's tracked files —
+# every tracked file appears in exactly one, none appears twice.
+# tools/check_manifest_partition.py enforces this against `git ls-files`.
+#
+# This manifest describes the TARGET state (post golden-rework, prototype-first).
+# The `cleaned` variants and the expanded README are produced when the golden is
+# reworked and templatized (G1); the classification here is the spec for that.
 #
 # Data only; declarative. Paths are golden-relative. Stdlib-loadable via tomllib.
 
-# Denylist for the forbidden-reference guard — tokens that must never appear in an
-# emitted brain (SPEC §5.2/§5.3). The `cleaned` files below are exactly the golden
-# files that currently contain one of these and must be scrubbed on the way out.
+# Tokens that must never appear in an emitted brain (SPEC §5.2/§5.3). The guard
+# fails on any hit in the generated tree.
 forbidden_tokens = ["ai-project-status"]
 
 
 # --- verbatim -----------------------------------------------------------------
 # Copied byte-for-byte from the template into the generated brain. Confirmed free
-# of forbidden tokens (the guard flags none of these in the golden).
+# of forbidden tokens AND of any `SPEC.md §X` / cross-repo pointer.
 [verbatim]
 paths = [
   ".gitattributes",
-  ".githooks/pre-commit",
   ".gitignore",
-  "README.md",
   "config/.gitkeep",
   "data/.gitkeep",
   "requirements.txt",
   "scripts/check_line_count.py",
-  "scripts/db.py",
-  "scripts/embed_staged.py",
-  "scripts/embedder.py",
-  "scripts/hydrate_cache.py",
-  "scripts/search_vault.py",
   "scripts/seed_vault.py",
   "scripts/self_test.py",
   "seeds/archive/.gitkeep",
@@ -45,7 +41,6 @@ paths = [
   "seeds/projects/second-brain.md",
   "seeds/resources/embeddings.md",
   "seeds/resources/sqlite-vec.md",
-  "tests/README.md",
   "tests/fixtures/vault/areas/habits.md",
   "tests/fixtures/vault/areas/.habits.embed.json",
   "tests/fixtures/vault/resources/vectors.md",
@@ -53,23 +48,40 @@ paths = [
 ]
 
 # --- cleaned ------------------------------------------------------------------
-# Emitted, but scrubbed of every forbidden token first (SPEC §5.2). The template
-# stores the ALREADY-cleaned variant, so at generation time these are still just
-# copies — the cleaning happens once, when the golden file is productized into the
-# template, not per-generation. `reason` records what to strip.
+# Emitted, but the template stores an ALREADY-cleaned variant. Two kinds of
+# cleaning (a file may need both), all done ONCE when the golden is productized
+# into the template — not per-generation:
+#   • forbidden-token scrub — remove every `ai-project-status` reference (OQ-4/§5.2)
+#   • spec-ref scrub — remove `SPEC.md §X` pointers (SPEC.md is not emitted, OQ-4);
+#     `tests/README.md` also loses its cross-repo "devkit OQ-2" pointer
+#   • README expansion — README.md grows into the brain's operational doc (OQ-4)
 [cleaned]
 paths = [
   "CLAUDE.md",
   "GEMINI.md",
-  "SPEC.md",
+  "README.md",
+  "tests/README.md",
+  ".githooks/pre-commit",
+  "scripts/db.py",
+  "scripts/embed_staged.py",
+  "scripts/embedder.py",
+  "scripts/hydrate_cache.py",
   "scripts/register.py",
+  "scripts/search_vault.py",
 ]
 
 [cleaned.reasons]
-"CLAUDE.md" = "drop the ai-project-status managed block + Commit-schema + Daily-plan sections; keep record/query/invariants/setup"
-"GEMINI.md" = "symlink -> CLAUDE.md; inherits the cleaning, emitted as a symlink"
-"SPEC.md" = "remove the lone 'Independence … ai-project-status' mention (§6); keep the independence concept, unnamed"
-"scripts/register.py" = "remove the 'Independent of ai-project-status' comment; keep the behavior"
+"CLAUDE.md" = "forbidden-token scrub (drop the ai-project-status block + Commit-schema + Daily-plan sections) + spec-ref scrub"
+"GEMINI.md" = "symlink -> CLAUDE.md; inherits both scrubs, emitted as a symlink"
+"README.md" = "spec-ref scrub + EXPAND into the operational doc (record/query/setup); add a provenance back-reference to the devkit (origin + canonical spec home) — a path to the internals, not a runtime dependency (OQ-4)"
+"tests/README.md" = "spec-ref scrub + drop the cross-repo 'devkit OQ-2' pointer"
+".githooks/pre-commit" = "spec-ref scrub (drops 'SPEC.md §5.1')"
+"scripts/db.py" = "spec-ref scrub (drops 'SPEC.md §7')"
+"scripts/embed_staged.py" = "spec-ref scrub (drops 'SPEC.md §3.1 / §5.1')"
+"scripts/embedder.py" = "spec-ref scrub (drops 'SPEC.md §4' pointers; keep the inline same-model note)"
+"scripts/hydrate_cache.py" = "spec-ref scrub (drops 'SPEC.md §5.2')"
+"scripts/register.py" = "forbidden-token scrub ('Independent of ai-project-status' comment) + spec-ref scrub ('SPEC.md §6')"
+"scripts/search_vault.py" = "spec-ref scrub (drops 'SPEC.md §5.3')"
 
 # --- generated ----------------------------------------------------------------
 # NOT in the template tree — produced by a post-step at generation time, then
@@ -87,11 +99,25 @@ paths = [
 [generated.by]
 "vault/**" = "scripts/seed_vault.py copies seeds/** -> vault/** (do_seed: all files, incl. .gitkeep)"
 
+# --- promote_to_devkit --------------------------------------------------------
+# NOT emitted into the brain — but NOT a dead artifact either. This is the product
+# DESIGN spec (schema, embedding contract, cache DDL, search/register behavior).
+# Its canonical home is the devkit (the generator + system home); it is promoted
+# there (lifecycle §4), not shipped into every brain. A brain's operational needs
+# are met by the expanded README instead. See OQ-4.
+[promote_to_devkit]
+paths = [
+  "SPEC.md",
+]
+
+[promote_to_devkit.reasons]
+"SPEC.md" = "product design internals — owned by the devkit; a brain ships README (operational), not this (OQ-4)"
+
 # --- exclude ------------------------------------------------------------------
-# Dev-process artifacts — NEVER emitted. About *using AI to build & track a repo*
-# (work the generator itself performs) and/or ai-project-status machinery. Omitted
-# from the brain and from the G2 diff. `.claude/` disappears entirely (both its
-# tracked files are here), so no empty dir is emitted.
+# Dev-process artifacts — NEVER emitted, and discarded (not promoted). About
+# *using AI to build & track a repo* (work the generator itself performs) and/or
+# ai-project-status machinery. Omitted from the brain and from the G2 diff.
+# `.claude/` disappears entirely (both its tracked files are here).
 [exclude]
 paths = [
   ".claude/hooks/check-daily-plan.py",

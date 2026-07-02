@@ -179,17 +179,29 @@ its working tree.** The golden is at once the reference implementation *and* a
 repo we build with AI assistance, so it mixes two things the generator must
 separate:
 
+The buckets are enumerated file-by-file in the emit manifest
+(`emit-manifest.toml`); `tools/check_manifest_partition.py` proves they partition
+the golden's tracked files exactly. In summary:
+
 | Class | Examples | In a generated brain? |
 | --- | --- | --- |
-| **Product scaffold** | `scripts/`, `.githooks/pre-commit`, `config/`, `data/.gitkeep`, `seeds/`, `vault/*.md`, `tests/`, `README.md`, `GEMINI.md`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** |
-| **Product file with a forbidden reference** | `CLAUDE.md` (its `ai-project-status` managed block + Commit-schema + Daily-plan sections); `SPEC.md` and `register.py` (their lone `ai-project-status` "independence" mentions) | **Yes, but cleaned** — every `ai-project-status` reference scrubbed, not reworded |
-| **Dev-process artifact** | `PLAN.md`, `tasks/`, `daily-plan.md`, `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` (its `SessionStart` daily-plan hook) | **No — never emitted** |
+| **Product scaffold** | `scripts/seed_vault.py`, `scripts/self_test.py`, `scripts/check_line_count.py`, `seeds/`, `tests/fixtures/`, `config/`, `data/.gitkeep`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** |
+| **Product file needing cleaning** | `CLAUDE.md`/`GEMINI.md` (`ai-project-status` block + `SPEC.md §X` refs); `README.md` (expanded into the operational doc + refs scrubbed); the pipeline scripts, `pre-commit`, `tests/README.md` (`SPEC.md §X` / cross-repo refs) | **Yes, but cleaned** — forbidden tokens + dangling refs scrubbed, `README.md` grown |
+| **Generated post-step** | `vault/**` | **Yes — produced by `seed_vault.py`, not templated** |
+| **Design spec → devkit** | `SPEC.md` (schema, embedding contract, cache DDL, search/`register`) | **No — promoted to the devkit as canonical (OQ-4); a brain ships `README.md`, not this** |
+| **Dev-process artifact** | `PLAN.md`, `tasks/`, `daily-plan.md`, `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` (`SessionStart`) | **No — discarded** |
 
-Why the exclusions: `PLAN.md` / `tasks/` / `daily-plan.md` and the daily-plan
-hook are about *using AI to build and track a repo* — work the devkit generator
-performs itself, so a generated brain has no use for them. Emitting them would
-also leak `ai-project-status` dev machinery into every user brain, violating the
-non-goal (§7).
+Why `SPEC.md` is *promoted, not emitted*: it is the product's **design
+internals**, whose one canonical home is the devkit (lifecycle §4). A brain's
+user (human or AI) needs *operational* guidance — record / query / setup — which
+lives in the brain's `README.md`; the internal contract does not belong duplicated
+inside every brain. The `README.md` also carries a **provenance back-reference to
+the devkit** (origin + canonical spec home) — a documented path for the brain's
+local AI to reach the internals if ever needed, *not* a runtime dependency. See
+[OQ-4](open-questions.md#oq-4). Why the *dev-process*
+exclusions: `PLAN.md` / `tasks/` / `daily-plan.md` and the daily-plan hook are
+about *using AI to build and track a repo* — work the generator itself performs —
+and would leak `ai-project-status` machinery into every brain, violating §7.
 
 **Hard invariant — zero forbidden references.** No emitted file may contain the
 string `ai-project-status` (or any other devkit-internal dependency) — *not even
@@ -197,17 +209,18 @@ to declare independence from it*: an end user has never heard of it, so naming i
 only confuses. This is **deterministically enforced**, not trusted — the
 validation harness greps the generated tree against a denylist and fails on any
 hit (`tools/check_no_forbidden_refs.py`, [§5.3](#53-forbidden-reference-guard)).
-So `CLAUDE.md` loses its whole dev-process block, and `SPEC.md` / `register.py`
-lose their lone independence mentions; the *concept* of independence from meta
-tooling may remain, just never named.
+So `CLAUDE.md` loses its whole dev-process block, and `register.py` loses its lone
+independence mention; the *concept* of independence from meta tooling may remain,
+just never named. Emitted files likewise carry no dangling `SPEC.md §X` pointer,
+since `SPEC.md` is not shipped.
 
 **Consequence for the G2 diff.** Because the template is a curated subset, the
 acceptance diff is **not** "generated tree == golden working tree." It compares
-only the product intersection, driven by an explicit **manifest**: dev-process
-files are excluded, and `CLAUDE.md` is compared against the cleaned product
-variant (or excluded from the byte-diff and checked on its own). That manifest is
-the single source of truth for "what a brain contains" — authored in G1, consumed
-in G2.
+only the emitted intersection, driven by the manifest: non-emitted files
+(`promote_to_devkit`, `exclude`) are dropped, and `cleaned` files are compared
+against their cleaned variant (or excluded from the byte-diff and checked on their
+own). That manifest is the single source of truth for "what a brain contains" —
+authored in G1, consumed in G2.
 
 ### 5.3 Forbidden-reference guard
 
