@@ -36,7 +36,7 @@ brain scaffold into `target` — the shared core both generation modes call
       Source of truth for "what a brain contains" (G1) + the G2 diff's include
       list. `tools/check_manifest_partition.py` proves it partitions the golden's
       41 tracked files exactly (no missing/extra/dup) — verified passing.
-- [~] **Golden rework (prototype-first, in `../second-brain-test`)** before
+- [x] **Golden rework (prototype-first, in `../second-brain-test`)** before
       templatizing ([OQ-4](open-questions.md#oq-4)):
   - [x] `SPEC.md` is `exclude`d from emission but **kept in the golden** as its
         build-time design reference (promotion to the devkit stays at
@@ -44,14 +44,15 @@ brain scaffold into `target` — the shared core both generation modes call
         pointers from the golden's *emitted* files (scripts, hook, `.gitattributes`,
         `tests/README.md`) so a brain is coherent without it. Golden `self_test`
         green. (golden `f675fe3` + `e934dcb`.)
-  - [ ] **Expand `README.md`** into the brain's operational doc (record / query /
-        setup) — the one doc a brain user (human or AI) needs. Include a
-        **provenance back-reference to the devkit** (origin + eventual spec home).
-        *Deferred — next, collaborative.* (Golden README is still framed as the
-        golden reference; only its dangling `SPEC.md` links were fixed so far.)
-- [ ] Templatize the reworked golden into a devkit-tracked template tree — this is
-      where the `cleaned` files are scrubbed of `ai-project-status` (`CLAUDE.md`/
-      `GEMINI.md` dev-block, `register.py` comment). Run
+  - [x] **Rewrote `README.md`** as the brain's operational guide (Setup → Everyday
+        use → Layout → How it works → Registering). The golden keeps its
+        "golden reference" top note → local `SPEC.md`; the emitted variant swaps
+        that for a **provenance back-reference to the devkit** at templatize time.
+        (golden `9ed9356`.)
+- [ ] Templatize the reworked golden into a devkit-tracked template tree — where
+      the `cleaned` files diverge from the golden: scrub `ai-project-status`
+      (`CLAUDE.md`/`GEMINI.md` dev-block, `register.py` comment) and swap the
+      `README.md` top note for the devkit provenance line. Run
       `tools/check_no_forbidden_refs.py` over it → zero hits.
 - [ ] Scaffold a brain repo from the template: PARA dirs, scripts, hook, config,
       the operational `README.md`, cleaned `CLAUDE.md` + `GEMINI.md` symlink.

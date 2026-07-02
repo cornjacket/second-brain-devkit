@@ -214,7 +214,7 @@ memory — and was authored to build the reference implementation.
 
 ### Implications (G1 build + golden rework, prototype-first)
 
-**Landed (golden `f675fe3` + `e934dcb`):**
+**Landed (golden `f675fe3`, `e934dcb`, `9ed9356`):**
 
 - The `SPEC.md §X` pointers were scrubbed from the golden's **emitted** files
   (scripts, hook, `.gitattributes`, `tests/README.md`), so they stay plain
@@ -232,11 +232,11 @@ memory — and was authored to build the reference implementation.
 - The lifecycle §4 "promote the product spec into the devkit" step stays where it
   was — at mothball, not now (see PLAN G4).
 
-**Still open:**
-
-- `README.md` must be **expanded** into the brain's operational doc + the devkit
-  provenance back-reference (deferred, collaborative). Until then the golden's
-  README is still framed as the golden reference.
+- `README.md` was **rewritten** as the brain's operational guide (golden
+  `9ed9356`). The golden keeps a "golden reference → local `SPEC.md`" top note;
+  the emitted variant swaps it for the devkit provenance back-reference at
+  templatize time. This was the last golden-rework item — only templatizing
+  remains before scaffolding.
 
 **Revisit when:** the README rework lands and we see whether any residual design
 detail genuinely needs to live *inside* a brain.

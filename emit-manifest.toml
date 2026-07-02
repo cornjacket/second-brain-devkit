@@ -74,7 +74,7 @@ paths = [
 [cleaned.reasons]
 "CLAUDE.md" = "forbidden-token scrub — drop the ai-project-status managed block + Commit-schema + Daily-plan sections (the golden keeps them for its own dev-process; a brain must not)"
 "GEMINI.md" = "symlink -> CLAUDE.md; inherits the scrub, emitted as a symlink"
-"README.md" = "EXPAND into the brain's operational doc (record/query/setup) + provenance back-reference to the devkit; the golden's README is framed as the golden reference, so it differs from an emitted brain's (OQ-4)"
+"README.md" = "operational guide (done in the golden, 9ed9356); swap the golden's 'golden reference -> local SPEC.md' top note for a provenance back-reference to the devkit (OQ-4)"
 "scripts/register.py" = "forbidden-token scrub — drop the 'Independent of ai-project-status' comment (keep the behavior)"
 
 # --- generated ----------------------------------------------------------------
