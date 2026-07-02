@@ -1,47 +1,72 @@
-# Second Brain Devkit — Agent Memory
+# Second Brain — Agent Memory
 
-This is memory for working **on the devkit** — the generator and system home. It
-is *not* the memory for working inside a brain; that lives in the product repo at
-`../second-brain-test/CLAUDE.md`.
+You are working **inside a Second Brain**: a PARA Markdown vault (for humans) plus
+a local SQLite `vec0` cache (for you). The full contract is in [SPEC.md](SPEC.md);
+this file is the operational memory.
 
-## Where things are specified
+> `GEMINI.md` is a symlink to this file so Claude and Gemini read identical
+> instructions.
 
-Do **not** duplicate product (per-brain) contracts here — link to the product
-spec so they cannot drift.
+## North star — this repo is the generator's spec
 
-- System workflow, roles, lifecycle, generator/validation loop → [SPEC.md](SPEC.md)
-- Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search,
-  `register`) → `../second-brain-test/SPEC.md` (canonical product spec, for now —
-  promoted into the devkit only at mothball, see [OQ-4](open-questions.md))
-- Unresolved design decisions → [open-questions.md](open-questions.md)
+The eventual [`second-brain-devkit`](https://github.com/cornjacket/second-brain-devkit)
+will **generate a copy of this repo** from its structure + git history +
+`PLAN.md`/`tasks/`. So every action here is the generator's source material:
+**if it isn't recorded, the generator can't reproduce it.** Keep work fully
+traceable — schema-compliant commits (see *Git Automation*), a `tasks/` doc for
+non-trivial work, and `PLAN.md` kept in sync. Favor legibility over speed.
 
-## Style & conventions (devkit code)
+## Recording knowledge
 
-- Imports: standard library unless declared in `requirements.txt`.
-- Match the surrounding code's style and comment density.
-- The devkit is **disjoint from `ai-project-status`**: nothing the generator
-  emits may depend on it. (This repo is itself *tracked by* `ai-project-status`
-  for its own development — see the managed block below — but that must never
-  leak into a generated brain.)
-- **Hard invariant — zero forbidden references in a generated brain.** No file
-  the generator emits may contain the string `ai-project-status` (or any other
-  devkit-internal dependency) — not even to *declare independence* from it; an
-  end user has never heard of it, so naming it only confuses. This is
-  **deterministically enforced**, not trusted: the validation harness greps the
-  generated tree for a denylist and fails on any hit
-  (`tools/check_no_forbidden_refs.py`). When you clean a golden file into a
-  template, scrub the reference entirely rather than reword it. See
-  [SPEC §5.2](SPEC.md).
+Durable lessons, insights, and architecture understandings belong here as **PARA
+notes** — there is no separate ingestion path; a note *is* the ingestion.
 
-## Development Workflow
-This repo is a **generator**: it produces a `second-brain/` repo. Build each feature with this loop:
-1. **Prototype** the feature by hand in the golden reference (`../second-brain-test/`, a standalone sibling repo — see OQ-1) and confirm it behaves as expected. The golden is the known-good *expected output* and serves as the regression baseline.
-2. **Productize** it into the devkit — the script, prompt, or harness that generates the feature.
-3. **Validate** by running the devkit against a throwaway repo at `sandbox/scratch/`. The harness must **wipe-and-regenerate** `sandbox/scratch/` on every run (never test against stale state), then **diff** the generated output against the golden reference. A clean diff is the acceptance test. Run the whole gate with `python3 tools/ci.py` (the same entry point CI runs — local ≡ CI).
+- File the note under the right PARA root inside the vault: `vault/projects/`
+  (goal-bound effort), `vault/areas/` (ongoing responsibility), `vault/resources/`
+  (durable reference), `vault/archive/` (inactive).
+- Lowercase kebab-case filename, `.md`, with YAML frontmatter (`tags: [...]`).
+  Link related notes with `[[wikilinks]]`.
+- Commit it. On commit the hook refreshes the note's `.embed.json` sidecar
+  locally, then run `hydrate_cache.py` to update the cache. Vault sidecars are
+  **derived and git-ignored** (regenerated locally) — do not hand-edit or commit
+  them. The only committed sidecars are the deterministic fixtures under
+  `tests/fixtures/vault/`.
 
-- `sandbox/` is gitignored — it is regenerated output, never committed.
-- The live golden answers *"does the feature work?"*; `sandbox/scratch/` answers *"does the devkit generate it correctly?"*
-- **Golden location (OQ-1, RESOLVED → Option A):** the golden is **vendored into the devkit** at `tests/golden/` — plain tracked files (no `.git`), the regression baseline the whole harness reads. Refresh it from the live prototype with `python3 tools/vendor_golden.py` (a dev-machine step; **CI never runs it** and never reaches outside this repo). The live `../second-brain-test/` is now only the **hand-prototyping surface** — its own `.git` + hook still fire for real while you build a feature (step 1) — and heads for mothball ([G4](PLAN.md)); the pre-commit hook is exercised in CI via Mode-B generation, not via the golden. After prototyping in the live golden, run `vendor_golden.py` to update the snapshot, then commit. See OQ-1 in [open-questions.md](open-questions.md).
+## Querying knowledge
+
+Before solving something from scratch, search what the brain already knows:
+
+```bash
+python3 scripts/search_vault.py "<natural-language query>"
+```
+
+After adding or editing notes, rebuild the cache:
+
+```bash
+python3 scripts/hydrate_cache.py
+```
+
+## Invariants & safety
+
+- **Same model for notes and queries.** Search only works if the query is
+  embedded by the same backend/model as the notes. Both go through
+  `scripts/embedder.py`; do not bypass it. (`SECOND_BRAIN_EMBEDDER=test` is
+  deterministic plumbing; `=ollama` is real semantic search.)
+- **Never** edit a `.embed.json` sidecar by hand or let git conflict markers into
+  one (`merge=binary` is enforced).
+- **Never commit live-vault vectors** (they're machine/model-dependent, derived,
+  git-ignored). Only the deterministic `test`-backend `tests/fixtures/vault/`
+  sidecars are committed — and this golden repo is **pinned to `test`**: don't
+  commit `ollama` fixtures. `scripts/self_test.py` verifies the fixtures byte-diff.
+- **Never** add a cloud vector store. This brain is local-first.
+- The cache (`data/brain.db`) is derived — safe to delete and rebuild anytime.
+
+## First-time setup
+
+```bash
+git config core.hooksPath .githooks   # activate the embed hook
+pip install -r requirements.txt        # sqlite-vec (+ apsw fallback)
+```
 
 <!-- ai-project-status:begin -->
 <!--

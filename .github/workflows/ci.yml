@@ -1,0 +1,25 @@
+name: CI
+
+# Self-contained regression gate. Checks out ONLY this repo — the golden lives
+# in-repo at tests/golden/ (OQ-1 Option A), and the whole gate uses the
+# deterministic `test` embedder, so no external repo / network / packages are
+# needed. See tools/ci.py (the same entry point runs locally).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"   # tomllib (stdlib) requires 3.11+
+
+      - name: Run the acceptance gate
+        run: python3 tools/ci.py

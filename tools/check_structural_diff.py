@@ -7,7 +7,8 @@ generated brain is a *curated* subset of the golden, not a copy of its working
 tree:
 
   • ``verbatim`` + ``generated`` (vault/**) → compared against the **golden**
-    (``../second-brain-test``). This is the real end-to-end check: the whole
+    (the vendored ``tests/golden/`` snapshot, OQ-1 Option A). This is the real
+    end-to-end check: the whole
     pipeline (build_template → generate) must reproduce the golden byte-for-byte.
     Meaningful because the vault notes are plain copies and the committed fixtures
     use the deterministic ``test`` backend (OQ-3) — no neural float drift.
@@ -41,7 +42,7 @@ import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-GOLDEN = REPO_ROOT.parent / "second-brain-test"
+GOLDEN = REPO_ROOT / "tests" / "golden"          # vendored snapshot (OQ-1 Option A)
 TEMPLATE = REPO_ROOT / "template"
 MANIFEST = REPO_ROOT / "emit-manifest.toml"
 
@@ -125,8 +126,11 @@ def main(argv: list[str]) -> int:
     generated_root = Path(argv[0]).resolve()
     if not generated_root.is_dir():
         raise SystemExit(f"check_structural_diff: no generated tree at {generated_root}")
-    if not (GOLDEN / ".git").exists():
-        raise SystemExit(f"check_structural_diff: no golden at {GOLDEN}")
+    if not GOLDEN.is_dir():
+        raise SystemExit(
+            f"check_structural_diff: no vendored golden at {GOLDEN} "
+            f"(run tools/vendor_golden.py)"
+        )
     return check(generated_root)
 
 

@@ -33,7 +33,7 @@ import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-GOLDEN = REPO_ROOT.parent / "second-brain-test"
+GOLDEN = REPO_ROOT / "tests" / "golden"          # vendored snapshot (OQ-1 Option A)
 TEMPLATE = REPO_ROOT / "template"
 MANIFEST = REPO_ROOT / "emit-manifest.toml"
 GUARD = REPO_ROOT / "tools" / "check_no_forbidden_refs.py"
@@ -137,8 +137,9 @@ def load_manifest() -> dict:
 
 
 def build() -> int:
-    if not (GOLDEN / ".git").exists():
-        raise SystemExit(f"build_template: no golden at {GOLDEN}")
+    if not GOLDEN.is_dir():
+        raise SystemExit(f"build_template: no vendored golden at {GOLDEN} "
+                         f"(run tools/vendor_golden.py)")
     m = load_manifest()
     verbatim = m["verbatim"]["paths"]
     cleaned = m["cleaned"]["paths"]

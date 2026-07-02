@@ -8,9 +8,9 @@ referenced from) SPEC.md as a decided convention.
 
 ## OQ-1: How should the golden reference repo be stored inside the devkit?
 
-**Status:** RESOLVING → **Option A**, driven by the CI milestone (PLAN). The
-"revisit when" trigger below has been met — the wipe-and-regenerate harness landed
-(G1/G2) and CI now demands a self-contained devkit. See
+**Status:** RESOLVED → **Option A** (2026-07-02). The golden is vendored into the
+devkit at `tests/golden/` (`tools/vendor_golden.py`) and the whole harness reads it
+there, so the devkit is self-contained and CI needs no external repo. See
 [Final decision](#final-decision-option-a).
 
 ### Context
@@ -85,7 +85,7 @@ this repo and never reaches the external golden). The harness (G1/G2) has landed
 so the "revisit when" trigger is met.
 
 - The golden's *expected output* (tracked files: notes, committed `test`-backend
-  fixture sidecars, hook source, scripts) is vendored into `golden/` as plain
+  fixture sidecars, hook source, scripts) is vendored into `tests/golden/` as plain
   tracked files — no live `.git`. `tools/vendor_golden.py` refreshes it from the
   live `../second-brain-test/` by hand (a dev-machine step; CI never runs it).
 - **The "exercise the pre-commit hook" requirement is met elsewhere.** Firing the
@@ -99,7 +99,7 @@ so the "revisit when" trigger is met.
   mothball (PLAN G4) is now unblocked.
 
 Tracked as the **CI milestone** in [PLAN.md](PLAN.md); this OQ closes when the
-vendored `golden/` + repointed harness land.
+vendored `tests/golden/` + repointed harness land.
 
 ---
 

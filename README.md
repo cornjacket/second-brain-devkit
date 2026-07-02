@@ -163,20 +163,25 @@ python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
 | `daily-plan.md`      | Forward-looking, single-day plan (aggregated cross-repo).     |
 | `emit-manifest.toml` | What a generated brain contains — classifies every golden file. |
 | `template/`          | The tracked, cleaned scaffold the generator copies into a brain. |
-| `tools/`             | The generator + validation harness (`new_brain.py`, `generate.py`, `run_sandbox.py`, the `check_*` guards). |
+| `tests/golden/`      | Vendored golden — the tracked regression baseline the harness diffs against (OQ-1 Option A). |
+| `tools/`             | The generator + validation harness (`new_brain.py`, `generate.py`, `run_sandbox.py`, `vendor_golden.py`, `ci.py`, the `check_*` guards). |
+| `.github/workflows/` | CI — runs `tools/ci.py` on every push/PR to `main`.           |
 | `sandbox/`           | Throwaway generated output for validation (gitignored).       |
 
-The **golden reference** lives outside this repo as a standalone sibling at
-`../second-brain-test/` (its own `.git` + remote) so its pre-commit hook fires
-for real. The devkit does not track its contents, so they are synced by hand —
-an interim choice (OQ-1) to be revisited once the regenerate-and-diff harness
-lands.
+The **golden reference** is vendored **into** this repo at `tests/golden/` (plain
+tracked files, no `.git`) so the devkit is self-contained — CI checks out only this
+repo and never reaches outside it (OQ-1 → Option A). A live sibling at
+`../second-brain-test/` (its own `.git` + remote) remains the hand-prototyping
+surface where the pre-commit hook fires for real; refresh the snapshot from it with
+`python3 tools/vendor_golden.py` (a dev-machine step — CI never runs it).
 
-> **Development model:** *Prototype* a feature by hand in the golden reference
-> (`../second-brain-test/`), *productize* it into the kit, then *validate* by
-> regenerating into `sandbox/scratch/` and diffing against the golden. A clean
-> diff is the acceptance test. See [CLAUDE.md](CLAUDE.md) for the full workflow
-> and [open-questions.md](open-questions.md) for unresolved items.
+> **Development model:** *Prototype* a feature by hand in the live golden
+> (`../second-brain-test/`), *productize* it into the kit, `vendor_golden.py` to
+> refresh `tests/golden/`, then *validate* with `python3 tools/ci.py` (regenerate
+> into `sandbox/scratch/` and diff against the vendored golden, plus a Mode-B
+> smoke). A clean run is the acceptance test — the same gate CI runs. See
+> [CLAUDE.md](CLAUDE.md) for the full workflow and
+> [open-questions.md](open-questions.md) for design decisions.
 
 ## License
 

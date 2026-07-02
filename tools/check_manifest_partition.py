@@ -1,27 +1,31 @@
 #!/usr/bin/env python3
 """Manifest partition check (devkit tool, SPEC.md §5.2).
 
-Verify that emit-manifest.toml PARTITIONS the golden's tracked files: every file
-`git ls-files` reports in the golden appears in exactly one of the manifest's
+Verify that emit-manifest.toml PARTITIONS the golden's files: every file in the
+vendored golden (`tests/golden/`) appears in exactly one of the manifest's
 `verbatim` / `cleaned` / `generated` / `exclude` path sets — none missing, none
-duplicated, none referring to a file the golden no longer tracks.
+duplicated, none referring to a file the golden no longer contains.
 
 This makes "what a brain contains" auditable and keeps the manifest honest as the
 golden evolves: add or remove a golden file and this check fails until the
 manifest is updated to match.
 
+The golden is the in-repo `tests/golden/` snapshot (OQ-1 Option A), enumerated by
+a filesystem walk — no external repo, no `git ls-files`, so this runs
+self-contained in CI (and before the snapshot is even committed, during a
+`vendor_golden` sync).
+
 Usage:
     python3 tools/check_manifest_partition.py [--golden DIR] [--manifest FILE]
 
 Exit codes:
-    0  the manifest exactly partitions the golden's tracked files
+    0  the manifest exactly partitions the golden's files
     1  mismatch (missing, extra, or duplicated paths) — details printed
     2  usage / IO error
 """
 from __future__ import annotations
 
 import argparse
-import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -29,17 +33,17 @@ from pathlib import Path
 BUCKETS = ("verbatim", "cleaned", "generated", "exclude")
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_GOLDEN = REPO_ROOT.parent / "second-brain-test"
+DEFAULT_GOLDEN = REPO_ROOT / "tests" / "golden"
 DEFAULT_MANIFEST = REPO_ROOT / "emit-manifest.toml"
 
 
 def golden_tracked(golden: Path) -> set[str]:
-    """Files tracked by the golden's git, as golden-relative POSIX paths."""
-    out = subprocess.run(
-        ["git", "-C", str(golden), "ls-files"],
-        capture_output=True, text=True, check=True,
-    ).stdout
-    return {line for line in out.splitlines() if line}
+    """Files + symlinks under the vendored golden, as golden-relative POSIX paths."""
+    return {
+        p.relative_to(golden).as_posix()
+        for p in golden.rglob("*")
+        if p.is_symlink() or p.is_file()
+    }
 
 
 def manifest_paths(manifest: Path) -> tuple[dict[str, list[str]], list[str]]:
@@ -61,18 +65,15 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
     args = ap.parse_args(argv)
 
-    if not (args.golden / ".git").exists():
-        print(f"error: {args.golden} is not a git repo", file=sys.stderr)
+    if not args.golden.is_dir():
+        print(f"error: no vendored golden at {args.golden} "
+              f"(run tools/vendor_golden.py)", file=sys.stderr)
         return 2
     if not args.manifest.is_file():
         print(f"error: no manifest at {args.manifest}", file=sys.stderr)
         return 2
 
-    try:
-        tracked = golden_tracked(args.golden)
-    except subprocess.CalledProcessError as exc:
-        print(f"error: git ls-files failed: {exc.stderr}", file=sys.stderr)
-        return 2
+    tracked = golden_tracked(args.golden)
 
     per_bucket, flat = manifest_paths(args.manifest)
     declared = set(flat)
