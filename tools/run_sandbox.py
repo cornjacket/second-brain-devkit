@@ -11,11 +11,12 @@ runs the acceptance gates:
   2. **The brain's own self-test** (``scripts/self_test.py``) *inside* the freshly
      generated scaffold — proves the emitted embed pipeline is wired and
      reproduces the committed ``test``-backend fixtures byte-for-byte (OQ-3).
+  3. **Structural diff** (``tools/check_structural_diff.py``) vs the golden — the
+     G2 acceptance oracle: the generated tree must be exactly the manifest's
+     emitted set, byte-for-byte (verbatim + vault vs the golden, cleaned vs the
+     template), with no stray files (SPEC §5.2).
 
 ``sandbox/`` is git-ignored — it is regenerated output, never committed.
-
-The G2 manifest-driven structural diff vs the golden (``../second-brain-test``)
-lands next; this harness is where it will hang.
 
     python3 tools/run_sandbox.py
 
@@ -34,6 +35,7 @@ from generate import generate  # noqa: E402
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SANDBOX = REPO_ROOT / "sandbox" / "scratch"
 GUARD = REPO_ROOT / "tools" / "check_no_forbidden_refs.py"
+DIFF = REPO_ROOT / "tools" / "check_structural_diff.py"
 
 
 def wipe(path: Path) -> None:
@@ -55,22 +57,26 @@ def main() -> int:
     generate(SANDBOX)
     print(f"generated brain -> {SANDBOX.relative_to(REPO_ROOT)}/\n")
 
-    print("gate 1/2 — forbidden-reference guard")
+    print("gate 1/3 — forbidden-reference guard")
     guard_ok = _run([sys.executable, str(GUARD), str(SANDBOX)])
 
-    print("\ngate 2/2 — self-test inside the generated brain")
+    print("\ngate 2/3 — self-test inside the generated brain")
     # -B: keep the generated scaffold free of __pycache__ bytecode.
     self_test_ok = _run(
         [sys.executable, "-B", str(SANDBOX / "scripts" / "self_test.py")], cwd=SANDBOX
     )
 
+    print("\ngate 3/3 — structural diff vs the golden (G2 acceptance oracle)")
+    diff_ok = _run([sys.executable, str(DIFF), str(SANDBOX)])
+
     print()
-    if guard_ok and self_test_ok:
-        print("Mode A OK — generated brain passes the guard + self-test")
+    if guard_ok and self_test_ok and diff_ok:
+        print("Mode A OK — generated brain passes the guard + self-test + structural diff")
         return 0
     print("Mode A FAILED — "
           f"guard={'ok' if guard_ok else 'FAIL'}, "
-          f"self_test={'ok' if self_test_ok else 'FAIL'}")
+          f"self_test={'ok' if self_test_ok else 'FAIL'}, "
+          f"diff={'ok' if diff_ok else 'FAIL'}")
     return 1
 
 
