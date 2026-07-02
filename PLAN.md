@@ -107,17 +107,31 @@ Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
   - [ ] Exercises the real production path (Ollama call, dims, L2-normalize) that `test` never touches
   - [ ] Gated on Ollama being available; not part of the portable/CI acceptance gate
 
-## Milestone G3 — Production generation (Mode B)
+## Milestone G3 — Production generation (Mode B)  ✅
 The durable product path ([SPEC §5.1](SPEC.md)): generate a real, persistent brain
 the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
-- [ ] Generate to a **user-chosen path** (not `sandbox/`) — same generator core as G1/G2
-- [ ] Refuse to overwrite a non-empty target unless explicitly forced (protect user data)
-- [ ] Bootstrap the generated repo as its **own** git repo: `git init`,
-      `core.hooksPath`, first commit — history starts at generation, owned by the user
-- [ ] **Never** nest the generated repo inside the devkit's git (OQ-1 antipattern)
-- [ ] Assert Mode A ≡ Mode B: the scaffold a user gets is byte-identical to what the
-      harness diffs against the golden (so production is trusted without re-diffing)
-- [ ] Document the end-user "generate your brain" flow (README / a `generate` entry point)
+`tools/new_brain.py` is the end-user entry point (`python3 tools/new_brain.py ~/my-brain`).
+- [x] Generate to a **user-chosen path** (not `sandbox/`) — calls the same
+      `generate()` core as Mode A, so nothing about the output is mode-specific.
+- [x] Refuse to overwrite a non-empty target unless `--force` — `generate()`'s
+      guard fires before any git work; verified it declines and leaves no dir.
+- [x] Bootstrap the generated repo as its **own** git repo: `git init` +
+      `core.hooksPath .githooks` + first commit. History starts at generation,
+      owned by the user. First commit is `--no-verify` so it never depends on a
+      working embedder (fixtures ship pre-embedded; live vault sidecars are
+      git-ignored); the wired hook then embeds the user's *subsequent* note commits
+      — verified end-to-end (a note commit fires the hook, writes a gitignored
+      sidecar, commits only the note).
+- [x] **Never** nest the generated repo inside the devkit's git (OQ-1 antipattern)
+      — refuses if the target's location is already under any git repo (checks the
+      parent's toplevel); verified it rejects a path inside the devkit and creates
+      no dir. The brain's own toplevel == itself, not the devkit.
+- [x] Assert Mode A ≡ Mode B — the Mode-B tree passes the *same*
+      `check_structural_diff.py` oracle (33/33 vs the golden), because both modes
+      call the identical `generate()` core. So production is trusted without
+      re-diffing.
+- [x] Document the end-user "generate your brain" flow — `README.md` "Generate a
+      brain" section + `new_brain.py`'s own `--help`/docstring.
 
 ## Milestone G4 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).

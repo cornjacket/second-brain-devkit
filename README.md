@@ -92,6 +92,36 @@ The result scales: no matter how large the knowledge base grows, it stays
 structured enough for an AI to read instantly, yet simple enough to open and edit
 in plain text.
 
+## Generate a brain
+
+Create a real Second Brain you own — its own git repo, at a path you choose:
+
+```bash
+python3 tools/new_brain.py ~/my-brain
+```
+
+This copies the tracked template, seeds the PARA vault, and bootstraps the target
+as its **own** git repository (`git init`, the embed pre-commit hook wired via
+`core.hooksPath`, and a first commit). The brain is yours from that point on — the
+devkit never touches it again. Then:
+
+```bash
+cd ~/my-brain
+pip install -r requirements.txt     # embed pipeline deps
+python3 scripts/self_test.py        # confirm the pipeline is wired
+```
+
+- It **refuses** a non-empty target unless you pass `--force` (protects your data).
+- It **refuses** to nest inside an existing git repo — a brain must be its own
+  top-level repo (choose a standalone path like `~/my-brain`).
+- The scaffold is byte-identical to what the devkit validates against the golden
+  (Mode A ≡ Mode B), so production output is trusted without re-diffing.
+
+Under the hood, `tools/new_brain.py` (production, Mode B) and the validation
+harness `tools/run_sandbox.py` (Mode A) share one generator core
+(`tools/generate.py`); only the post-step differs — a first commit you keep vs. a
+diff-and-discard. See [SPEC §5.1](SPEC.md).
+
 ## Tech Stack
 
 - **Runtime:** Python 3.11+
@@ -127,10 +157,13 @@ python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
 | Path                 | Purpose                                                        |
 | -------------------- | ------------------------------------------------------------- |
 | `CLAUDE.md`          | System memory & conventions (shared with Gemini via symlink). |
-| `SPEC.md`            | System specification & feature roadmap.                       |
+| `SPEC.md`            | System specification & generator/validation loop.             |
+| `PLAN.md`            | Durable milestone tracker for the devkit itself.              |
 | `open-questions.md`  | Unresolved design decisions (resolve before finalizing).      |
 | `daily-plan.md`      | Forward-looking, single-day plan (aggregated cross-repo).     |
-| `scripts/`           | Generator and pipeline scripts.                               |
+| `emit-manifest.toml` | What a generated brain contains — classifies every golden file. |
+| `template/`          | The tracked, cleaned scaffold the generator copies into a brain. |
+| `tools/`             | The generator + validation harness (`new_brain.py`, `generate.py`, `run_sandbox.py`, the `check_*` guards). |
 | `sandbox/`           | Throwaway generated output for validation (gitignored).       |
 
 The **golden reference** lives outside this repo as a standalone sibling at
