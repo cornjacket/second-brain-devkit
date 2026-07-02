@@ -124,10 +124,21 @@ def clean_readme(text: str) -> str:
     )
 
 
+def clean_embedder_config(text: str) -> str:
+    """A generated brain defaults to the real (ollama) backend, not the golden's test."""
+    return replace_once(
+        text,
+        'backend = "test"',
+        'backend = "ollama"',
+        "config/embedder.toml backend default",
+    )
+
+
 CLEANERS = {
     "scripts/register.py": clean_register,
     "CLAUDE.md": clean_claude,
     "README.md": clean_readme,
+    "config/embedder.toml": clean_embedder_config,
 }
 
 
@@ -136,7 +147,12 @@ def load_manifest() -> dict:
         return tomllib.load(fh)
 
 
-def build() -> int:
+def build(template_dir: Path = TEMPLATE) -> int:
+    """Build the emitted template tree into ``template_dir`` (default ``template/``).
+
+    Pass a temp dir to build a throwaway copy for comparison (the "template in
+    sync" check) without touching the committed tree.
+    """
     if not GOLDEN.is_dir():
         raise SystemExit(f"build_template: no vendored golden at {GOLDEN} "
                          f"(run tools/vendor_golden.py)")
@@ -144,13 +160,13 @@ def build() -> int:
     verbatim = m["verbatim"]["paths"]
     cleaned = m["cleaned"]["paths"]
 
-    if TEMPLATE.exists():
-        shutil.rmtree(TEMPLATE)
-    TEMPLATE.mkdir(parents=True)
+    if template_dir.exists():
+        shutil.rmtree(template_dir)
+    template_dir.mkdir(parents=True)
 
     # verbatim: byte-for-byte copies
     for rel in verbatim:
-        src, dst = GOLDEN / rel, TEMPLATE / rel
+        src, dst = GOLDEN / rel, template_dir / rel
         if not src.is_file():
             raise SystemExit(f"build_template: missing verbatim source {rel}")
         dst.parent.mkdir(parents=True, exist_ok=True)
@@ -163,33 +179,34 @@ def build() -> int:
         cleaner = CLEANERS.get(rel)
         if cleaner is None:
             raise SystemExit(f"build_template: no cleaner defined for {rel}")
-        src, dst = GOLDEN / rel, TEMPLATE / rel
+        src, dst = GOLDEN / rel, template_dir / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         dst.write_text(cleaner(src.read_text(encoding="utf-8")), encoding="utf-8")
         shutil.copymode(src, dst)
 
     # GEMINI.md -> CLAUDE.md symlink (matches the golden's layout)
     if "GEMINI.md" in cleaned:
-        gem = TEMPLATE / "GEMINI.md"
+        gem = template_dir / "GEMINI.md"
         if gem.is_symlink() or gem.exists():
             gem.unlink()
         gem.symlink_to("CLAUDE.md")
 
     n = len(verbatim) + len(cleaned)
-    print(f"built template/ — {len(verbatim)} verbatim + {len(cleaned)} cleaned "
-          f"= {n} files")
+    print(f"built {template_dir.name}/ — {len(verbatim)} verbatim + {len(cleaned)} "
+          f"cleaned = {n} files")
 
     # Gate: no forbidden references may survive into the emitted tree.
     result = subprocess.run(
-        [sys.executable, str(GUARD), str(TEMPLATE)],
+        [sys.executable, str(GUARD), str(template_dir)],
         capture_output=True, text=True,
     )
     sys.stdout.write(result.stdout)
     sys.stderr.write(result.stderr)
     if result.returncode != 0:
-        raise SystemExit("build_template: forbidden references leaked into template/")
+        raise SystemExit("build_template: forbidden references leaked into the template")
     return 0
 
 
 if __name__ == "__main__":
-    raise SystemExit(build())
+    dest = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else TEMPLATE
+    raise SystemExit(build(dest))

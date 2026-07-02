@@ -181,6 +181,13 @@ Make a generated brain **runnable for real semantic search**, not just structura
 valid. The `test` backend proves plumbing; real relevance needs Ollama +
 `nomic-embed-text`. This milestone is the documented + scripted path from a
 freshly-generated brain to a working semantic index.
+- [x] **Usable out of the box — no env var.** The embedder backend is a per-brain
+      config (`config/embedder.toml`), read by `embedder.py` (env override > config
+      > `test` fallback). A generated brain ships `backend = "ollama"` (cleaned from
+      the golden's `test`), so embed + search both default to Ollama and agree —
+      real semantic search works with zero `SECOND_BRAIN_EMBEDDER` fiddling. The
+      golden/CI stay `test` (fixtures + self-test pin it explicitly). Verified: a
+      fresh brain embeds→hydrates→searches correctly with the env var unset.
 - [ ] Document the Ollama runtime in the brain's **first-time setup** (README):
       install Ollama (`brew install ollama` / download), start it (`ollama serve`),
       pull the model (`ollama pull nomic-embed-text`), then

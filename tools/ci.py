@@ -58,15 +58,24 @@ def step_partition() -> bool:
 
 
 def step_template_in_sync() -> bool:
-    if not _run([PY, str(TOOLS / "build_template.py")]):
+    # Build a throwaway copy from the golden and compare it to the on-disk
+    # template/ — git-state-independent (works whether or not template/ is
+    # committed), so this catches a stale template without false-flagging
+    # legitimate uncommitted rebuilds.
+    tmp = Path(tempfile.mkdtemp(prefix="template-check-"))
+    fresh = tmp / "template"
+    try:
+        if not _run([PY, str(TOOLS / "build_template.py"), str(fresh)]):
+            return False
+        # -r recursive, --no-dereference compares symlinks by target not content.
+        if _run(["diff", "-r", "--no-dereference", str(fresh), str(REPO_ROOT / "template")]):
+            print("template/ is in sync with the vendored golden")
+            return True
+        print("FAIL: template/ differs from a fresh rebuild — run "
+              "tools/build_template.py and commit the result", file=sys.stderr)
         return False
-    # The committed template/ must equal a fresh rebuild from the golden.
-    if _run(["git", "-C", str(REPO_ROOT), "diff", "--quiet", "--", "template"]):
-        print("template/ is in sync with the vendored golden")
-        return True
-    print("FAIL: template/ differs from a fresh rebuild — run "
-          "tools/build_template.py and commit the result", file=sys.stderr)
-    return False
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
 
 
 def step_mode_a() -> bool:

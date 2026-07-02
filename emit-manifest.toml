@@ -69,6 +69,7 @@ paths = [
   "CLAUDE.md",
   "GEMINI.md",
   "README.md",
+  "config/embedder.toml",
   "scripts/register.py",
 ]
 
@@ -76,6 +77,7 @@ paths = [
 "CLAUDE.md" = "forbidden-token scrub — drop the ai-project-status managed block + Commit-schema + Daily-plan sections (the golden keeps them for its own dev-process; a brain must not)"
 "GEMINI.md" = "symlink -> CLAUDE.md; inherits the scrub, emitted as a symlink"
 "README.md" = "operational guide (done in the golden, 9ed9356); swap the golden's 'golden reference -> local SPEC.md' top note for a provenance back-reference to the devkit (OQ-4)"
+"config/embedder.toml" = "backend default flip — the golden pins 'test' (its fixtures + self-test are test-based); a generated brain defaults to 'ollama' so real semantic search works out of the box with no env var"
 "scripts/register.py" = "forbidden-token scrub — drop the 'Independent of ai-project-status' comment (keep the behavior)"
 
 # --- generated ----------------------------------------------------------------
