@@ -191,9 +191,10 @@ memory — and was authored to build the reference implementation.
 
 ### Decision
 
-1. **`SPEC.md` is NOT emitted into a generated brain.** Its design internals are
-   owned by the **devkit** (canonical) — consistent with lifecycle §4 and OQ-1's
-   long-term direction.
+1. **`SPEC.md` is NOT emitted into a generated brain.** The golden **keeps** its
+   `SPEC.md` as the build-time design reference (it is `exclude`d from emission,
+   like `PLAN.md`/`tasks/`); canonical ownership moves into the **devkit** only at
+   mothball (lifecycle §4). A brain never ships it.
 2. **The brain's `README.md` carries everything the user (human or AI) needs to
    operate it** — record / query / setup — with **no** design internals and **no**
    dependency references.
@@ -203,7 +204,7 @@ memory — and was authored to build the reference implementation.
 4. If a spec-like doc is ever shipped, it must first be stripped of dependency
    references and design internals — but the default is that it is not shipped.
 5. **The brain's `README.md` carries a provenance back-reference to the devkit**
-   (the repo that generated it and the canonical home of the design internals).
+   (the repo that generated it, and the eventual home of the design internals).
    This is *not* a runtime dependency — the brain stands alone — but a documented
    path for the brain's local AI (or a curious user) to reach the internals if
    ever needed. It resolves the "where did the design spec go?" gap left by (1)
@@ -213,19 +214,23 @@ memory — and was authored to build the reference implementation.
 
 ### Implications (G1 build + golden rework, prototype-first)
 
-**Landed (devkit `dab1163`, golden `f675fe3`):**
+**Landed (golden `f675fe3` + `e934dcb`):**
 
-- The design spec was **promoted to the devkit** as canonical
-  [product-spec.md](product-spec.md) and **removed from the golden entirely** — so
-  it is no longer a golden-tracked file the manifest classifies.
-- The `SPEC.md §X` pointers were scrubbed **in the golden** (prototype-first), so
-  the affected scripts/hook/`tests/README.md` stay plain `verbatim` copies rather
-  than needing per-file cleaning. Golden `self_test` stays green.
+- The `SPEC.md §X` pointers were scrubbed from the golden's **emitted** files
+  (scripts, hook, `.gitattributes`, `tests/README.md`), so they stay plain
+  `verbatim` copies and a brain (which has no `SPEC.md`) is coherent without them.
+  Golden `self_test` stays green.
+- `SPEC.md` itself **stays in the golden** as its build-time design reference and
+  is `exclude`d from emission. An earlier commit (`f675fe3`) removed it — and
+  briefly promoted it into the devkit as `product-spec.md` (`dab1163`) — but that
+  conflated "don't ship it into a brain" with "don't keep it in the golden"; the
+  golden is still the active prototype repo and needs the spec locally, so it was
+  restored (`e934dcb`) and the premature promotion reverted.
 - The remaining `cleaned` files differ from the golden only because the golden is
   a live `ai-project-status`-tracked dev repo — that scrub happens when the golden
   is templatized, not in the golden.
-- Pulled the lifecycle §4 "promote the product spec into the devkit" step forward
-  (see PLAN G4).
+- The lifecycle §4 "promote the product spec into the devkit" step stays where it
+  was — at mothball, not now (see PLAN G4).
 
 **Still open:**
 

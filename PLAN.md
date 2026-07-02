@@ -38,14 +38,15 @@ brain scaffold into `target` — the shared core both generation modes call
       41 tracked files exactly (no missing/extra/dup) — verified passing.
 - [~] **Golden rework (prototype-first, in `../second-brain-test`)** before
       templatizing ([OQ-4](open-questions.md#oq-4)):
-  - [x] Relocate `SPEC.md`'s design internals into the devkit as the canonical
-        `product-spec.md` (pulls [G4](#milestone-g4--lifecycle) forward); remove
-        `SPEC.md` from the golden; scrub its `SPEC.md §X` pointers from the emitted
-        files. Golden `self_test` green; devkit refs repointed. (devkit `dab1163`,
-        golden `f675fe3`.)
+  - [x] `SPEC.md` is `exclude`d from emission but **kept in the golden** as its
+        build-time design reference (promotion to the devkit stays at
+        [G4](#milestone-g4--lifecycle)/mothball, not now). Scrubbed its `SPEC.md §X`
+        pointers from the golden's *emitted* files (scripts, hook, `.gitattributes`,
+        `tests/README.md`) so a brain is coherent without it. Golden `self_test`
+        green. (golden `f675fe3` + `e934dcb`.)
   - [ ] **Expand `README.md`** into the brain's operational doc (record / query /
         setup) — the one doc a brain user (human or AI) needs. Include a
-        **provenance back-reference to the devkit** (origin + canonical spec home).
+        **provenance back-reference to the devkit** (origin + eventual spec home).
         *Deferred — next, collaborative.* (Golden README is still framed as the
         golden reference; only its dangling `SPEC.md` links were fixed so far.)
 - [ ] Templatize the reworked golden into a devkit-tracked template tree — this is
@@ -89,8 +90,8 @@ the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
 
 ## Milestone G4 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).
-      **Pulled forward by [OQ-4](open-questions.md#oq-4):** since brains don't ship
-      `SPEC.md`, the design internals need their canonical devkit home during the
-      G1 golden rework — not after mothballing.
+      The golden keeps its `SPEC.md` as the build-time reference until then
+      ([OQ-4](open-questions.md#oq-4)); this promotion happens at mothball, when the
+      golden's `SPEC.md` is removed and the devkit becomes its sole home.
 - [ ] Mothball `second-brain-test` once generation + harness are trustworthy
 - [ ] Resolve OQ-1 long-term (golden storage → Option A, tracked files in devkit) — `open-questions.md`

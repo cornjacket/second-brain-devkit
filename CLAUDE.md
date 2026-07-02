@@ -11,8 +11,8 @@ spec so they cannot drift.
 
 - System workflow, roles, lifecycle, generator/validation loop → [SPEC.md](SPEC.md)
 - Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search,
-  `register`) → [product-spec.md](product-spec.md) (canonical product spec —
-  devkit-owned, promoted from the golden per [OQ-4](open-questions.md))
+  `register`) → `../second-brain-test/SPEC.md` (canonical product spec, for now —
+  promoted into the devkit only at mothball, see [OQ-4](open-questions.md))
 - Unresolved design decisions → [open-questions.md](open-questions.md)
 
 ## Style & conventions (devkit code)

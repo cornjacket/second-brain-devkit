@@ -12,11 +12,12 @@
 # every tracked file appears in exactly one, none appears twice.
 # tools/check_manifest_partition.py enforces this against `git ls-files`.
 #
-# Most of the target state now lives in the golden itself (the SPEC.md removal +
-# SPEC-ref scrub landed there, prototype-first, per OQ-4), so those files are
-# plain verbatim copies. The remaining `cleaned` files differ from the golden
-# only because the golden is a live ai-project-status-tracked dev repo (its
-# CLAUDE.md dev-block) or is framed as the golden reference (its README).
+# Most of the target state now lives in the golden itself (the SPEC.md §X-ref
+# scrub landed there, prototype-first, per OQ-4), so those files are plain
+# verbatim copies. `SPEC.md` itself stays in the golden as its build-time design
+# reference but is `exclude`d from emission. The remaining `cleaned` files differ
+# from the golden only because the golden is a live ai-project-status-tracked dev
+# repo (its CLAUDE.md dev-block) or is framed as the golden reference (its README).
 #
 # Data only; declarative. Paths are golden-relative. Stdlib-loadable via tomllib.
 
@@ -93,16 +94,14 @@ paths = [
 "vault/**" = "scripts/seed_vault.py copies seeds/** -> vault/** (do_seed: all files, incl. .gitkeep)"
 
 # --- exclude ------------------------------------------------------------------
-# Dev-process artifacts — NEVER emitted. About *using AI to build & track a repo*
-# (work the generator itself performs) and/or ai-project-status machinery. Omitted
-# from the brain and from the G2 diff. `.claude/` disappears entirely (both its
-# tracked files are here).
-#
-# The product DESIGN spec (schema, embedding contract, cache DDL, register) is not
-# listed: it was promoted to the devkit (product-spec.md) and removed from the
-# golden entirely (OQ-4), so it is no longer a golden-tracked file to classify.
+# NEVER emitted. Two kinds: (a) dev-process artifacts about *using AI to build &
+# track a repo* (work the generator itself performs) and/or ai-project-status
+# machinery; (b) the product DESIGN spec, which a brain does not ship (OQ-4) but
+# the golden keeps as its build-time reference. Both are omitted from the brain
+# and from the G2 diff. `.claude/` disappears entirely (both its files are here).
 [exclude]
 paths = [
+  "SPEC.md",
   ".claude/hooks/check-daily-plan.py",
   ".claude/settings.json",
   "PLAN.md",
@@ -114,6 +113,7 @@ paths = [
 ]
 
 [exclude.reasons]
+"SPEC.md" = "product design spec — NOT emitted into a brain (OQ-4), but kept in the golden as its build-time design reference; canonical ownership moves to the devkit only at mothball (G4). The emitted scripts carry no SPEC.md §X pointers, so brains stay clean without it."
 ".claude/hooks/check-daily-plan.py" = "ai-project-status daily-plan SessionStart hook — dev-process only"
 ".claude/settings.json" = "wires the SessionStart daily-plan hook — dev-process only"
 "PLAN.md" = "the golden's own build tracker — the generator builds the brain instead"

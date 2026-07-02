@@ -74,7 +74,7 @@ vectors — mismatched models yield incomparable results.
 
 > **Authoritative specs.** This README is an overview. The contracts live in two
 > places: the **system spec** ([SPEC.md](SPEC.md)) for the three-repo workflow,
-> roles, and lifecycle; and the **product spec** ([product-spec.md](product-spec.md))
+> roles, and lifecycle; and the **product spec** (`../second-brain-test/SPEC.md`)
 > for a single brain's PARA layout, sidecar schema, embedding contract, cache
 > DDL, search CLI, and `register`. Details below are summaries — defer to those.
 
