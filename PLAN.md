@@ -133,10 +133,41 @@ the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
 - [x] Document the end-user "generate your brain" flow — `README.md` "Generate a
       brain" section + `new_brain.py`'s own `--help`/docstring.
 
+## Milestone CI — Self-sustaining automation  ← NEXT (preempts G2-semantic + G4)
+Robust, hands-off regression checking on every push/PR. **Hard requirement: the
+devkit is self-contained — CI checks out only this repo and never reaches the
+external golden.** That forces the long-deferred [OQ-1](open-questions.md#oq-1)
+resolution: vendor the golden's *expected output* **into** the devkit as a tracked
+regression baseline (Option A). The live `../second-brain-test/` reverts to a
+hand-prototyping surface only, and its mothball ([G4](#milestone-g4--lifecycle))
+gets closer. Vendoring loses no coverage: the pre-commit hook is still exercised
+**for real** via Mode-B generation (`new_brain.py` git-inits and the hook fires on
+a note commit), so the vendored golden only needs to be static expected output.
+- [ ] **Vendor the golden (resolve [OQ-1](open-questions.md#oq-1) → Option A).**
+      Add a devkit-tracked `golden/` tree = the live golden's *tracked* files (no
+      `.git`, no git-ignored artifacts). `tools/vendor_golden.py` syncs it from
+      `../second-brain-test/` via `git ls-files` — a **dev-machine** step, run by
+      hand when the live golden changes; **CI never runs it**. The committed
+      snapshot is what CI diffs against. The refresh is itself gated by the harness,
+      so a bad sync fails loudly rather than silently rebaselining.
+- [ ] **Repoint the harness at the in-repo golden.** `check_structural_diff.py`,
+      `check_manifest_partition.py`, `build_template.py`: `GOLDEN` moves from
+      `../second-brain-test` → `REPO_ROOT/golden`. Partition enumerates `golden/`
+      self-contained (a filesystem walk, not an external `git ls-files`).
+- [ ] **`.github/workflows/ci.yml`** — on push + PR to `main`, Python 3.11+, run
+      the full deterministic gate: manifest partition → template rebuild +
+      byte-identical check → Mode-A harness (generate + guard + self-test +
+      structural diff) → Mode-B smoke (`new_brain.py` into a temp path, then the
+      same structural-diff oracle). All green = acceptance.
+- [ ] **Local ≡ CI parity.** One entry point (`tools/ci.py`) that runs the
+      identical gate locally, so a green local run predicts a green CI run.
+
 ## Milestone G4 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).
       The golden keeps its `SPEC.md` as the build-time reference until then
       ([OQ-4](open-questions.md#oq-4)); this promotion happens at mothball, when the
       golden's `SPEC.md` is removed and the devkit becomes its sole home.
 - [ ] Mothball `second-brain-test` once generation + harness are trustworthy
-- [ ] Resolve OQ-1 long-term (golden storage → Option A, tracked files in devkit) — `open-questions.md`
+- [ ] Resolve OQ-1 long-term (golden storage → Option A, tracked files in devkit)
+      — now driven by the **CI milestone** (the vendored `golden/` snapshot *is*
+      Option A); this line closes when that lands. `open-questions.md`

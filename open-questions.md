@@ -8,7 +8,10 @@ referenced from) SPEC.md as a decided convention.
 
 ## OQ-1: How should the golden reference repo be stored inside the devkit?
 
-**Status:** DECIDED (interim) — see [Decision](#decision).
+**Status:** RESOLVING → **Option A**, driven by the CI milestone (PLAN). The
+"revisit when" trigger below has been met — the wipe-and-regenerate harness landed
+(G1/G2) and CI now demands a self-contained devkit. See
+[Final decision](#final-decision-option-a).
 
 ### Context
 
@@ -73,6 +76,30 @@ point Option A (plain tracked files inside the devkit, `git init` a copy at test
 time) becomes the likely target, since it makes the golden a non-drifting,
 version-tracked baseline. The pipeline is being built embedder-agnostic and
 path-agnostic specifically so this move stays cheap.
+
+### Final decision (Option A)
+
+**2026-07-02: adopt Option A** — a devkit-tracked `golden/` snapshot — driven by
+the requirement that **the devkit be self-sustaining for CI** (CI checks out only
+this repo and never reaches the external golden). The harness (G1/G2) has landed,
+so the "revisit when" trigger is met.
+
+- The golden's *expected output* (tracked files: notes, committed `test`-backend
+  fixture sidecars, hook source, scripts) is vendored into `golden/` as plain
+  tracked files — no live `.git`. `tools/vendor_golden.py` refreshes it from the
+  live `../second-brain-test/` by hand (a dev-machine step; CI never runs it).
+- **The "exercise the pre-commit hook" requirement is met elsewhere.** Firing the
+  hook needs a live `.git`, which `golden/` deliberately lacks — but Mode-B
+  generation (`tools/new_brain.py`) already `git init`s a brain and fires the hook
+  on a note commit for real. So the vendored golden needs no history at rest; it
+  is purely the diff baseline. This retires the original conflict between "tracked"
+  and "fires the hook" — the two requirements are now satisfied by two different
+  artifacts (static `golden/` for the diff; a generated Mode-B repo for the hook).
+- The live `../second-brain-test/` becomes a hand-prototyping surface only; its
+  mothball (PLAN G4) is now unblocked.
+
+Tracked as the **CI milestone** in [PLAN.md](PLAN.md); this OQ closes when the
+vendored `golden/` + repointed harness land.
 
 ---
 
