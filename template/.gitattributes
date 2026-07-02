@@ -1,0 +1,3 @@
+# Sidecar vectors are generated JSON. Never let git inject conflict markers into
+# them — a corrupted vector silently poisons search.
+.*.embed.json merge=binary

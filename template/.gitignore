@@ -1,0 +1,14 @@
+# Derived cache — rebuilt from sidecars by scripts/hydrate_cache.py.
+data/*
+!data/.gitkeep
+
+# Live-vault sidecars are derived semantic vectors — regenerate locally, never
+# commit (machine/model-dependent). The deterministic tests/fixtures/vault
+# sidecars ARE committed (see tests/README.md).
+/vault/**/.*.embed.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -1,0 +1,194 @@
+#!/usr/bin/env python3
+"""Build the devkit-tracked ``template/`` tree from the golden + emit-manifest.toml.
+
+The template is the *emitted* form of a brain: exactly the files a generated brain
+receives, already cleaned. `generate()` (later) just copies this tree into a target
+and runs the post-steps (seed the vault, embed fixtures). SPEC.md §5.2.
+
+What this does, driven by ``emit-manifest.toml``:
+  • ``verbatim`` files → copied byte-for-byte from the golden.
+  • ``cleaned`` files → copied through a per-file transform that strips the
+    golden's dev-process / ai-project-status content and swaps golden-reference
+    framing for the emitted-brain equivalent (provenance back-reference to the
+    devkit). Each transform asserts its anchor exists, so a drifted golden fails
+    the build loudly instead of silently leaking.
+  • ``GEMINI.md`` → recreated as a symlink to ``CLAUDE.md``.
+  • ``generated`` / ``exclude`` files → never in the template (vault/** is a
+    post-step; SPEC.md + dev-process artifacts are not emitted).
+
+After building, it runs the forbidden-reference guard over ``template/`` and
+fails if anything leaks. Re-runnable: wipes and rebuilds ``template/`` each time.
+
+    python3 tools/build_template.py
+
+This is a devkit tool; it is never emitted into a brain.
+"""
+from __future__ import annotations
+
+import re
+import shutil
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+GOLDEN = REPO_ROOT.parent / "second-brain-test"
+TEMPLATE = REPO_ROOT / "template"
+MANIFEST = REPO_ROOT / "emit-manifest.toml"
+GUARD = REPO_ROOT / "tools" / "check_no_forbidden_refs.py"
+
+DEVKIT_URL = "https://github.com/cornjacket/second-brain-devkit"
+
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    """Substitute ``old`` -> ``new`` exactly once; fail loudly if absent."""
+    if old not in text:
+        raise SystemExit(f"build_template: anchor not found for {label!r} — "
+                         f"the golden drifted; update the transform.")
+    return text.replace(old, new, 1)
+
+
+def sub_once(text: str, pattern: str, repl: str, label: str) -> str:
+    """Regex substitute exactly once; fail loudly if the pattern doesn't match."""
+    new, n = re.subn(pattern, repl, text, count=1, flags=re.DOTALL)
+    if n == 0:
+        raise SystemExit(f"build_template: pattern not found for {label!r} — "
+                         f"the golden drifted; update the transform.")
+    return new
+
+
+# --- per-file cleaners --------------------------------------------------------
+
+def clean_register(text: str) -> str:
+    """Drop the ai-project-status independence note from the module docstring."""
+    return replace_once(
+        text,
+        "\n\nIndependent of ai-project-status: registering a project never "
+        "requires adopting\nthat tooling.",
+        "",
+        "register.py ai-project-status note",
+    )
+
+
+def clean_claude(text: str) -> str:
+    """Strip the golden's dev-process content; point internals at the devkit."""
+    # 1. Intro: a brain has no SPEC.md — point at the devkit that generated it.
+    text = replace_once(
+        text,
+        "The full contract is in [SPEC.md](SPEC.md);\n"
+        "this file is the operational memory.",
+        f"The full design contract lives in\n[second-brain-devkit]({DEVKIT_URL}) "
+        "(which generated this\nbrain); this file is the operational memory.",
+        "CLAUDE.md intro SPEC pointer",
+    )
+    # 2. Remove the golden-only "North star — this repo is the generator's spec"
+    #    section (it references PLAN.md/tasks/ and the generator itself).
+    text = sub_once(
+        text,
+        r"## North star.*?\n(?=## Recording knowledge)",
+        "",
+        "CLAUDE.md North star section",
+    )
+    # 3. "this golden repo is pinned to test" -> emitted-brain wording.
+    text = replace_once(
+        text,
+        "and this golden repo is **pinned to `test`**",
+        "and the committed fixtures are **pinned to `test`**",
+        "CLAUDE.md golden-pin wording",
+    )
+    # 4. Remove the whole ai-project-status managed block (commit-schema +
+    #    daily-plan live inside the begin/end markers).
+    text = sub_once(
+        text,
+        r"\n*<!-- ai-project-status:begin -->.*?<!-- ai-project-status:end -->\n*",
+        "\n",
+        "CLAUDE.md ai-project-status managed block",
+    )
+    return text
+
+
+def clean_readme(text: str) -> str:
+    """Swap the golden-reference top note for a devkit provenance back-reference."""
+    return replace_once(
+        text,
+        "> This repo is the **golden reference** for\n"
+        f"> [`second-brain-devkit`]({DEVKIT_URL}) — the\n"
+        "> hand-built, known-good output the generator is validated against. The design\n"
+        "> internals (sidecar schema, embedding contract, pipeline stages) are in\n"
+        "> [SPEC.md](SPEC.md).",
+        f"> Generated by [second-brain-devkit]({DEVKIT_URL}).\n"
+        "> The design internals (sidecar schema, embedding contract, pipeline stages) are\n"
+        "> documented there.",
+        "README.md golden-reference top note",
+    )
+
+
+CLEANERS = {
+    "scripts/register.py": clean_register,
+    "CLAUDE.md": clean_claude,
+    "README.md": clean_readme,
+}
+
+
+def load_manifest() -> dict:
+    with MANIFEST.open("rb") as fh:
+        return tomllib.load(fh)
+
+
+def build() -> int:
+    if not (GOLDEN / ".git").exists():
+        raise SystemExit(f"build_template: no golden at {GOLDEN}")
+    m = load_manifest()
+    verbatim = m["verbatim"]["paths"]
+    cleaned = m["cleaned"]["paths"]
+
+    if TEMPLATE.exists():
+        shutil.rmtree(TEMPLATE)
+    TEMPLATE.mkdir(parents=True)
+
+    # verbatim: byte-for-byte copies
+    for rel in verbatim:
+        src, dst = GOLDEN / rel, TEMPLATE / rel
+        if not src.is_file():
+            raise SystemExit(f"build_template: missing verbatim source {rel}")
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+
+    # cleaned: transform (GEMINI.md is a symlink, handled after)
+    for rel in cleaned:
+        if rel == "GEMINI.md":
+            continue
+        cleaner = CLEANERS.get(rel)
+        if cleaner is None:
+            raise SystemExit(f"build_template: no cleaner defined for {rel}")
+        src, dst = GOLDEN / rel, TEMPLATE / rel
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_text(cleaner(src.read_text(encoding="utf-8")), encoding="utf-8")
+        shutil.copymode(src, dst)
+
+    # GEMINI.md -> CLAUDE.md symlink (matches the golden's layout)
+    if "GEMINI.md" in cleaned:
+        gem = TEMPLATE / "GEMINI.md"
+        if gem.is_symlink() or gem.exists():
+            gem.unlink()
+        gem.symlink_to("CLAUDE.md")
+
+    n = len(verbatim) + len(cleaned)
+    print(f"built template/ — {len(verbatim)} verbatim + {len(cleaned)} cleaned "
+          f"= {n} files")
+
+    # Gate: no forbidden references may survive into the emitted tree.
+    result = subprocess.run(
+        [sys.executable, str(GUARD), str(TEMPLATE)],
+        capture_output=True, text=True,
+    )
+    sys.stdout.write(result.stdout)
+    sys.stderr.write(result.stderr)
+    if result.returncode != 0:
+        raise SystemExit("build_template: forbidden references leaked into template/")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(build())

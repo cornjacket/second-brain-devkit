@@ -49,13 +49,17 @@ brain scaffold into `target` — the shared core both generation modes call
         "golden reference" top note → local `SPEC.md`; the emitted variant swaps
         that for a **provenance back-reference to the devkit** at templatize time.
         (golden `9ed9356`.)
-- [ ] Templatize the reworked golden into a devkit-tracked template tree — where
-      the `cleaned` files diverge from the golden: scrub `ai-project-status`
-      (`CLAUDE.md`/`GEMINI.md` dev-block, `register.py` comment) and swap the
-      `README.md` top note for the devkit provenance line. Run
-      `tools/check_no_forbidden_refs.py` over it → zero hits.
-- [ ] Scaffold a brain repo from the template: PARA dirs, scripts, hook, config,
-      the operational `README.md`, cleaned `CLAUDE.md` + `GEMINI.md` symlink.
+- [x] Templatize the reworked golden into the devkit-tracked `template/` tree —
+      `tools/build_template.py` copies the 24 `verbatim` files byte-for-byte and
+      transforms the 4 `cleaned` ones (strip the `ai-project-status` block +
+      North-star + golden-isms from `CLAUDE.md`; drop `register.py`'s
+      ai-project-status note; swap `README.md`'s top note for the devkit provenance
+      line; `GEMINI.md` → `CLAUDE.md` symlink). Fail-loud anchors; runs the
+      forbidden-ref guard (zero hits) and the 24 verbatim files are byte-identical
+      to the golden. 28 files emitted.
+- [ ] Scaffold: write `generate(target, params)` — copy `template/` → target, then
+      the post-steps (seed `vault/` from `seeds/`, embed the `test` fixtures).
+      Wire the wipe-and-regenerate `sandbox/scratch/` runner (Mode A).
 - [ ] Sidecar policy ([OQ-3](open-questions.md#oq-3)): gitignore live-vault
       sidecars; emit committed `tests/fixtures/vault/` (`test` backend) + a `type`
       field pinned to `test`
