@@ -57,9 +57,17 @@ brain scaffold into `target` — the shared core both generation modes call
       line; `GEMINI.md` → `CLAUDE.md` symlink). Fail-loud anchors; runs the
       forbidden-ref guard (zero hits) and the 24 verbatim files are byte-identical
       to the golden. 28 files emitted.
-- [ ] Scaffold: write `generate(target, params)` — copy `template/` → target, then
-      the post-steps (seed `vault/` from `seeds/`, embed the `test` fixtures).
-      Wire the wipe-and-regenerate `sandbox/scratch/` runner (Mode A).
+- [x] Scaffold: `generate(target, params)` (`tools/generate.py`) — copies
+      `template/` → target (symlinks + modes preserved) then runs the seed-vault
+      post-step (the emitted `scripts/seed_vault.py`, `seeds/** → vault/**`). No
+      embed step: the `test` fixtures ship pre-embedded in the template and
+      live-vault sidecars are git-ignored/not emitted (OQ-3). Emits exactly the
+      manifest's 33-file set (28 emitted + 5 `vault/**`); the 5 vault files are
+      byte-identical to the golden. Refuses a non-empty target unless `force`
+      (protects Mode-B user data, G3). The Mode-A runner (`tools/run_sandbox.py`)
+      wipe-and-regenerates `sandbox/scratch/` every run, then gates on the
+      forbidden-ref guard + the brain's own `self_test.py` inside the scaffold —
+      both green.
 - [ ] Sidecar policy ([OQ-3](open-questions.md#oq-3)): gitignore live-vault
       sidecars; emit committed `tests/fixtures/vault/` (`test` backend) + a `type`
       field pinned to `test`
@@ -68,13 +76,15 @@ brain scaffold into `target` — the shared core both generation modes call
 ## Milestone G2 — Validation harness
 Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
 - **Structural tier** — the acceptance oracle. `test` embedder, byte-exact diff.
-  - [ ] `sandbox/scratch/` wipe-and-regenerate runner (never test stale state)
+  - [x] `sandbox/scratch/` wipe-and-regenerate runner (never test stale state) —
+        `tools/run_sandbox.py` (Mode A). Currently gates on the forbidden-ref guard
+        + the in-scaffold `self_test.py`; the manifest-driven diff below is next.
   - [ ] Diff generated output vs the golden (`../second-brain-test`) → clean diff = acceptance test
   - [ ] Confirm determinism (the `test` embedder) makes the diff stable
-  - [~] Forbidden-reference guard ([SPEC §5.3](SPEC.md)) — `tools/check_no_forbidden_refs.py`
+  - [x] Forbidden-reference guard ([SPEC §5.3](SPEC.md)) — `tools/check_no_forbidden_refs.py`
         greps the generated tree against a denylist (`ai-project-status`) and
-        fails on any hit. **Script written & verified against the golden;** wire
-        it into the wipe-and-regenerate runner once generation emits a tree.
+        fails on any hit. Now wired into `tools/run_sandbox.py` as gate 1/2 over
+        the freshly-generated `sandbox/scratch/` tree — green.
 - **Semantic tier** — opt-in, local, real `ollama` embedder. Asserts *behavior*,
   not bytes (never byte-diff a neural model — brittle even same-machine).
   - [ ] Retrieval-quality check: known queries put expected notes in top-k / above a cosine threshold
