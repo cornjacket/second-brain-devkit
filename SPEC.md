@@ -6,9 +6,10 @@ evolves over time, and how this devkit generates and validates a brain.
 
 It deliberately does **not** re-specify the internals of a single brain (PARA
 layout, sidecar schema, embedding contract, search CLI). Those are *product*
-contracts and live in the canonical **product spec**:
-[`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md). This spec links
-to those contracts rather than duplicating them, so they cannot drift.
+contracts and live in the canonical **product spec**
+([product-spec.md](product-spec.md), devkit-owned per
+[OQ-4](open-questions.md#oq-4)). This spec links to those contracts rather than
+duplicating them, so they cannot drift.
 
 ## 0. Open Items
 
@@ -41,9 +42,9 @@ Resolve the relevant item before finalizing any feature it affects.
 second-brain-devkit/   GENERATOR + SYSTEM HOME
    • generates a brain and validates it against the golden reference
    • documents the entire three-repo workflow (this file)
-   • eventually owns the canonical product spec (after the golden is mothballed)
+   • owns the canonical product spec (product-spec.md, promoted per OQ-4)
 
-second-brain-test/     THE BRAIN   (golden reference + canonical product spec, FOR NOW)
+second-brain-test/     THE BRAIN   (golden reference / reference implementation)
    • knowledge store: PARA notes ─embed→ sidecars ─hydrate→ vec0 cache ─search→ AI
    • ships a `register` script that wires an external project repo to itself
    • prototype-first; eventually mothballed once the devkit can generate brains
@@ -59,7 +60,7 @@ second-brain-test/     THE BRAIN   (golden reference + canonical product spec, F
 | Repo | Role | Owns |
 | --- | --- | --- |
 | `second-brain-devkit/` | Generator + system home | This system spec, the generator code, the regenerate-and-diff validation harness. |
-| `second-brain-test/` | The brain (golden + product spec) | The canonical product contracts, the pipeline scripts, the hand-built known-good vault. |
+| `second-brain-test/` | The brain (golden / reference implementation) | The pipeline scripts, hook, and hand-built known-good vault the product spec is validated against. |
 | `<your-project-repo>/` | Knowledge source | Its own work; a managed block (injected by `register`) telling its agent to deposit learnings into the brain. |
 
 ## 3. Knowledge flow
@@ -87,18 +88,21 @@ SQLite vec0 cache  ──search──▶  AI (Claude / Gemini) gets ranked conte
 Ingestion is **not** a separate path: a "lesson" deposited into the brain is just
 a new PARA note, which flows through the same embed → hydrate → search pipeline.
 The precise contracts for each stage are in the product spec
-([`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md)).
+([product-spec.md](product-spec.md)).
 
 ## 4. Lifecycle & evolution
 
 The system is built **prototype-first**, and spec ownership migrates over time:
 
-1. **Now — golden is canonical.** The product contracts are authored and proven
-   by hand in `second-brain-test/`. That repo is both the *reference
-   implementation* and the *canonical product spec*. The devkit links to it.
-2. **Later — devkit becomes canonical.** Once the generator can reliably produce
-   a brain, the product spec is promoted into the devkit as a template, and the
-   devkit emits it (and the rest of the brain) into every generated repo.
+1. **Proven by hand in the golden.** The product contracts were authored and
+   proven by hand in `second-brain-test/` — the *reference implementation*.
+2. **Now — devkit owns the spec.** The product spec has been promoted into the
+   devkit as the canonical, devkit-owned design spec
+   ([product-spec.md](product-spec.md), [OQ-4](open-questions.md#oq-4)). Note it
+   is **not** emitted into a generated brain: the design internals have one home
+   (here), and a brain instead carries an operational `README.md` plus a
+   provenance back-reference to this devkit. The golden is now validated *against*
+   this spec rather than being it.
 3. **Eventually — the golden is mothballed.** Once generation + the
    regenerate-and-diff harness are trustworthy, `second-brain-test/` is retired;
    the devkit's generated output, validated against the harness, takes its place.
@@ -236,8 +240,8 @@ a machine-checked gate rather than a manual promise.
 
 | Concern | Authoritative source |
 | --- | --- |
-| Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search CLI, `register`) | [`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md) (product spec) |
-| In-brain agent memory | `../second-brain-test/CLAUDE.md` |
+| Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search CLI, `register`) | [product-spec.md](product-spec.md) (product spec, devkit-owned per OQ-4) |
+| In-brain agent memory | `../second-brain-test/CLAUDE.md` (golden reference) |
 | System workflow, roles, lifecycle, generator/validation | **this file** |
 | Working *on* the devkit (build/commit/daily-plan conventions) | [CLAUDE.md](CLAUDE.md) |
 | Unresolved design decisions | [open-questions.md](open-questions.md) |
@@ -263,4 +267,4 @@ a machine-checked gate rather than a manual promise.
   project memory file
 
 Exact versions, dimensions, env vars, and invariants are specified in the product
-spec ([`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md)).
+spec ([product-spec.md](product-spec.md)).
