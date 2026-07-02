@@ -80,7 +80,7 @@ brain scaffold into `target` — the shared core both generation modes call
       — ships verbatim in the template; runs green *inside* the generated scaffold
       as Mode-A gate 2/3.
 
-## Milestone G2 — Validation harness
+## Milestone G2 — Validation harness  ✅
 Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
 - **Structural tier** — the acceptance oracle. `test` embedder, byte-exact diff.
   - [x] `sandbox/scratch/` wipe-and-regenerate runner (never test stale state) —
@@ -103,9 +103,20 @@ Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
         the freshly-generated `sandbox/scratch/` tree — green.
 - **Semantic tier** — opt-in, local, real `ollama` embedder. Asserts *behavior*,
   not bytes (never byte-diff a neural model — brittle even same-machine).
-  - [ ] Retrieval-quality check: known queries put expected notes in top-k / above a cosine threshold
-  - [ ] Exercises the real production path (Ollama call, dims, L2-normalize) that `test` never touches
-  - [ ] Gated on Ollama being available; not part of the portable/CI acceptance gate
+  **Unblocked (2026-07-02):** Ollama + `nomic-embed-text` available; the real
+  embed→hydrate→search path is validated (correct top-1 retrieval with clear
+  separation). Depends on the runtime setup in [G5](#milestone-g5--runtime-setup-ollama--embedder).
+  - [x] Retrieval-quality check: known queries put expected notes in top-k / above
+        a cosine threshold. `tools/check_semantic_retrieval.py` — generates a brain,
+        `embed_vault.py` (ollama) → `hydrate_cache.py` → `search_vault.py`, asserts
+        each distinct-phrasing query ranks the expected note #1 under a distance
+        threshold. **4/4 pass** (top-1 distances ~0.25–0.41). Embedding primitive:
+        `scripts/embed_vault.py` (golden `135bcfb`, now emitted).
+  - [x] Exercises the real production path (Ollama call, 768-dim check, L2-normalize,
+        sqlite-vec KNN) that `test` never touches.
+  - [x] Gated on Ollama being available; **not** part of the portable/CI acceptance
+        gate — prints SKIP + exits 0 when Ollama/model absent (verified), so CI
+        stays stdlib-only. Run on demand: `python3 tools/check_semantic_retrieval.py`.
 
 ## Milestone G3 — Production generation (Mode B)  ✅
 The durable product path ([SPEC §5.1](SPEC.md)): generate a real, persistent brain
@@ -164,6 +175,49 @@ a note commit), so the vendored golden only needs to be static expected output.
       guard) → Mode-A harness → Mode-B smoke (`new_brain.py` + the same diff
       oracle). Passes locally end-to-end; a self-contained git identity lets the
       Mode-B commit run on a bare CI runner.
+
+## Milestone G5 — Runtime setup (Ollama + embedder)
+Make a generated brain **runnable for real semantic search**, not just structurally
+valid. The `test` backend proves plumbing; real relevance needs Ollama +
+`nomic-embed-text`. This milestone is the documented + scripted path from a
+freshly-generated brain to a working semantic index.
+- [ ] Document the Ollama runtime in the brain's **first-time setup** (README):
+      install Ollama (`brew install ollama` / download), start it (`ollama serve`),
+      pull the model (`ollama pull nomic-embed-text`), then
+      `SECOND_BRAIN_EMBEDDER=ollama`.
+- [x] Ship `scripts/embed_vault.py` into every brain (bulk-embed) — landed in the
+      golden (`135bcfb`) and propagated: `emit-manifest.toml` (verbatim 24→25),
+      re-vendored `tests/golden/` (43 files), rebuilt `template/` (29 files), CI
+      green (34 emitted). First-run flow: `pip install` → Ollama ready →
+      `embed_vault.py` → `hydrate_cache.py` → `search_vault.py`.
+- [ ] A **`scripts/doctor.py`** (or `setup`) preflight: checks Python deps
+      (sqlite-vec/apsw), Ollama reachable on `:11434`, model pulled, sidecar
+      `type` consistency (no mixed `test`/`ollama` index) — a single "is my brain
+      ready?" command with actionable fixes. Emitted into a brain.
+- [ ] Decide install automation vs guidance (don't silently `brew install` on a
+      user's machine — detect + instruct, offer opt-in). Ollama stays a runtime
+      dependency of a brain, never of the devkit's CI (which is `test`-only).
+
+## Milestone G6 — The AI interface: second-brain skill (+ MCP)
+The README's promise — a brain an **AI** queries — isn't built yet; only the human
++ CLI paths exist. This milestone makes a generated brain immediately usable *by
+Claude/Gemini*. Shipped **into** a brain (product scaffold: prototype in golden →
+manifest → template → emit; must stay forbidden-token clean and pass the diff).
+- [ ] **Second-brain skill for Claude Code / Gemini** — a skill that lets the agent
+      query the brain in natural language: wraps `search_vault.py` (embed query →
+      KNN → return top-k notes with paths/snippets), auto-hydrates a stale cache,
+      and reminds the agent to record durable knowledge as PARA notes. Ships in the
+      brain (e.g. `.claude/skills/second-brain/`), so every generated brain is
+      AI-queryable out of the box.
+- [ ] **Gemini parity** — the skill/instructions reachable from `GEMINI.md`
+      (already symlinked to `CLAUDE.md`); reconcile the two tools' skill mechanisms.
+- [ ] **MCP server (exploratory)** — a small Model Context Protocol server exposing
+      `search_vault` (and maybe note-read/list) as MCP tools, so any MCP client
+      (Claude Desktop, IDEs) can query the brain without shelling out. Framed as a
+      learning build; decide whether it's emitted into a brain or a devkit-side
+      example. Stretch / optional.
+- [ ] Emit implications: any emitted skill/MCP file goes through `emit-manifest.toml`
+      (verbatim/generated), the forbidden-ref guard, and the structural diff.
 
 ## Milestone G4 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).

@@ -41,6 +41,7 @@ paths = [
   "scripts/check_line_count.py",
   "scripts/db.py",
   "scripts/embed_staged.py",
+  "scripts/embed_vault.py",
   "scripts/embedder.py",
   "scripts/hydrate_cache.py",
   "scripts/search_vault.py",
