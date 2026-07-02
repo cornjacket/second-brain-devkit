@@ -32,23 +32,25 @@ brain scaffold into `target` — the shared core both generation modes call
       golden ([SPEC §5.2](SPEC.md)). No parameterization exists yet, so a copy
       suffices; revisit if a real per-brain variable appears.
 - [x] Author the emit **manifest** — `emit-manifest.toml`: every golden file
-      classified into `verbatim`/`cleaned`/`generated`/`promote_to_devkit`/`exclude`
-      (17/11/5/1/8). Source of truth for "what a brain contains" (G1) + the G2
-      diff's include list. `tools/check_manifest_partition.py` proves it partitions
-      the golden's 42 tracked files exactly (no missing/extra/dup) — verified passing.
-- [ ] **Golden rework (prototype-first, in `../second-brain-test`)** before
+      classified into `verbatim`/`cleaned`/`generated`/`exclude` (24/4/5/8).
+      Source of truth for "what a brain contains" (G1) + the G2 diff's include
+      list. `tools/check_manifest_partition.py` proves it partitions the golden's
+      41 tracked files exactly (no missing/extra/dup) — verified passing.
+- [~] **Golden rework (prototype-first, in `../second-brain-test`)** before
       templatizing ([OQ-4](open-questions.md#oq-4)):
-  - [ ] Expand `README.md` into the brain's operational doc (record / query /
+  - [x] Relocate `SPEC.md`'s design internals into the devkit as the canonical
+        `product-spec.md` (pulls [G4](#milestone-g4--lifecycle) forward); remove
+        `SPEC.md` from the golden; scrub its `SPEC.md §X` pointers from the emitted
+        files. Golden `self_test` green; devkit refs repointed. (devkit `dab1163`,
+        golden `f675fe3`.)
+  - [ ] **Expand `README.md`** into the brain's operational doc (record / query /
         setup) — the one doc a brain user (human or AI) needs. Include a
-        **provenance back-reference to the devkit** (origin + canonical spec home)
-        so the local AI has a path to the internals — provenance, not a dependency.
-  - [ ] Relocate `SPEC.md`'s design internals into the devkit as the canonical
-        product spec (pulls [G4](#milestone-g4--lifecycle) forward); `SPEC.md` is
-        not emitted into brains.
-  - [ ] Scrub every `ai-project-status` reference and every `SPEC.md §X` /
-        cross-repo pointer from the files the manifest marks `cleaned`. Both guards
-        (forbidden-ref + partition) must stay green.
-- [ ] Templatize the reworked golden into a devkit-tracked template tree; run
+        **provenance back-reference to the devkit** (origin + canonical spec home).
+        *Deferred — next, collaborative.* (Golden README is still framed as the
+        golden reference; only its dangling `SPEC.md` links were fixed so far.)
+- [ ] Templatize the reworked golden into a devkit-tracked template tree — this is
+      where the `cleaned` files are scrubbed of `ai-project-status` (`CLAUDE.md`/
+      `GEMINI.md` dev-block, `register.py` comment). Run
       `tools/check_no_forbidden_refs.py` over it → zero hits.
 - [ ] Scaffold a brain repo from the template: PARA dirs, scripts, hook, config,
       the operational `README.md`, cleaned `CLAUDE.md` + `GEMINI.md` symlink.

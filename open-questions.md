@@ -213,14 +213,25 @@ memory — and was authored to build the reference implementation.
 
 ### Implications (G1 build + golden rework, prototype-first)
 
-- Manifest: `SPEC.md` → **not emitted** (`promote_to_devkit`). Every file carrying
-  a `SPEC.md §X` pointer moves from `verbatim` to `cleaned` (scrub the pointer);
-  `README.md` is *expanded* into the operational doc.
-- The **golden is reworked first** (prototype-first): grow `README.md`, relocate
-  the design internals to the devkit as the canonical spec, scrub the refs — then
-  the devkit templatizes the reworked golden.
-- Pulls the lifecycle §4 "promote the product spec into the devkit" step forward
+**Landed (devkit `dab1163`, golden `f675fe3`):**
+
+- The design spec was **promoted to the devkit** as canonical
+  [product-spec.md](product-spec.md) and **removed from the golden entirely** — so
+  it is no longer a golden-tracked file the manifest classifies.
+- The `SPEC.md §X` pointers were scrubbed **in the golden** (prototype-first), so
+  the affected scripts/hook/`tests/README.md` stay plain `verbatim` copies rather
+  than needing per-file cleaning. Golden `self_test` stays green.
+- The remaining `cleaned` files differ from the golden only because the golden is
+  a live `ai-project-status`-tracked dev repo — that scrub happens when the golden
+  is templatized, not in the golden.
+- Pulled the lifecycle §4 "promote the product spec into the devkit" step forward
   (see PLAN G4).
 
-**Revisit when:** the golden rework lands and we see whether any residual design
+**Still open:**
+
+- `README.md` must be **expanded** into the brain's operational doc + the devkit
+  provenance back-reference (deferred, collaborative). Until then the golden's
+  README is still framed as the golden reference.
+
+**Revisit when:** the README rework lands and we see whether any residual design
 detail genuinely needs to live *inside* a brain.

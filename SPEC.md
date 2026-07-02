@@ -189,23 +189,23 @@ the golden's tracked files exactly. In summary:
 
 | Class | Examples | In a generated brain? |
 | --- | --- | --- |
-| **Product scaffold** | `scripts/seed_vault.py`, `scripts/self_test.py`, `scripts/check_line_count.py`, `seeds/`, `tests/fixtures/`, `config/`, `data/.gitkeep`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** |
-| **Product file needing cleaning** | `CLAUDE.md`/`GEMINI.md` (`ai-project-status` block + `SPEC.md §X` refs); `README.md` (expanded into the operational doc + refs scrubbed); the pipeline scripts, `pre-commit`, `tests/README.md` (`SPEC.md §X` / cross-repo refs) | **Yes, but cleaned** — forbidden tokens + dangling refs scrubbed, `README.md` grown |
-| **Generated post-step** | `vault/**` | **Yes — produced by `seed_vault.py`, not templated** |
-| **Design spec → devkit** | `SPEC.md` (schema, embedding contract, cache DDL, search/`register`) | **No — promoted to the devkit as canonical (OQ-4); a brain ships `README.md`, not this** |
-| **Dev-process artifact** | `PLAN.md`, `tasks/`, `daily-plan.md`, `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` (`SessionStart`) | **No — discarded** |
+| **Product scaffold** (`verbatim`) | the pipeline scripts, `.githooks/pre-commit`, `seeds/`, `tests/`, `config/`, `data/.gitkeep`, `.gitignore`, `.gitattributes`, `requirements.txt` | **Yes — copied verbatim** (the golden was already scrubbed of `SPEC.md §X` refs, so these need no cleaning) |
+| **Product file needing cleaning** (`cleaned`) | `CLAUDE.md`/`GEMINI.md` (`ai-project-status` dev-block); `register.py` (`ai-project-status` comment); `README.md` (expanded into the operational doc + devkit provenance) | **Yes, but cleaned** — forbidden tokens scrubbed, `README.md` grown |
+| **Generated post-step** (`generated`) | `vault/**` | **Yes — produced by `seed_vault.py`, not templated** |
+| **Dev-process artifact** (`exclude`) | `PLAN.md`, `tasks/`, `daily-plan.md`, `.claude/hooks/check-daily-plan.py`, `.claude/settings.json` (`SessionStart`) | **No — discarded** |
 
-Why `SPEC.md` is *promoted, not emitted*: it is the product's **design
-internals**, whose one canonical home is the devkit (lifecycle §4). A brain's
-user (human or AI) needs *operational* guidance — record / query / setup — which
-lives in the brain's `README.md`; the internal contract does not belong duplicated
-inside every brain. The `README.md` also carries a **provenance back-reference to
-the devkit** (origin + canonical spec home) — a documented path for the brain's
-local AI to reach the internals if ever needed, *not* a runtime dependency. See
-[OQ-4](open-questions.md#oq-4). Why the *dev-process*
-exclusions: `PLAN.md` / `tasks/` / `daily-plan.md` and the daily-plan hook are
-about *using AI to build and track a repo* — work the generator itself performs —
-and would leak `ai-project-status` machinery into every brain, violating §7.
+The product's **design spec** is a fourth, once-off case: `SPEC.md` was *promoted*
+to the devkit ([product-spec.md](product-spec.md), [OQ-4](open-questions.md#oq-4))
+and **removed from the golden entirely**, so it is no longer a golden-tracked file
+to classify. A brain's user (human or AI) needs *operational* guidance — record /
+query / setup — which lives in the brain's `README.md`; the internal contract does
+not belong duplicated inside every brain. The `README.md` also carries a
+**provenance back-reference to the devkit** (origin + canonical spec home) — a
+documented path for the brain's local AI to reach the internals if ever needed,
+*not* a runtime dependency. Why the *dev-process* exclusions: `PLAN.md` / `tasks/`
+/ `daily-plan.md` and the daily-plan hook are about *using AI to build and track a
+repo* — work the generator itself performs — and would leak `ai-project-status`
+machinery into every brain, violating §7.
 
 **Hard invariant — zero forbidden references.** No emitted file may contain the
 string `ai-project-status` (or any other devkit-internal dependency) — *not even
@@ -220,8 +220,8 @@ since `SPEC.md` is not shipped.
 
 **Consequence for the G2 diff.** Because the template is a curated subset, the
 acceptance diff is **not** "generated tree == golden working tree." It compares
-only the emitted intersection, driven by the manifest: non-emitted files
-(`promote_to_devkit`, `exclude`) are dropped, and `cleaned` files are compared
+only the emitted intersection, driven by the manifest: `exclude` files are
+dropped, and `cleaned` files are compared
 against their cleaned variant (or excluded from the byte-diff and checked on their
 own). That manifest is the single source of truth for "what a brain contains" —
 authored in G1, consumed in G2.
