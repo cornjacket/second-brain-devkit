@@ -1,23 +1,22 @@
-# Daily plan — 2026-07-01
+# Daily plan — 2026-07-02
 
-**Focus:** The brain's core pipeline is now proven & committed
-(`../second-brain-test` finished M1a→M1b: embed→hydrate→search works, sidecars
-committed). The G1 gate is lifting — start generator planning against the now
-stable, known-good golden reference.
+**Focus:** G1's last piece — make the generator actually *emit* a brain. The
+`template/` tree is built and guard-clean; now write `generate()` and prove it by
+regenerating into `sandbox/scratch/` (Mode A), then start the manifest-aware diff
+against the golden (G2 structural tier).
 
-- Decide the G1 **template strategy**: how to productize the brain's `SPEC.md` /
-  `CLAUDE.md` / `scripts/` / hook / PARA roots + `seeds/` into emitted templates.
-- Sketch the G2 **validation loop** early: generate → diff vs `../second-brain-test`
-  → clean diff = acceptance. This leans on the deterministic `test` embedder
-  (semantic/Ollama quality is a *separate*, later check — not needed for the diff).
-- Track what's still open in the brain before a full G1: `register.py` (M2) and
-  semantic validation (Ollama, blocked) — plan around them, don't block on them.
-- Keep generator *code* deferred until the template strategy is chosen (avoid rework).
+- Write `generate(target, params)`: copy `template/` → target, then the post-steps
+  (seed `vault/` from `seeds/` via `seed_vault.py`; embed the `test` fixtures).
+- Wire the **Mode-A runner**: wipe-and-regenerate `sandbox/scratch/` every run
+  (never stale); run `check_no_forbidden_refs.py` over the output.
+- Start the **G2 structural diff**: compare only the emitted set (manifest-driven),
+  `cleaned` files vs their `template/` variants — a clean diff is acceptance.
+- Keep the guards green (forbidden-ref + manifest partition); the brain's
+  `self_test.py` should pass *inside* the freshly generated scaffold.
 
 ```
- brain (second-brain-test):  0001–0003 ✅  ·  M1b plumbing ✅   →  G1 gate lifting
-                                                                       │
- devkit today ▸ G1 template strategy  ──►  sketch G2 diff-vs-golden harness
-                                                                       │
-                              (brain M2 register + Ollama semantic still pending)
+ template/ ─generate()─▶ sandbox/scratch/ ─manifest-diff─▶ golden   (Mode A)
+  (28 files)              wipe + regen            clean = G2 pass
+
+ G1: [x]strategy [x]manifest [x]golden-rework [x]templatize · [ ]generate ← today
 ```
