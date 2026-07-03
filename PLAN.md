@@ -205,26 +205,47 @@ freshly-generated brain to a working semantic index.
       user's machine — detect + instruct, offer opt-in). Ollama stays a runtime
       dependency of a brain, never of the devkit's CI (which is `test`-only).
 
-## Milestone G6 — The AI interface: second-brain skill (+ MCP)
-The README's promise — a brain an **AI** queries — isn't built yet; only the human
-+ CLI paths exist. This milestone makes a generated brain immediately usable *by
-Claude/Gemini*. Shipped **into** a brain (product scaffold: prototype in golden →
-manifest → template → emit; must stay forbidden-token clean and pass the diff).
-- [ ] **Second-brain skill for Claude Code / Gemini** — a skill that lets the agent
-      query the brain in natural language: wraps `search_vault.py` (embed query →
-      KNN → return top-k notes with paths/snippets), auto-hydrates a stale cache,
-      and reminds the agent to record durable knowledge as PARA notes. Ships in the
-      brain (e.g. `.claude/skills/second-brain/`), so every generated brain is
-      AI-queryable out of the box.
-- [ ] **Gemini parity** — the skill/instructions reachable from `GEMINI.md`
-      (already symlinked to `CLAUDE.md`); reconcile the two tools' skill mechanisms.
-- [ ] **MCP server (exploratory)** — a small Model Context Protocol server exposing
-      `search_vault` (and maybe note-read/list) as MCP tools, so any MCP client
-      (Claude Desktop, IDEs) can query the brain without shelling out. Framed as a
-      learning build; decide whether it's emitted into a brain or a devkit-side
-      example. Stretch / optional.
-- [ ] Emit implications: any emitted skill/MCP file goes through `emit-manifest.toml`
-      (verbatim/generated), the forbidden-ref guard, and the structural diff.
+## Milestone G6 — The AI interface: reach the brain from any project
+**Default usage (decided):** the AI is **not** working inside the brain — it is
+building system X in *X's own repo* and must **reach out to the brain as a
+preliminary step** to discover existing conventions / decisions / tribal knowledge
+before designing. So the capability must be **global** (callable from any working
+directory), not scoped to the brain repo. This rules out a brain-local project
+skill as the primary mechanism (it only activates when cwd is inside the brain).
+
+Two orthogonal needs: a **global query mechanism** and a **behavioral trigger** so
+the consult is reflexive. **Mechanism decided: a user-level skill that shells out
+to the brain's Python scripts — NOT MCP.** A skill is far lower standing token cost
+(progressive disclosure: only its name+description preload; the body loads on
+invoke) and, by shelling out via the already-present **Bash** tool, adds **zero new
+tool schema** — whereas an MCP server loads every tool's JSON schema into context
+each session. MCP is reserved for the one case a skill can't serve (below).
+- [x] **Second-brain skill — PRIMARY mechanism.** Emitted `skill/second-brain/`
+      (SKILL.md + query.py) — a **neutral dir, not under `.claude/`**, so it needs
+      no `.claude` manifest split (emits as ordinary `verbatim`). `query.py`
+      resolves the brain root relative to itself (`parents[2]`), so it works through
+      the install symlink with no hardcoded path; it ensures the cache, forwards to
+      `search_vault.py`, and prints **absolute** note paths (the agent is in another
+      project's cwd). SKILL.md's `description` drives proactive "consult before
+      designing" use. No new dependency, no server. Golden `c9b8838`; CI green
+      (38 emitted). Verified real Ollama retrieval via `query.py` in the golden.
+- [~] **Behavioral trigger.** The skill `description` is sharp ("consult before
+      designing / making convention decisions"). Optional reinforcement — a line in
+      user-level `~/.claude/CLAUDE.md` — still open.
+- [x] **Installer (detect + instruct).** `scripts/install_skill.py` **symlinks** the
+      skill into a chosen repo's `.claude/skills/` (`--project`, the default per-repo
+      stance) or `~/.claude/skills` + `~/.gemini/skills` (`--global`). Dry-run unless
+      `--apply`; skips a tool whose config dir is absent (instructs); never mutates
+      global config silently. Verified both scopes' dry-runs in the golden.
+- [x] **Gemini parity** — `install_skill.py --global` covers `~/.gemini/skills/`
+      (same SKILL.md standard); `GEMINI.md` already symlinks `CLAUDE.md` for memory.
+- [ ] **MCP server — SECONDARY, web/desktop chat only.** For clients that **cannot
+      shell out to local Python** (Claude Desktop, claude.ai). Exposes
+      `search_second_brain(query, k)` over the same Ollama+sqlite-vec index. Not the
+      default path; built when we want brain access from a web chat.
+- **Usage note:** the brain's value as a conventions oracle grows as it is
+  populated with decision/convention notes — today it holds only the 4 system seed
+  notes.
 
 ## Milestone G4 — Lifecycle
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).
