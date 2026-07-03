@@ -49,6 +49,7 @@ paths = [
   "scripts/search_vault.py",
   "scripts/seed_vault.py",
   "scripts/self_test.py",
+  "scripts/update_cache.py",
   "skill/second-brain/SKILL.md",
   "skill/second-brain/query.py",
   "seeds/archive/.gitkeep",

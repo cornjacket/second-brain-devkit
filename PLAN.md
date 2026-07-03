@@ -197,6 +197,16 @@ freshly-generated brain to a working semantic index.
       write note → commit → searchable. `new_brain.py` must commit the scaffold
       **before** wiring `core.hooksPath` so generation fires neither hook (no
       embedder / no derived `brain.db` in the diffed tree).
+- [x] **Incremental cache updates (no teardown → no downtime).** BUG: the only
+      cache op was `hydrate_cache.py`, which **deletes and rebuilds** `data/brain.db`
+      wholesale — during that window a concurrent query hits a missing/empty DB, and
+      it's O(all notes) for a one-note change. Fix: `scripts/update_cache.py` with
+      **`--upsert <note>`** (DELETE+INSERT one row from its sidecar) and
+      **`--delete <note>`** (drop one row + its orphan sidecar), operating on the
+      **existing** table (`CREATE … IF NOT EXISTS`, never torn down). The post-commit
+      hook uses `--from-commit HEAD` (upsert added/modified PARA notes, delete
+      removed) so the brain stays query-able throughout. `hydrate_cache.py` stays for
+      full/bulk rebuilds.
 - [ ] Document the Ollama runtime in the brain's **first-time setup** (README):
       install Ollama (`brew install ollama` / download), start it (`ollama serve`),
       pull the model (`ollama pull nomic-embed-text`), then
