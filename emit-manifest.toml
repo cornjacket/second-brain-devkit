@@ -55,6 +55,7 @@ paths = [
   "seeds/projects/second-brain.md",
   "seeds/resources/embeddings.md",
   "seeds/resources/sqlite-vec.md",
+  "seeds/templates/new-note.md",
   "tests/README.md",
   "tests/fixtures/vault/areas/habits.md",
   "tests/fixtures/vault/areas/.habits.embed.json",
@@ -94,6 +95,7 @@ paths = [
   "vault/projects/second-brain.md",
   "vault/resources/embeddings.md",
   "vault/resources/sqlite-vec.md",
+  "vault/templates/new-note.md",
 ]
 
 [generated.by]
