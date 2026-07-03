@@ -1,22 +1,27 @@
-# Daily plan — 2026-07-02
+# Daily plan — 2026-07-03
 
-**Focus:** G1's last piece — make the generator actually *emit* a brain. The
-`template/` tree is built and guard-clean; now write `generate()` and prove it by
-regenerating into `sandbox/scratch/` (Mode A), then start the manifest-aware diff
-against the golden (G2 structural tier).
+**Focus:** Make the brain *trustworthy to rely on*. Headline is G5 `doctor.py` — a
+health + **consistency** check, directly motivated by today's cache drift (a note
+present on disk but missing from the db). Then tighten the AI interface. Same loop:
+prototype in the golden → vendor → template → `tools/ci.py` green.
 
-- Write `generate(target, params)`: copy `template/` → target, then the post-steps
-  (seed `vault/` from `seeds/` via `seed_vault.py`; embed the `test` fixtures).
-- Wire the **Mode-A runner**: wipe-and-regenerate `sandbox/scratch/` every run
-  (never stale); run `check_no_forbidden_refs.py` over the output.
-- Start the **G2 structural diff**: compare only the emitted set (manifest-driven),
-  `cleaned` files vs their `template/` variants — a clean diff is acceptance.
-- Keep the guards green (forbidden-ref + manifest partition); the brain's
-  `self_test.py` should pass *inside* the freshly generated scaffold.
+- **`doctor.py` (emitted):** one "is my brain ready & consistent?" command — deps
+  (sqlite-vec/apsw), Ollama reachable + `nomic-embed-text` pulled, and **vault
+  notes ↔ sidecars ↔ db rows in sync**, with `--repair` (re-embed / `update_cache`
+  / `hydrate`). Closes the drift gap seen today.
+- **Skill reflexive trigger:** add the user-level `~/.claude/CLAUDE.md` nudge so the
+  AI consults the brain *before designing* — the mechanism ships, make it fire.
+- **Stretch — scope the MCP server:** the web/desktop-chat path a skill can't serve
+  (stdio server + registration); design only, build later.
+- Keep the guards green (manifest partition + structural diff); every change lands
+  through `tools/ci.py`.
 
 ```
- template/ ─generate()─▶ sandbox/scratch/ ─manifest-diff─▶ golden   (Mode A)
-  (28 files)              wipe + regen            clean = G2 pass
+ today ✅  skill (any project) · auto-hydrate on commit · incremental cache
+                                   │  (drift observed → motivates doctor.py)
+                                   ▼
+ fri 07-03   doctor.py  ──▶  reflexive skill trigger  ──▶  MCP scoping (stretch)
+  (health + vault↔sidecar↔db consistency + --repair)
 
- G1: [x]strategy [x]manifest [x]golden-rework [x]templatize · [ ]generate ← today
+ loop:  golden ─vendor→ tests/golden ─build→ template ─ci.py→ green
 ```
