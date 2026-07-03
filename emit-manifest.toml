@@ -35,6 +35,7 @@ paths = [
   ".gitattributes",
   ".gitignore",
   ".githooks/pre-commit",
+  ".githooks/post-commit",
   "config/.gitkeep",
   "data/.gitkeep",
   "requirements.txt",

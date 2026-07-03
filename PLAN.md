@@ -188,6 +188,15 @@ freshly-generated brain to a working semantic index.
       real semantic search works with zero `SECOND_BRAIN_EMBEDDER` fiddling. The
       golden/CI stay `test` (fixtures + self-test pin it explicitly). Verified: a
       fresh brain embeds→hydrates→searches correctly with the env var unset.
+- [x] **Auto-hydrate on commit (write→queryable in one step).** BUG: the pre-commit
+      hook writes a note's `.embed.json` sidecar but never rebuilds the cache
+      (`data/brain.db`), so a committed note is invisible to search until a manual
+      `hydrate_cache.py` — the brain isn't useful without it. Fix: a **`post-commit`**
+      hook that runs `hydrate_cache.py` (after the commit, so it never blocks/undoes
+      it; warns on failure; needs sqlite-vec, not Ollama). Standard flow becomes
+      write note → commit → searchable. `new_brain.py` must commit the scaffold
+      **before** wiring `core.hooksPath` so generation fires neither hook (no
+      embedder / no derived `brain.db` in the diffed tree).
 - [ ] Document the Ollama runtime in the brain's **first-time setup** (README):
       install Ollama (`brew install ollama` / download), start it (`ollama serve`),
       pull the model (`ollama pull nomic-embed-text`), then

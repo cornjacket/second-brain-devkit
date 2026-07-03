@@ -72,14 +72,16 @@ def _git(target: Path, *args: str, check: bool = True) -> subprocess.CompletedPr
 
 
 def bootstrap_git(target: Path) -> None:
-    """Make ``target`` its own git repo: init + hooksPath + first commit."""
+    """Make ``target`` its own git repo: init + first commit + wire hooks."""
     _git(target, "init", "-q")
-    # Wire the embed pre-commit hook for the user's *future* note commits.
-    _git(target, "config", "core.hooksPath", ".githooks")
     _git(target, "add", "-A")
-    # --no-verify: the initial scaffold must commit without a working embedder
-    # (fixtures ship pre-embedded; live vault sidecars are git-ignored).
+    # Commit the scaffold BEFORE wiring core.hooksPath, so neither the embed
+    # pre-commit nor the hydrate post-commit fires on generation — they need the
+    # embedder / sqlite-vec and would create derived artifacts (a brain.db) in the
+    # freshly-generated tree. --no-verify is belt-and-suspenders (no hooks are
+    # active yet). The user's later note commits use both hooks.
     _git(target, "commit", "-q", "--no-verify", "-m", FIRST_COMMIT_MSG)
+    _git(target, "config", "core.hooksPath", ".githooks")
 
 
 def new_brain(target, *, force: bool = False) -> Path:
