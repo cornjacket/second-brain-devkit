@@ -1,8 +1,13 @@
 # MCP server — design & scoping
 
-**Status:** scoping only (design, not built). Tracked as the secondary G6 mechanism
-in [PLAN.md](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project);
-open decisions live in [OQ-6](../open-questions.md).
+**Status:** **BUILT — v1 (2026-07-04, golden `4867eec`).** `scripts/mcp_server.py`
+implements this design (stdio, read-only `search_second_brain` + `get_note`, thin
+wrapper over the brain's own `embedder`/`db`/`search_vault`); the MCP SDK is an
+isolated optional dep (`requirements-mcp.txt`). Registration is print-and-instruct in
+the README for v1 (auto-insert deferred). Build-time decisions settled in
+[OQ-6](../open-questions.md#oq-6); tracked in
+[PLAN.md](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
+This doc remains the design rationale.
 
 This document scopes an **MCP server** that lets a chat client reach the brain when
 it **cannot shell out to local Python**. It is deliberately the *secondary* path —

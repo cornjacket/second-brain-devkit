@@ -339,21 +339,33 @@ Tracked in [PLAN.md G5](PLAN.md#milestone-g5--runtime-setup-ollama--embedder).
 
 ## OQ-6: MCP server — build-time decisions
 
-**Status:** OPEN — full design scoped in [docs/mcp-server.md](docs/mcp-server.md)
-(2026-07-03). The **scope** is decided (`stdio` + Claude Desktop only; claude.ai web
-out of scope as it would break local-first; read-only tools; thin wrapper over the
-brain's own `embedder`/`db`/`search_vault`; MCP SDK an isolated optional dependency;
-concurrency [OQ-5](#oq-5) layer 2 lands with it). These sub-decisions remain and are
-settled when the server is actually built:
+**Status:** RESOLVED → **server v1 built** (2026-07-04, golden `4867eec`). Scope was
+decided at design time (`stdio` + Claude Desktop only; claude.ai web out of scope;
+read-only; thin wrapper over the brain's own `embedder`/`db`/`search_vault`; MCP SDK
+an isolated optional dependency; [OQ-5](#oq-5) layer 2 lands with it). The build-time
+sub-decisions are now settled:
 
-1. **MCP Python SDK / version** — which package, does it pin cleanly on 3.11+?
-2. **`get_note` tool in v1**, or search-only?
-3. **One server across brains vs. one per brain** — path resolution currently
-   assumes per-brain (`parents[…]`, like `query.py`).
-4. **Registration** — auto-insert the Claude Desktop stanza (opt-in, marker-guarded,
-   `--uninstall`-able) vs. print-and-instruct only. Must follow the
-   `install_skill.py` stance: `--apply`-gated, never silent.
-5. **claude.ai web** — confirm it stays out of scope (no web chat without a *hosted*
-   brain), or spin a separate "hosted brain" track with its own security model.
+1. **MCP Python SDK / version — DECIDED: the official `mcp` package, `mcp>=1.2`**
+   (FastMCP lives in the SDK from 1.2 on). Needs Python ≥3.10, so it pins cleanly on
+   the 3.11+ floor. Kept in an **isolated** `requirements-mcp.txt` — never in base
+   `requirements.txt`, so core plumbing + CI stay stdlib + `sqlite-vec` + `apsw`.
+2. **`get_note` in v1 — DECIDED: yes.** Small, avoids a second round-trip after a
+   search hit, and path-validated to resolve **inside** `vault/` (arbitrary reads
+   refused). Both tools are read-only.
+3. **One server per brain — DECIDED: per-brain.** Root resolved relative to the
+   server file (`parents[1]`, like `query.py`), so it works through any install
+   symlink with no hardcoded path. A user with several brains registers one stanza
+   each.
+4. **Registration — DECIDED (v1): print-and-instruct.** The README documents the
+   `claude_desktop_config.json` stanza (absolute path, restart). Auto-inserting it
+   via `install_skill.py` (opt-in, marker-guarded, `--uninstall`-able, `--apply`-gated)
+   is **deferred to a follow-up** — not needed to prove the server works.
+5. **claude.ai web — CONFIRMED out of scope.** A browser can't reach a local `stdio`
+   server and a remote one would break local-first; a hosted variant would be a
+   separate track with its own security model. Documented as a limitation, not papered
+   over.
 
-**Revisit when:** we start building the server (prototype in the golden first).
+**Outcome:** live-verified against a real stdio MCP client (initialize + list_tools +
+`search_second_brain` returning absolute paths + `get_note` + out-of-vault read
+refused; hydrate-on-start keeps the JSON-RPC handshake clean). CI green (45 emitted).
+Layer 3 (`flock` writer lock) remains reactive under [OQ-5](#oq-5).

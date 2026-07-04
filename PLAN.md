@@ -291,17 +291,25 @@ each session. MCP is reserved for the one case a skill can't serve (below).
       uninstall round-trip against a throwaway HOME (golden `b73aaca`).
 - [x] **Gemini parity** — `install_skill.py --global` covers `~/.gemini/skills/`
       (same SKILL.md standard); `GEMINI.md` already symlinks `CLAUDE.md` for memory.
-- [~] **MCP server — SECONDARY, Claude Desktop only.** For clients that **cannot
-      shell out to local Python**. Exposes `search_second_brain(query, k)` (+ optional
-      `get_note`) over the same Ollama+sqlite-vec index, as a thin wrapper over the
-      brain's own `embedder`/`db`/`search_vault`. **Scoped (design only, 2026-07-03):**
-      [docs/mcp-server.md](docs/mcp-server.md). Key scoping call — target **`stdio` +
-      Claude Desktop**; **claude.ai web is out of scope** (a browser can't reach a
-      local `stdio` server, and a remote one would break local-first). Read-only v1;
-      MCP SDK kept an isolated optional dependency so the core + CI stay lean; OQ-5
-      **layer 2 (in-place hydrate) lands with it** (the server is the long-lived
-      reader that makes the `hydrate` teardown a real hazard). Build-time decisions in
-      [OQ-6](open-questions.md#oq-6). Not built yet — prototype in the golden first.
+- [x] **MCP server — SECONDARY, Claude Desktop only. BUILT (v1).** For clients that
+      **cannot shell out to local Python**. `scripts/mcp_server.py` (FastMCP, stdio)
+      exposes read-only `search_second_brain(query, k)` + `get_note(source_file)` over
+      the same Ollama+sqlite-vec index, as a thin wrapper over the brain's own
+      `embedder`/`db`/`search_vault` — so there is exactly one retrieval impl. Scoped
+      in [docs/mcp-server.md](docs/mcp-server.md); target **`stdio` + Claude Desktop**,
+      **claude.ai web out of scope** (a browser can't reach a local `stdio` server, a
+      remote one would break local-first). Refactored `search_vault.py` to expose a
+      reusable `search()` the CLI + server share (no self-shelling); `get_note` is
+      path-validated to `vault/`; hydrate-on-start redirects to stderr so stdout stays
+      a clean JSON-RPC channel. MCP SDK is an **isolated optional dep**
+      (`requirements-mcp.txt`, `mcp>=1.2`) — never in base `requirements.txt`/CI; the
+      server is emitted **verbatim** (byte-diffed + forbidden-ref-scanned, never run in
+      CI). OQ-5 layer 2 (in-place hydrate) landed first as its prereq. **Live-verified**
+      against a real stdio MCP client (initialize + list_tools + search + get_note +
+      out-of-vault read refused; hydrate-on-start keeps the handshake clean). Golden
+      `4867eec`; CI green (45 emitted). [OQ-6](open-questions.md#oq-6) settled.
+      **Deferred to a follow-up:** auto-inserting the Claude Desktop config stanza
+      (v1 is print-and-instruct in the README).
   - [x] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
         The MCP server is a **long-lived reader** holding a connection open while
         post-commit rebuilds fire — this is what made `hydrate`'s `unlink()`+rebuild
