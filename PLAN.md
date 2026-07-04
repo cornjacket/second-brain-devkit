@@ -207,23 +207,27 @@ freshly-generated brain to a working semantic index.
       hook uses `--from-commit HEAD` (upsert added/modified PARA notes, delete
       removed) so the brain stays query-able throughout. `hydrate_cache.py` stays for
       full/bulk rebuilds.
-- [ ] Document the Ollama runtime in the brain's **first-time setup** (README):
+- [x] Document the Ollama runtime in the brain's **first-time setup** (README):
       install Ollama (`brew install ollama` / download), start it (`ollama serve`),
-      pull the model (`ollama pull nomic-embed-text`), then
-      `SECOND_BRAIN_EMBEDDER=ollama`.
+      pull the model (`ollama pull nomic-embed-text`), then verify with `doctor.py`.
+      A fresh brain defaults to `backend = "ollama"`, so no env var is needed. Golden
+      `c08be09`; Setup gains a "Turn on semantic search (Ollama)" block, the
+      self-check pairs `self_test.py` (plumbing) with `doctor.py` (runtime). Emitted
+      (README cleaned), CI green.
 - [x] Ship `scripts/embed_vault.py` into every brain (bulk-embed) — landed in the
       golden (`135bcfb`) and propagated: `emit-manifest.toml` (verbatim 24→25),
       re-vendored `tests/golden/` (43 files), rebuilt `template/` (29 files), CI
       green (34 emitted). First-run flow: `pip install` → Ollama ready →
       `embed_vault.py` → `hydrate_cache.py` → `search_vault.py`.
-- [~] A **`scripts/doctor.py`** (or `setup`) preflight: checks Python deps
-      (sqlite-vec/apsw), Ollama reachable on `:11434`, model pulled, sidecar
-      `type` consistency (no mixed `test`/`ollama` index) — a single "is my brain
-      ready?" command with actionable fixes. Emitted into a brain. **Prototyped in
-      the golden (`c3f15da`)**: two tiers — health + full vault↔sidecar↔db
-      consistency (missing/orphan sidecar, note-missing-from-cache drift, stale row,
-      wrong-backend stamp, wrong dim) with `--repair`. All six classes exercised.
-      **Productizing** (vendor → manifest verbatim → template → `ci.py`) next.
+- [x] A **`scripts/doctor.py`** preflight: checks Python deps (sqlite-vec/apsw),
+      Ollama reachable + model pulled, and full vault↔sidecar↔db consistency
+      (missing/orphan sidecar, note-missing-from-cache drift, stale row, wrong-backend
+      stamp, wrong dim) with `--repair` — a single "is my brain ready?" command with
+      actionable fixes. Golden `c3f15da`, emitted verbatim (`e180069`). **Live-verified
+      against a real Ollama server** (`c08be09` session): reachable/model-pulled → ok,
+      unreachable + model-missing → actionable FAILs, `--repair` embeds all notes via
+      real Ollama and rebuilds the cache to green, and semantic search then ranks the
+      expected note #1. All six consistency classes exercised. Documented in the README.
 - [x] **Cache concurrency-safety, layer 1 ([OQ-5](open-questions.md#oq-5)).**
       `db.connect()` PRAGMAs: `journal_mode=WAL` + `busy_timeout=5000` (default 0 →
       errors on contention), both `sqlite3`/`apsw`, re-applied per open. A cheap,
