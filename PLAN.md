@@ -302,12 +302,18 @@ each session. MCP is reserved for the one case a skill can't serve (below).
       **layer 2 (in-place hydrate) lands with it** (the server is the long-lived
       reader that makes the `hydrate` teardown a real hazard). Build-time decisions in
       [OQ-6](open-questions.md#oq-6). Not built yet — prototype in the golden first.
-  - [ ] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
+  - [x] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
         The MCP server is a **long-lived reader** holding a connection open while
-        post-commit rebuilds fire — this is what makes `hydrate`'s `unlink()`+rebuild
-        a real hazard. Fix: rebuild in one transaction (`DELETE FROM notes`, or
-        temp-table swap) so a reader sees old rows until commit, then new, atomically.
-        `doctor --repair` benefits too. Do alongside the server.
+        post-commit rebuilds fire — this is what made `hydrate`'s `unlink()`+rebuild
+        a real hazard. Fixed: `hydrate_cache.py` keeps the existing table and rebuilds
+        inside one explicit `BEGIN`/`DELETE FROM notes`/re-INSERT/`COMMIT` transaction
+        (explicit BEGIN/COMMIT because `apsw` autocommits per-statement otherwise), so
+        a WAL reader sees the old rows until commit, then the new set atomically — no
+        teardown window. On any error it `ROLLBACK`s, so the previous good rows survive
+        (the old `unlink()` destroyed the DB *before* validating dims). `doctor --repair`
+        inherits it (same rebuild path). Golden `5604fb4`; verbatim → propagated, CI
+        green (inode unchanged across runs; search+doctor green; bad-dim sidecar rolls
+        back leaving all rows).
   - [ ] **Concurrency layer 3 — `flock` writer lock ([OQ-5](open-questions.md#oq-5)).**
         Serialize the *writers* (repair/hydrate/update_cache) against each other for
         the multi-statement critical sections SQLite transactions can't span, while
