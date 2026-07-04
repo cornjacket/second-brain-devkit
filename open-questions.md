@@ -334,3 +334,26 @@ not before it. `doctor --repair` inherits layer 2's benefit when it lands.
 **Revisit when:** the MCP server is designed — re-evaluate whether layer 3 is
 needed and whether WAL's `-wal`/`-shm` sidecars need any `.gitignore` handling.
 Tracked in [PLAN.md G5](PLAN.md#milestone-g5--runtime-setup-ollama--embedder).
+
+---
+
+## OQ-6: MCP server — build-time decisions
+
+**Status:** OPEN — full design scoped in [docs/mcp-server.md](docs/mcp-server.md)
+(2026-07-03). The **scope** is decided (`stdio` + Claude Desktop only; claude.ai web
+out of scope as it would break local-first; read-only tools; thin wrapper over the
+brain's own `embedder`/`db`/`search_vault`; MCP SDK an isolated optional dependency;
+concurrency [OQ-5](#oq-5) layer 2 lands with it). These sub-decisions remain and are
+settled when the server is actually built:
+
+1. **MCP Python SDK / version** — which package, does it pin cleanly on 3.11+?
+2. **`get_note` tool in v1**, or search-only?
+3. **One server across brains vs. one per brain** — path resolution currently
+   assumes per-brain (`parents[…]`, like `query.py`).
+4. **Registration** — auto-insert the Claude Desktop stanza (opt-in, marker-guarded,
+   `--uninstall`-able) vs. print-and-instruct only. Must follow the
+   `install_skill.py` stance: `--apply`-gated, never silent.
+5. **claude.ai web** — confirm it stays out of scope (no web chat without a *hosted*
+   brain), or spin a separate "hosted brain" track with its own security model.
+
+**Revisit when:** we start building the server (prototype in the golden first).

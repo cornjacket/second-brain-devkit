@@ -291,10 +291,17 @@ each session. MCP is reserved for the one case a skill can't serve (below).
       uninstall round-trip against a throwaway HOME (golden `b73aaca`).
 - [x] **Gemini parity** — `install_skill.py --global` covers `~/.gemini/skills/`
       (same SKILL.md standard); `GEMINI.md` already symlinks `CLAUDE.md` for memory.
-- [ ] **MCP server — SECONDARY, web/desktop chat only.** For clients that **cannot
-      shell out to local Python** (Claude Desktop, claude.ai). Exposes
-      `search_second_brain(query, k)` over the same Ollama+sqlite-vec index. Not the
-      default path; built when we want brain access from a web chat.
+- [~] **MCP server — SECONDARY, Claude Desktop only.** For clients that **cannot
+      shell out to local Python**. Exposes `search_second_brain(query, k)` (+ optional
+      `get_note`) over the same Ollama+sqlite-vec index, as a thin wrapper over the
+      brain's own `embedder`/`db`/`search_vault`. **Scoped (design only, 2026-07-03):**
+      [docs/mcp-server.md](docs/mcp-server.md). Key scoping call — target **`stdio` +
+      Claude Desktop**; **claude.ai web is out of scope** (a browser can't reach a
+      local `stdio` server, and a remote one would break local-first). Read-only v1;
+      MCP SDK kept an isolated optional dependency so the core + CI stay lean; OQ-5
+      **layer 2 (in-place hydrate) lands with it** (the server is the long-lived
+      reader that makes the `hydrate` teardown a real hazard). Build-time decisions in
+      [OQ-6](open-questions.md#oq-6). Not built yet — prototype in the golden first.
   - [ ] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
         The MCP server is a **long-lived reader** holding a connection open while
         post-commit rebuilds fire — this is what makes `hydrate`'s `unlink()`+rebuild
