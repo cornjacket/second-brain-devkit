@@ -267,3 +267,69 @@ memory — and was authored to build the reference implementation.
 
 **Revisit when:** the README rework lands and we see whether any residual design
 detail genuinely needs to live *inside* a brain.
+
+---
+
+## OQ-5: How do we make cache access concurrency-safe (reader vs. rebuild)?
+
+**Status:** OPEN — direction agreed (three layers), sequenced behind the MCP
+server. Surfaced 2026-07-03 while building `doctor.py`.
+
+### Context
+
+Multiple processes can touch `data/brain.db` at once: **readers**
+(`search_vault.py`, and soon the long-lived **MCP server**, [G6](PLAN.md)) and
+**writers** (`update_cache.py` / the post-commit hook, `hydrate_cache.py`, and
+`doctor.py --repair`, which calls hydrate). Today's CLI reality makes collisions
+rare (a `search_vault` process lives milliseconds), but the MCP server — a
+persistent process holding a connection open while post-commit rebuilds fire —
+turns this from theoretical into real.
+
+### What SQLite gives us intrinsically (so we don't hand-roll a mutex)
+
+- **ACID transactions** — a reader never sees a half-written transaction. The
+  incremental `update_cache.py` DELETE+INSERT-per-row already rides on this and is
+  safe against concurrent readers *today*.
+- **File-level locking** — serializes access; returns `SQLITE_BUSY` on contention.
+- **WAL mode** (`PRAGMA journal_mode=WAL`) — many readers + one writer run
+  concurrently; readers don't block the writer or vice-versa.
+
+### Where SQLite does NOT help — the actual exposure
+
+`hydrate_cache.py` does `DB_PATH.unlink()` then rebuilds — a **filesystem delete
+of the whole DB file**, not a SQL transaction. **No SQLite lock covers
+`os.unlink()`.** A reader opening between the unlink and the rebuild sees a
+missing/half-populated DB. This is the same failure class the incremental
+`update_cache` fixed for single-note edits — but the bulk path still tears down.
+`doctor.py --repair` inherits it (repair calls hydrate).
+
+### Decision (direction) — three layers, in priority order
+
+1. **Turn on two PRAGMAs in `db.connect()`** (cheap, one place, both `sqlite3` and
+   `apsw`): `journal_mode=WAL` (reader/writer concurrency) + `busy_timeout=<few s>`
+   (the default is **0** — contention errors immediately instead of waiting; this
+   is why naive concurrent SQLite feels flaky). **Highest value-per-line; do first.**
+2. **Rebuild hydrate *in place*** — `DELETE FROM notes` inside one transaction (or
+   temp-table swap) instead of `unlink()`+recreate, so SQLite's transaction
+   isolation fully covers the rebuild (readers see old rows until commit, then new,
+   atomically). Kills the one operation locking can't protect; aligns with the
+   non-teardown direction `update_cache` already set. `doctor --repair` benefits
+   directly. (A cruder `build tmp + os.replace()` is atomic for *new* readers but
+   leaves long-lived connections — the MCP server — pinned to the old inode until
+   they reconnect; in-place DELETE is better for that reason.)
+3. **App-level writer lock (`flock` on `data/.brain.lock`) — only if needed.**
+   SQLite serializes *statements*, not multi-statement cross-connection critical
+   sections like "re-embed all sidecars **and** rebuild the cache as one exclusive
+   op." A `flock` around the whole repair/hydrate section serializes **writers**
+   against each other while WAL handles reader-vs-writer. Add when the MCP server
+   makes overlapping writes realistic — not before.
+
+### Sequencing
+
+Layer 1 is a small standalone golden-first change, done next after `doctor.py`
+productization. Layer 2 folds into the consistency epic (`--repair` is a
+beneficiary). Layer 3 stays parked until the MCP server ([G6](PLAN.md)) lands.
+
+**Revisit when:** the MCP server is designed — re-evaluate whether layer 3 is
+needed and whether WAL's `-wal`/`-shm` sidecars need any `.gitignore` handling.
+Tracked in [PLAN.md G5](PLAN.md#milestone-g5--runtime-setup-ollama--embedder).

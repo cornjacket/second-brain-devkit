@@ -216,10 +216,27 @@ freshly-generated brain to a working semantic index.
       re-vendored `tests/golden/` (43 files), rebuilt `template/` (29 files), CI
       green (34 emitted). First-run flow: `pip install` → Ollama ready →
       `embed_vault.py` → `hydrate_cache.py` → `search_vault.py`.
-- [ ] A **`scripts/doctor.py`** (or `setup`) preflight: checks Python deps
+- [~] A **`scripts/doctor.py`** (or `setup`) preflight: checks Python deps
       (sqlite-vec/apsw), Ollama reachable on `:11434`, model pulled, sidecar
       `type` consistency (no mixed `test`/`ollama` index) — a single "is my brain
-      ready?" command with actionable fixes. Emitted into a brain.
+      ready?" command with actionable fixes. Emitted into a brain. **Prototyped in
+      the golden (`c3f15da`)**: two tiers — health + full vault↔sidecar↔db
+      consistency (missing/orphan sidecar, note-missing-from-cache drift, stale row,
+      wrong-backend stamp, wrong dim) with `--repair`. All six classes exercised.
+      **Productizing** (vendor → manifest verbatim → template → `ci.py`) next.
+- [ ] **Cache concurrency-safety ([OQ-5](open-questions.md#oq-5)).** Multiple
+      processes (readers `search_vault`/MCP server vs. writers `update_cache`/
+      `hydrate`/`doctor --repair`) can race on `data/brain.db`; the real exposure is
+      `hydrate`'s `unlink()`+rebuild, which SQLite's locking can't protect. Three
+      layers, sequenced behind the MCP server:
+  - [ ] **Layer 1 — `db.connect()` PRAGMAs**: `journal_mode=WAL` +
+        `busy_timeout` (default 0 → errors on contention). Cheap, one place, both
+        `sqlite3`/`apsw`. **Do next, right after doctor productization.**
+  - [ ] **Layer 2 — in-place hydrate**: `DELETE FROM notes` in one transaction (or
+        temp-table swap) instead of `unlink()`+recreate, so rebuild is atomic to
+        readers. Folds into the consistency epic (`--repair` benefits).
+  - [ ] **Layer 3 — `flock` writer lock** around repair/hydrate: only when the MCP
+        server makes overlapping writes realistic. Parked until [G6](#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
 - [ ] Decide install automation vs guidance (don't silently `brew install` on a
       user's machine — detect + instruct, offer opt-in). Ollama stays a runtime
       dependency of a brain, never of the devkit's CI (which is `test`-only).

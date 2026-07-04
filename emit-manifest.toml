@@ -41,6 +41,7 @@ paths = [
   "requirements.txt",
   "scripts/check_line_count.py",
   "scripts/db.py",
+  "scripts/doctor.py",
   "scripts/embed_staged.py",
   "scripts/embed_vault.py",
   "scripts/embedder.py",
