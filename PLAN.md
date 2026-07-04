@@ -332,18 +332,26 @@ each session. MCP is reserved for the one case a skill can't serve (below).
   notes.
 
 ## Milestone G4 — Lifecycle
-- [ ] **Update/upgrade an existing populated brain (surfaced 2026-07-03).** The
-      devkit can only *generate* a new brain — `new_brain.py` git-inits a fresh repo
-      and refuses a non-empty target unless `--force`, so it **cannot** be run over a
-      user's real brain without destroying their notes + history. A real gap: once a
-      brain is generated and filled, there is no supported path to pull in later
-      devkit improvements (new scripts, bug fixes, WAL, `--nudge`). Needs a
-      `tools/update_brain.py` that re-emits **tooling only** (the `verbatim`/`cleaned`
-      emitted set: `scripts/`, `README.md`, hooks, `requirements.txt`) into an
-      existing brain, leaving `vault/`, `data/`, `config/`, and git history untouched,
-      and commits the update in the brain's own repo. Interim: if the brain is
-      disposable, delete + regenerate (done for `~/second-brain` on 2026-07-03 to pick
-      up `doctor.py`/WAL/`--nudge`); a *populated* brain has no safe path yet.
+- [ ] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
+      brain (surfaced 2026-07-03; now the top lifecycle priority).** The devkit can
+      only *generate* — `new_brain.py` git-inits a fresh repo and refuses a non-empty
+      target unless `--force`, so it **cannot** run over a real brain without
+      destroying notes + history. Every devkit improvement (WAL, `doctor.py`,
+      `--nudge`, and now the **MCP server**) therefore reaches an existing brain only
+      via delete + regenerate — fine for a disposable seed-only brain, unsafe for a
+      populated one. Build a `tools/update_brain.py` that:
+      - re-emits **tooling only** — the `verbatim` + `cleaned` sets from
+        `emit-manifest.toml` (`scripts/`, `README.md`, hooks, `requirements*.txt`,
+        `skill/`) — and **never** touches `vault/`, `data/`, `config/`, or git history;
+      - is driven by the same manifest (so new files like `mcp_server.py` /
+        `requirements-mcp.txt` are picked up automatically, no per-feature edits);
+      - **detect + instruct, `--apply`-gated** (dry-run diff by default), consistent
+        with `install_skill.py`/`doctor.py`; shows exactly what would change;
+      - preserves user edits sensibly (report/skip locally-modified emitted files
+        rather than clobber silently) and commits the upgrade in the brain's own repo.
+      Interim until it exists: if the brain is disposable, delete + regenerate (done
+      for `~/second-brain` on 2026-07-04 to pick up the MCP server + layer-2 hydrate);
+      a *populated* brain still has no safe path.
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).
       The golden keeps its `SPEC.md` as the build-time reference until then
       ([OQ-4](open-questions.md#oq-4)); this promotion happens at mothball, when the

@@ -146,10 +146,50 @@ user's config.**
 
 ## 9. Open questions → [OQ-6](../open-questions.md)
 
-1. Which MCP Python SDK / version, and does it pin cleanly on Python 3.11+?
-2. `get_note` in v1, or search-only?
-3. One shared server across multiple brains, or one server per brain? (Path
-   resolution assumes per-brain; revisit if a user has several.)
-4. Registration: auto-insert the Desktop stanza (opt-in) vs. print-and-instruct only.
-5. Confirm claude.ai-web stays out of scope (accept "no web chat without a hosted
-   brain") — or is a future hosted variant worth a separate track?
+All five build-time sub-decisions are **settled** in
+[OQ-6](../open-questions.md#oq-6) now that v1 is built: SDK = official `mcp`
+(`mcp>=1.2`); `get_note` shipped in v1; per-brain root resolution; registration =
+print-and-instruct for v1 (auto-insert deferred); claude.ai-web confirmed out of
+scope. This section is retained as the original design record.
+
+## 10. Verifying the server (dev recipe — no Claude Desktop needed)
+
+An MCP server speaks JSON-RPC over stdin/stdout, so you don't test it by running it
+and typing — a **client** launches it as a subprocess and calls its tools. This is
+the exact recipe used to accept v1 (2026-07-04); keep it as the reproducible check.
+
+```python
+# mcp_smoke.py — drive the server the way Claude Desktop does.
+#   pip install mcp            (already in the brain's requirements-mcp.txt)
+#   python3 mcp_smoke.py
+import asyncio
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
+
+SERVER = "/ABSOLUTE/PATH/TO/second-brain/scripts/mcp_server.py"
+
+async def main():
+    params = StdioServerParameters(command="python3", args=[SERVER])
+    async with stdio_client(params) as (r, w):
+        async with ClientSession(r, w) as s:
+            await s.initialize()                                   # MCP handshake
+            print("tools:", [t.name for t in (await s.list_tools()).tools])
+            res = await s.call_tool("search_second_brain",
+                                    {"query": "how do vector databases work?", "k": 3})
+            for hit in res.structuredContent["result"]:
+                print(f"  {hit['distance']:.4f}  {hit['source_file']}")
+            note = await s.call_tool("get_note",
+                                     {"source_file": res.structuredContent["result"][0]["source_file"]})
+            print("first note starts:", repr(note.content[0].text[:60]))
+            bad = await s.call_tool("get_note", {"source_file": "/etc/passwd"})
+            print("outside-vault refused:", bad.isError)           # -> True
+
+asyncio.run(main())
+```
+
+Expected: two tools listed; `search` returns absolute vault paths with cosine
+distances (real Ollama backend clusters relevant notes near ~0.3–0.5; the `test`
+backend is meaningless-but-nonzero); `get_note` returns Markdown; an out-of-vault
+read is refused (`isError: True`). Requires Ollama running for a real brain. The
+server prints its own progress to **stderr**, so stdout stays a clean JSON-RPC
+channel — if a client ever fails to handshake, suspect something writing to stdout.
