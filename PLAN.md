@@ -305,11 +305,27 @@ each session. MCP is reserved for the one case a skill can't serve (below).
       (`requirements-mcp.txt`, `mcp>=1.2`) — never in base `requirements.txt`/CI; the
       server is emitted **verbatim** (byte-diffed + forbidden-ref-scanned, never run in
       CI). OQ-5 layer 2 (in-place hydrate) landed first as its prereq. **Live-verified**
-      against a real stdio MCP client (initialize + list_tools + search + get_note +
-      out-of-vault read refused; hydrate-on-start keeps the handshake clean). Golden
-      `4867eec`; CI green (45 emitted). [OQ-6](open-questions.md#oq-6) settled.
-      **Deferred to a follow-up:** auto-inserting the Claude Desktop config stanza
-      (v1 is print-and-instruct in the README).
+      against a real stdio MCP client AND end-to-end in **Claude Desktop** itself
+      (2026-07-04): tools appear under Customize → Connectors and answer a real chat
+      query. Golden `4867eec`; CI green (45 emitted). [OQ-6](open-questions.md#oq-6)
+      settled. **Deferred to a follow-up:** auto-inserting the Claude Desktop config
+      stanza (v1 is print-and-instruct in the README).
+  - [x] **Claude Desktop compatibility — disable `outputSchema` (found live 2026-07-04).**
+        FastMCP auto-advertises an `outputSchema` for typed-return tools (structured
+        output, protocol `2025-11-25`); Claude Desktop's older MCP client silently
+        **dropped** both tools → "no tools available." Fix: `@mcp.tool(structured_output=False)`
+        on each tool (classic text-output; return still reaches the model as JSON text).
+        Verified in Desktop after restart. Full write-up in
+        [docs/mcp-server.md §11](docs/mcp-server.md); lesson also saved to `~/notes`.
+  - [ ] **Write path — add a note to the brain from Claude Desktop (`add_note` tool).**
+        v1 is read-only, so there is **no way to create a note from Desktop** (asked
+        2026-07-04). A write tool must not just drop a file: it has to land the note in
+        a PARA root and run the same **embed → hydrate** path the git hooks do (or make
+        a real commit) so it's immediately searchable and history stays consistent —
+        otherwise the cache drifts. Design tension: read-only v1 deliberately kept the
+        git-committed vault flow the single source of truth
+        ([docs/mcp-server.md §3](docs/mcp-server.md)). Scope carefully (where does an
+        uncommitted note live? does the tool commit for the user?) before building.
   - [x] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
         The MCP server is a **long-lived reader** holding a connection open while
         post-commit rebuilds fire — this is what made `hydrate`'s `unlink()`+rebuild

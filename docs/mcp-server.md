@@ -66,7 +66,12 @@ Mirror the skill's surface — read-only, minimal:
 
 **Read-only by default.** No note-creation/editing tool in v1 — writing goes through
 the git-committed vault flow (pre/post-commit hooks embed + hydrate), which an MCP
-write tool would bypass, risking drift. Revisit only if there's a real need.
+write tool would bypass, risking drift. **There is currently no way to _add_ a note to
+the brain from Claude Desktop** — a real gap tracked as a
+[PLAN G6 task](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project):
+a future `add_note`/`create_note` tool must write into a PARA root **and** run the
+same embed → hydrate path the hooks do (or make a real commit), so the new note is
+actually searchable and history stays consistent — not just drop a file on disk.
 
 ## 4. Architecture — thin wrapper over existing scripts
 
@@ -176,10 +181,10 @@ async def main():
             print("tools:", [t.name for t in (await s.list_tools()).tools])
             res = await s.call_tool("search_second_brain",
                                     {"query": "how do vector databases work?", "k": 3})
-            for hit in res.structuredContent["result"]:
+            hits = json.loads(res.content[0].text)                 # text block (see §11)
+            for hit in hits:
                 print(f"  {hit['distance']:.4f}  {hit['source_file']}")
-            note = await s.call_tool("get_note",
-                                     {"source_file": res.structuredContent["result"][0]["source_file"]})
+            note = await s.call_tool("get_note", {"source_file": hits[0]["source_file"]})
             print("first note starts:", repr(note.content[0].text[:60]))
             bad = await s.call_tool("get_note", {"source_file": "/etc/passwd"})
             print("outside-vault refused:", bad.isError)           # -> True
@@ -187,6 +192,34 @@ async def main():
 asyncio.run(main())
 ```
 
+(Import `json` at the top. The results arrive as a **text block**, not
+`structuredContent`, because of the compatibility decision in §11.)
+
+## 11. Compatibility gotcha — Claude Desktop drops tools with `outputSchema` (2026-07-04)
+
+**Symptom found live:** the server connected, appeared in **Customize → Connectors**
+as `second-brain (LOCAL DEV)`, and logged a clean `tools/list` — but the pane said
+**"This connector has no tools available,"** so the model never called it. A
+standalone Python MCP client (latest SDK) connected to the *same* server and saw
+both tools, which localized the fault to Desktop's client.
+
+**Cause:** the tools have typed returns (`-> list[dict]`, `-> str`), so modern
+FastMCP auto-advertises an **`outputSchema`** ("structured output," a newer MCP
+feature; the server negotiated protocol `2025-11-25`). Claude Desktop's embedded MCP
+client (as of this date) predates that field and **silently discards any tool
+carrying it**.
+
+**Fix (shipped):** `@mcp.tool(structured_output=False)` on every tool. No
+`outputSchema` is emitted; each tool becomes a classic text-output tool every client
+accepts, and the return still reaches the model as a JSON text block. Verified end to
+end in Claude Desktop after a full restart.
+
+**Lessons for future MCP work here:** (1) **test against the real target client**, not
+just a same-SDK Python client — the same SDK speaks the same newest protocol and hides
+exactly this skew; (2) prefer classic text-output tools for broad client
+compatibility; (3) *"no tools available"* ≠ *"server broken"* — a clean handshake
+proves nothing about callability; confirm a real `CallToolRequest` reaches the server
+log. Revisit `structured_output` once Desktop's MCP client supports `outputSchema`.
 Expected: two tools listed; `search` returns absolute vault paths with cosine
 distances (real Ollama backend clusters relevant notes near ~0.3–0.5; the `test`
 backend is meaningless-but-nonzero); `get_note` returns Markdown; an out-of-vault
