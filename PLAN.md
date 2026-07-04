@@ -236,9 +236,17 @@ freshly-generated brain to a working semantic index.
       WAL; vendored + template rebuilt, CI green (db.py stays verbatim, never run in
       CI). **Layers 2 + 3 moved to the MCP server ([G6](#milestone-g6--the-ai-interface-reach-the-brain-from-any-project))**
       — they only matter once a long-lived reader exists.
-- [ ] Decide install automation vs guidance (don't silently `brew install` on a
-      user's machine — detect + instruct, offer opt-in). Ollama stays a runtime
-      dependency of a brain, never of the devkit's CI (which is `test`-only).
+- [x] **Install automation vs guidance — DECIDED: detect + instruct, never
+      auto-install.** Consistent with the whole devkit stance (`install_skill.py`
+      never mutates config silently; `--apply`-gated). Auto-running `brew install
+      ollama` is invasive, platform-specific (brew = macOS only; Linux/Windows
+      differ), sometimes needs sudo, and can clash with an existing setup — high
+      risk for no gain when `doctor.py` already prints the exact command
+      (`ollama pull nomic-embed-text`, "is `ollama serve` running?",
+      `pip install -r requirements.txt`). **`doctor.py` already implements this
+      policy** — no code needed. An opt-in guided installer stays a possible future
+      nicety, not built now. Ollama remains a runtime dependency of a *brain*, never
+      of the devkit's CI (which is `test`-only).
 
 ## Milestone G6 — The AI interface: reach the brain from any project
 **Default usage (decided):** the AI is **not** working inside the brain — it is
@@ -303,6 +311,18 @@ each session. MCP is reserved for the one case a skill can't serve (below).
   notes.
 
 ## Milestone G4 — Lifecycle
+- [ ] **Update/upgrade an existing populated brain (surfaced 2026-07-03).** The
+      devkit can only *generate* a new brain — `new_brain.py` git-inits a fresh repo
+      and refuses a non-empty target unless `--force`, so it **cannot** be run over a
+      user's real brain without destroying their notes + history. A real gap: once a
+      brain is generated and filled, there is no supported path to pull in later
+      devkit improvements (new scripts, bug fixes, WAL, `--nudge`). Needs a
+      `tools/update_brain.py` that re-emits **tooling only** (the `verbatim`/`cleaned`
+      emitted set: `scripts/`, `README.md`, hooks, `requirements.txt`) into an
+      existing brain, leaving `vault/`, `data/`, `config/`, and git history untouched,
+      and commits the update in the brain's own repo. Interim: if the brain is
+      disposable, delete + regenerate (done for `~/second-brain` on 2026-07-03 to pick
+      up `doctor.py`/WAL/`--nudge`); a *populated* brain has no safe path yet.
 - [ ] Promote the canonical product spec into the devkit (`SPEC.md` §4 lifecycle).
       The golden keeps its `SPEC.md` as the build-time reference until then
       ([OQ-4](open-questions.md#oq-4)); this promotion happens at mothball, when the
