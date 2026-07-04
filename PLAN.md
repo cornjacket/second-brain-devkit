@@ -229,9 +229,11 @@ freshly-generated brain to a working semantic index.
       `hydrate`/`doctor --repair`) can race on `data/brain.db`; the real exposure is
       `hydrate`'s `unlink()`+rebuild, which SQLite's locking can't protect. Three
       layers, sequenced behind the MCP server:
-  - [ ] **Layer 1 — `db.connect()` PRAGMAs**: `journal_mode=WAL` +
-        `busy_timeout` (default 0 → errors on contention). Cheap, one place, both
-        `sqlite3`/`apsw`. **Do next, right after doctor productization.**
+  - [x] **Layer 1 — `db.connect()` PRAGMAs**: `journal_mode=WAL` +
+        `busy_timeout=5000` (default 0 → errors on contention), both `sqlite3`/`apsw`,
+        re-applied per open. Golden `0520c0f`; WAL `-wal`/`-shm` already covered by
+        the `data/*` gitignore. Verified hydrate→search→doctor green under WAL;
+        vendored + template rebuilt, CI green (db.py stays verbatim, never run in CI).
   - [ ] **Layer 2 — in-place hydrate**: `DELETE FROM notes` in one transaction (or
         temp-table swap) instead of `unlink()`+recreate, so rebuild is atomic to
         readers. Folds into the consistency epic (`--repair` benefits).
