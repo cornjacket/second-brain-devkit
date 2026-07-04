@@ -260,14 +260,23 @@ each session. MCP is reserved for the one case a skill can't serve (below).
       project's cwd). SKILL.md's `description` drives proactive "consult before
       designing" use. No new dependency, no server. Golden `c9b8838`; CI green
       (38 emitted). Verified real Ollama retrieval via `query.py` in the golden.
-- [~] **Behavioral trigger.** The skill `description` is sharp ("consult before
-      designing / making convention decisions"). Optional reinforcement — a line in
-      user-level `~/.claude/CLAUDE.md` — still open.
-- [x] **Installer (detect + instruct).** `scripts/install_skill.py` **symlinks** the
-      skill into a chosen repo's `.claude/skills/` (`--project`, the default per-repo
-      stance) or `~/.claude/skills` + `~/.gemini/skills` (`--global`). Dry-run unless
-      `--apply`; skips a tool whose config dir is absent (instructs); never mutates
-      global config silently. Verified both scopes' dry-runs in the golden.
+- [x] **Behavioral trigger — productized.** The skill `description` is sharp
+      ("consult before designing / making convention decisions"); the reinforcement
+      is now a formal, opt-in feature rather than a manual per-user edit.
+      `install_skill.py --nudge` appends a marked, idempotent "consult the
+      second-brain before designing" block to each tool's global memory
+      (`~/.claude/CLAUDE.md`, `~/.gemini/GEMINI.md`) — detect+instruct, `--apply`
+      required, never silent. README documents it + a hand-install snippet. Golden
+      `b73aaca`; emitted (install_skill.py verbatim, README cleaned), CI green.
+- [x] **Installer/uninstaller (detect + instruct).** `scripts/install_skill.py`
+      **symlinks** the skill into a chosen repo's `.claude/skills/` (`--project`, the
+      default per-repo stance) or `~/.claude/skills` + `~/.gemini/skills` (`--global`),
+      and (opt-in) installs the `--nudge` reflexive trigger. Dry-run unless `--apply`;
+      skips a tool whose config dir is absent (instructs); never mutates global config
+      silently. **`--uninstall`** reverses whichever parts you name — removes only this
+      brain's symlinks and only the marked nudge block, leaving the rest of your config
+      intact (so a user can cleanly drop the brain). Verified full install→idempotent→
+      uninstall round-trip against a throwaway HOME (golden `b73aaca`).
 - [x] **Gemini parity** — `install_skill.py --global` covers `~/.gemini/skills/`
       (same SKILL.md standard); `GEMINI.md` already symlinks `CLAUDE.md` for memory.
 - [ ] **MCP server — SECONDARY, web/desktop chat only.** For clients that **cannot
