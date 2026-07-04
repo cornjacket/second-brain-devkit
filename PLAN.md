@@ -224,21 +224,14 @@ freshly-generated brain to a working semantic index.
       consistency (missing/orphan sidecar, note-missing-from-cache drift, stale row,
       wrong-backend stamp, wrong dim) with `--repair`. All six classes exercised.
       **Productizing** (vendor → manifest verbatim → template → `ci.py`) next.
-- [ ] **Cache concurrency-safety ([OQ-5](open-questions.md#oq-5)).** Multiple
-      processes (readers `search_vault`/MCP server vs. writers `update_cache`/
-      `hydrate`/`doctor --repair`) can race on `data/brain.db`; the real exposure is
-      `hydrate`'s `unlink()`+rebuild, which SQLite's locking can't protect. Three
-      layers, sequenced behind the MCP server:
-  - [x] **Layer 1 — `db.connect()` PRAGMAs**: `journal_mode=WAL` +
-        `busy_timeout=5000` (default 0 → errors on contention), both `sqlite3`/`apsw`,
-        re-applied per open. Golden `0520c0f`; WAL `-wal`/`-shm` already covered by
-        the `data/*` gitignore. Verified hydrate→search→doctor green under WAL;
-        vendored + template rebuilt, CI green (db.py stays verbatim, never run in CI).
-  - [ ] **Layer 2 — in-place hydrate**: `DELETE FROM notes` in one transaction (or
-        temp-table swap) instead of `unlink()`+recreate, so rebuild is atomic to
-        readers. Folds into the consistency epic (`--repair` benefits).
-  - [ ] **Layer 3 — `flock` writer lock** around repair/hydrate: only when the MCP
-        server makes overlapping writes realistic. Parked until [G6](#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
+- [x] **Cache concurrency-safety, layer 1 ([OQ-5](open-questions.md#oq-5)).**
+      `db.connect()` PRAGMAs: `journal_mode=WAL` + `busy_timeout=5000` (default 0 →
+      errors on contention), both `sqlite3`/`apsw`, re-applied per open. A cheap,
+      general robustness win shipped now. Golden `0520c0f`; WAL `-wal`/`-shm` already
+      covered by the `data/*` gitignore. Verified hydrate→search→doctor green under
+      WAL; vendored + template rebuilt, CI green (db.py stays verbatim, never run in
+      CI). **Layers 2 + 3 moved to the MCP server ([G6](#milestone-g6--the-ai-interface-reach-the-brain-from-any-project))**
+      — they only matter once a long-lived reader exists.
 - [ ] Decide install automation vs guidance (don't silently `brew install` on a
       user's machine — detect + instruct, offer opt-in). Ollama stays a runtime
       dependency of a brain, never of the devkit's CI (which is `test`-only).
@@ -281,6 +274,17 @@ each session. MCP is reserved for the one case a skill can't serve (below).
       shell out to local Python** (Claude Desktop, claude.ai). Exposes
       `search_second_brain(query, k)` over the same Ollama+sqlite-vec index. Not the
       default path; built when we want brain access from a web chat.
+  - [ ] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
+        The MCP server is a **long-lived reader** holding a connection open while
+        post-commit rebuilds fire — this is what makes `hydrate`'s `unlink()`+rebuild
+        a real hazard. Fix: rebuild in one transaction (`DELETE FROM notes`, or
+        temp-table swap) so a reader sees old rows until commit, then new, atomically.
+        `doctor --repair` benefits too. Do alongside the server.
+  - [ ] **Concurrency layer 3 — `flock` writer lock ([OQ-5](open-questions.md#oq-5)).**
+        Serialize the *writers* (repair/hydrate/update_cache) against each other for
+        the multi-statement critical sections SQLite transactions can't span, while
+        WAL handles reader-vs-writer. Only if overlapping writes prove real once the
+        server lands.
 - **Usage note:** the brain's value as a conventions oracle grows as it is
   populated with decision/convention notes — today it holds only the 4 system seed
   notes.

@@ -326,9 +326,10 @@ missing/half-populated DB. This is the same failure class the incremental
 
 ### Sequencing
 
-Layer 1 is a small standalone golden-first change, done next after `doctor.py`
-productization. Layer 2 folds into the consistency epic (`--repair` is a
-beneficiary). Layer 3 stays parked until the MCP server ([G6](PLAN.md)) lands.
+Layer 1 **landed** (golden `0520c0f`) as a cheap general robustness win. **Layers 2
+and 3 are scoped to the MCP server ([G6](PLAN.md))** — the long-lived reader is what
+makes the `hydrate` teardown a real hazard, so both are built alongside the server,
+not before it. `doctor --repair` inherits layer 2's benefit when it lands.
 
 **Revisit when:** the MCP server is designed — re-evaluate whether layer 3 is
 needed and whether WAL's `-wal`/`-shm` sidecars need any `.gitignore` handling.
