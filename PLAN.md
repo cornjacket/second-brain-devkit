@@ -346,8 +346,8 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         Verified in Desktop after restart. Full write-up in
         [docs/mcp-server.md §11](docs/mcp-server.md); lesson also saved to `~/notes`.
   - [ ] **Write path — add a note to the brain from Claude Desktop (`add_note` tool).**
-        v1 is read-only, so there is **no way to create a note from Desktop** (asked
-        2026-07-04). A write tool must not just drop a file: it has to land the note in
+        (task #5) v1 is read-only, so there is **no way to create a note from Desktop**
+        (asked 2026-07-04). A write tool must not just drop a file: it has to land the note in
         a PARA root and run the same **embed → hydrate** path the git hooks do (or make
         a real commit) so it's immediately searchable and history stays consistent —
         otherwise the cache drifts. Design tension: read-only v1 deliberately kept the
