@@ -176,6 +176,21 @@ a note commit), so the vendored golden only needs to be static expected output.
       oracle). Passes locally end-to-end; a self-contained git identity lets the
       Mode-B commit run on a bare CI runner.
 
+### MCP coverage (follow-on, surfaced 2026-07-04)
+The `outputSchema`/Claude-Desktop regression proved a real gap: CI **byte-diffs**
+`mcp_server.py` but never **runs** it (and `mcp` isn't installed), so a syntax error
+or a behavior regression ships green. Two layers, only the first in the hermetic gate:
+- [ ] **Layer 1 — `py_compile` every emitted script in `tools/ci.py`** (incl.
+      `mcp_server.py`). Catches syntax/compile errors with **zero** new deps
+      (compiling never imports `mcp`), so CI stays stdlib-only. Cheap, unconditional.
+- [ ] **Layer 2 — opt-in behavioral MCP test** (`tools/check_mcp_server.py`, modeled
+      on `check_semantic_retrieval.py`): when `mcp` is importable, spawn the stdio
+      server on a `test`-backend brain and assert (1) both tools listed, (2) **no
+      `outputSchema`** on either (locks in the Desktop fix), (3) `get_note` refuses a
+      path outside `vault/`, (4) `search_second_brain` returns the seeded fixture.
+      **SKIP + exit 0** when `mcp` absent, so it never enters the portable gate; needs
+      `mcp`+`sqlite-vec` but **not** Ollama (deterministic `test` backend).
+
 ## Milestone G5 — Runtime setup (Ollama + embedder)
 Make a generated brain **runnable for real semantic search**, not just structurally
 valid. The `test` backend proves plumbing; real relevance needs Ollama +
