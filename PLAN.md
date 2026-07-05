@@ -8,6 +8,19 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
+## ▶ Next up (2026-07-05)
+- [x] **Author two devkit docs (done).** (task #4)
+  - [x] **`docs/source-map.md`** — inventory of every source file (emitted brain
+        `scripts/`+`skill/`, devkit `tools/`, hooks/config) with a one-line purpose,
+        grouped by role, cross-checked against `emit-manifest.toml`. Referenced from
+        `README.md` (Project Layout) + `CLAUDE.md` (Where things are specified).
+  - [x] **`docs/claude-desktop-workflow.md`** — the consolidated end-to-end Claude
+        Desktop journey (own/generate a brain → deps + Ollama → embed → register with
+        the absolute-interpreter gotcha → enable connector → use → verify → the
+        `outputSchema` lesson), linking the README steps + `mcp-server.md` §10/§11.
+- Then the previously-queued work: MCP CI coverage (tasks #1 py_compile, #2 behavioral),
+  `tools/update_brain.py` (G4), hybrid FTS5 retrieval (task #3, backlog).
+
 > **Sequencing — read first.** Do **not** start the generator milestones (G1+)
 > until the brain (`../second-brain-test/`) is working and committed. The brain is
 > built prototype-first; this devkit then *productizes* it. Use the brain's

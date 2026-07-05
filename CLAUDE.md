@@ -14,6 +14,10 @@ spec so they cannot drift.
   `register`) → `../second-brain-test/SPEC.md` (canonical product spec, for now —
   promoted into the devkit only at mothball, see [OQ-4](open-questions.md))
 - Unresolved design decisions → [open-questions.md](open-questions.md)
+- What every source file is for → [docs/source-map.md](docs/source-map.md)
+- MCP server design + Claude Desktop → [docs/mcp-server.md](docs/mcp-server.md),
+  [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
+- Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 
 ## Style & conventions (devkit code)
 

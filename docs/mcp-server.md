@@ -7,7 +7,8 @@ isolated optional dep (`requirements-mcp.txt`). Registration is print-and-instru
 the README for v1 (auto-insert deferred). Build-time decisions settled in
 [OQ-6](../open-questions.md#oq-6); tracked in
 [PLAN.md](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
-This doc remains the design rationale.
+This doc remains the design rationale. For the step-by-step user journey (install →
+register → enable → use), see [claude-desktop-workflow.md](claude-desktop-workflow.md).
 
 This document scopes an **MCP server** that lets a chat client reach the brain when
 it **cannot shell out to local Python**. It is deliberately the *secondary* path —

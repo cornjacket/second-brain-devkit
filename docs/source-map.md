@@ -1,0 +1,95 @@
+# Source map — what every file is for
+
+A one-line purpose for each source file, grouped by role. Two families: the **emitted
+brain** (what every generated brain ships) and the **devkit** (the generator +
+validation, never emitted).
+
+- *Complements, doesn't replace, [`emit-manifest.toml`](../emit-manifest.toml)* — the
+  manifest is the source of truth for **how** each file is emitted
+  (`verbatim`/`cleaned`/`generated`/`exclude`); this doc says **what** it does. If a
+  file is added/removed, update both (the partition check enforces the manifest side).
+- Each script also carries a module docstring with the fuller story.
+
+---
+
+## A. The emitted brain (`scripts/`, `skill/`, hooks, config)
+
+Everything a generated brain owns and runs. Lives in the golden at
+`../second-brain-test/`, vendored to `tests/golden/`, emitted via `template/`.
+
+### Embedding & cache pipeline (`scripts/`)
+| File | Purpose |
+|---|---|
+| `embedder.py` | Embedding backends (`test` / `ollama`); resolves the active backend (env var > `config/embedder.toml` > `test`) and exposes `embed(text)→vector` + `EMBED_DIM`. The same-model choke point. |
+| `db.py` | Opens SQLite with the `sqlite-vec` extension loaded (stdlib `sqlite3`, else `apsw` fallback); applies `WAL` + `busy_timeout` PRAGMAs (OQ-5 layer 1). |
+| `embed_staged.py` | Pre-commit helper — (re)generate `.embed.json` sidecars for **staged** PARA notes. |
+| `embed_vault.py` | Bulk-embed **every** PARA note in the vault, refreshing sidecars. |
+| `hydrate_cache.py` | Full rebuild of `data/brain.db` from all sidecars, in one **in-place** transaction (OQ-5 layer 2). |
+| `update_cache.py` | Incremental cache updates, one note at a time (`--upsert`/`--delete`/`--from-commit`) — no teardown. Driven by the post-commit hook. |
+| `search_vault.py` | Semantic search over the vec0 cache; exposes the reusable `search()` (shared by CLI, skill, MCP) plus a CLI. |
+
+### AI interface (reach the brain from elsewhere)
+| File | Purpose |
+|---|---|
+| `skill/second-brain/SKILL.md` | Skill manifest — its `name`+`description` drive proactive "consult before designing" use in Claude Code / Gemini CLI. |
+| `skill/second-brain/query.py` | Skill entry point — resolves the brain root through the install symlink, ensures the cache, forwards to `search_vault`, prints **absolute** note paths. |
+| `scripts/mcp_server.py` | MCP **stdio** server exposing read-only `search_second_brain` + `get_note` to **Claude Desktop** (see [mcp-server.md](mcp-server.md)). |
+| `scripts/install_skill.py` | Install/uninstall the skill (symlink) for Claude/Gemini; `--global`/`--project`, `--nudge`, `--apply`-gated. |
+
+### Health, setup & housekeeping
+| File | Purpose |
+|---|---|
+| `doctor.py` | "Is this brain ready?" preflight — deps, Ollama reachability/model, full vault↔sidecar↔db consistency, with `--repair`. |
+| `self_test.py` | Deterministic **structural** self-test (`test` backend, byte-exact fixtures) — a CI gate. |
+| `check_line_count.py` | Markdown line-count guard (pre-commit warning). |
+| `seed_vault.py` | Seed/reset the PARA vault from the canonical `seeds/` (the generation post-step). |
+| `register.py` | Register a project repo with this brain. |
+
+### Hooks, config, deps
+| File | Purpose |
+|---|---|
+| `.githooks/pre-commit` | Embed staged notes (`embed_staged`) + run the line-count guard. |
+| `.githooks/post-commit` | Refresh the cache after a commit (`update_cache --from-commit HEAD`). |
+| `config/embedder.toml` | Per-brain default backend (`ollama` in a generated brain; `test` in the golden). |
+| `requirements.txt` | Core deps — `sqlite-vec`, `apsw`. |
+| `requirements-mcp.txt` | Optional MCP SDK (`mcp`), isolated so core + CI stay lean. |
+
+---
+
+## B. The devkit (generator + validation — never emitted)
+
+Lives only here, under `tools/`. Never copied into a brain.
+
+### Generator
+| File | Purpose |
+|---|---|
+| `tools/generate.py` | The generator **core** — `generate(target, params)` copies `template/` → target + runs the `seed_vault` post-step. The pure function both modes call. |
+| `tools/new_brain.py` | **Mode B** (production) — generate a real brain you own: `generate` + `git init` + first commit. The end-user entry point. |
+| `tools/run_sandbox.py` | **Mode A** harness — wipe `sandbox/scratch/`, regenerate, and run the gates. |
+
+### Template / golden machinery
+| File | Purpose |
+|---|---|
+| `tools/vendor_golden.py` | Snapshot the live golden's tracked files into `tests/golden/` (a dev-machine step; CI never runs it). |
+| `tools/build_template.py` | Build `template/` from `tests/golden/` + `emit-manifest.toml` (verbatim copy + clean the `cleaned` files). |
+| `emit-manifest.toml` | Source of truth for the emitted file set + its classification (partition-enforced). |
+
+### Validation guards (all run by `ci.py`)
+| File | Purpose |
+|---|---|
+| `tools/ci.py` | The full acceptance gate — one entry point for local **≡** CI (partition → template-in-sync → Mode-A → Mode-B smoke). |
+| `tools/check_manifest_partition.py` | Verify `emit-manifest.toml` partitions the golden's tracked files exactly. |
+| `tools/check_no_forbidden_refs.py` | Grep the emitted tree against the denylist (`ai-project-status`) — zero hits. |
+| `tools/check_structural_diff.py` | The Mode-A acceptance oracle — generated tree **==** golden, byte-for-byte. |
+| `tools/check_semantic_retrieval.py` | Opt-in Ollama retrieval-quality check (SKIP + exit 0 when Ollama absent). |
+
+---
+
+## Where the design lives (docs/)
+| Doc | Covers |
+|---|---|
+| [`SPEC.md`](../SPEC.md) | System & generator spec (workflow, roles, lifecycle, validation loop). |
+| [`mcp-server.md`](mcp-server.md) | MCP server design, verify recipe (§10), Claude Desktop `outputSchema` gotcha (§11). |
+| [`retrieval-quality.md`](retrieval-quality.md) | Planned hybrid FTS5 search + nomic embedding prefixes. |
+| [`claude-desktop-workflow.md`](claude-desktop-workflow.md) | End-to-end Claude Desktop walk-thru. |
+| **this file** | What every source file is for. |
