@@ -362,6 +362,28 @@ each session. MCP is reserved for the one case a skill can't serve (below).
   populated with decision/convention notes — today it holds only the 4 system seed
   notes.
 
+## Retrieval quality (backlog, surfaced 2026-07-04)
+Dense-only search has a lexical blind spot — real at **scale** and for **exact-match**
+queries (error codes, identifiers, API/function names, config keys, rare acronyms),
+not at today's 5-note corpus. **Trigger to build: real recall failures observed on a
+populated brain**, not a single example. (The prompting example that raised this —
+"magic number" — was a **false alarm**: the actual brain ranks `magic-number.md` #1 at
+0.26; Claude Desktop's "not in top 5" analysis was hallucinated. Verify claims against
+`search_vault.py` before acting.)
+- [ ] **Hybrid lexical + vector search (SQLite FTS5).** Add an **FTS5** virtual table
+      in the *same* `data/brain.db` (built-in to SQLite — verified available; no new
+      dependency, no separate index file), hydrated by the same sidecar/hook flow as
+      the vec0 table. Fuse the lexical (BM25) and vector rankings with **Reciprocal
+      Rank Fusion** in `search_vault.search()` so both the CLI, the skill, and the MCP
+      server benefit at once. Fold `tags:` into the lexical text. **Do NOT** add a
+      manual `keywords:` note section — FTS5 over the body + tags already covers literal
+      terms, at real authoring cost for marginal gain.
+- [ ] **(Separate, cheap) Use nomic task prefixes.** `embedder.py` sends raw text to
+      Ollama; `nomic-embed-text` expects `search_document: ` on notes and
+      `search_query: ` on queries. Principled correctness fix (not what caused the
+      keyword concern — measured near-identical here). Requires a one-time re-embed of
+      each brain; `test` fixtures/CI unaffected.
+
 ## Milestone G4 — Lifecycle
 - [ ] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
       brain (surfaced 2026-07-03; now the top lifecycle priority).** The devkit can
