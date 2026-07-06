@@ -193,9 +193,11 @@ a note commit), so the vendored golden only needs to be static expected output.
 The `outputSchema`/Claude-Desktop regression proved a real gap: CI **byte-diffs**
 `mcp_server.py` but never **runs** it (and `mcp` isn't installed), so a syntax error
 or a behavior regression ships green. Two layers, only the first in the hermetic gate:
-- [ ] **Layer 1 — `py_compile` every emitted script in `tools/ci.py`** (incl.
-      `mcp_server.py`). Catches syntax/compile errors with **zero** new deps
-      (compiling never imports `mcp`), so CI stays stdlib-only. Cheap, unconditional.
+- [x] **Layer 1 — compile every emitted script in `tools/ci.py`** (incl.
+      `mcp_server.py`). Done: new gate `3/5 emitted scripts compile` uses builtin
+      `compile()` over `template/**/*.py` (post-clean emitted tree) — no import, no
+      `.pyc` written, zero new deps, stays stdlib-only. Verified it catches an injected
+      `SyntaxError` (exact file+line) and passes on the 15 real scripts. (task #1)
 - [ ] **Layer 2 — opt-in behavioral MCP test** (`tools/check_mcp_server.py`, modeled
       on `check_semantic_retrieval.py`): when `mcp` is importable, spawn the stdio
       server on a `test`-backend brain and assert (1) both tools listed, (2) **no

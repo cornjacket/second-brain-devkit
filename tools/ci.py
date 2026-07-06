@@ -12,9 +12,15 @@ Gate (fail-fast on any red):
   2. **Template in sync** — rebuild ``template/`` from the golden and assert the
      committed tree is byte-identical (catches a stale template after a golden
      change). Mutates ``template/`` in place; a clean rebuild leaves it unchanged.
-  3. **Mode-A harness** — wipe-regenerate ``sandbox/scratch/`` + guard + in-scaffold
+  3. **Emitted scripts compile** — syntax-check every ``.py`` a brain ships (the
+     post-clean ``template/`` tree). Byte-diffing proves a file was *copied*, not that
+     it *parses*; several emitted scripts (``mcp_server.py``, ``doctor.py``, …) are
+     never executed in CI and ``mcp_server.py`` can't even be imported (its optional
+     ``mcp`` dep is absent), so a ``SyntaxError`` would otherwise ship green. Pure
+     ``compile()`` — no import, no bytecode written, stays stdlib-only.
+  4. **Mode-A harness** — wipe-regenerate ``sandbox/scratch/`` + guard + in-scaffold
      self-test + structural diff vs the golden (``tools/run_sandbox.py``).
-  4. **Mode-B smoke** — ``new_brain.py`` into a throwaway temp path, then the same
+  5. **Mode-B smoke** — ``new_brain.py`` into a throwaway temp path, then the same
      structural-diff oracle on it (proves production output ≡ the validated Mode-A
      output).
 
@@ -33,6 +39,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 TOOLS = REPO_ROOT / "tools"
+TEMPLATE = REPO_ROOT / "template"  # the post-clean emitted scaffold
 PY = sys.executable
 
 # A self-contained git identity so new_brain's first commit works even in a bare
@@ -78,6 +85,27 @@ def step_template_in_sync() -> bool:
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+def step_py_compile() -> bool:
+    # Syntax-check every emitted Python file. compile() (not the py_compile module)
+    # so nothing is imported and NO .pyc is written into the tracked template/ tree.
+    # Catches a SyntaxError in scripts CI never runs (mcp_server.py, doctor.py, …),
+    # incl. breakage introduced by the `cleaned` transform (register.py). Hermetic.
+    py_files = sorted(TEMPLATE.rglob("*.py"))
+    if not py_files:
+        print("FAIL: no emitted .py files found under template/", file=sys.stderr)
+        return False
+    ok = True
+    for f in py_files:
+        try:
+            compile(f.read_text(encoding="utf-8"), str(f.relative_to(REPO_ROOT)), "exec")
+        except SyntaxError as exc:
+            print(f"FAIL: {f.relative_to(REPO_ROOT)}: {exc}", file=sys.stderr)
+            ok = False
+    if ok:
+        print(f"py-compile OK: {len(py_files)} emitted script(s) parse cleanly")
+    return ok
+
+
 def step_mode_a() -> bool:
     return _run([PY, str(TOOLS / "run_sandbox.py")])
 
@@ -95,10 +123,11 @@ def step_mode_b_smoke() -> bool:
 
 
 STEPS = [
-    ("1/4 manifest partition", step_partition),
-    ("2/4 template in sync with golden", step_template_in_sync),
-    ("3/4 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("4/4 Mode-B smoke (new_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("1/5 manifest partition", step_partition),
+    ("2/5 template in sync with golden", step_template_in_sync),
+    ("3/5 emitted scripts compile", step_py_compile),
+    ("4/5 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("5/5 Mode-B smoke (new_brain ≡ Mode-A)", step_mode_b_smoke),
 ]
 
 
