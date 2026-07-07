@@ -21,7 +21,9 @@ conflict handling) is [big-brain Approach A](big-brain.md) and layers on top lat
 
 1. **Opt-in, not mandatory — `new_brain.py --remote <URL>`.** Local-only stays the
    default so offline / single-machine / air-gapped creation still works (core
-   local-first). With `--remote`, connect + push; without it, today's behavior.
+   local-first). With `--remote`, connect + push; without it, today's behavior. Once
+   remote-backed, **auto-sync is on by default**; `--no-autosync` overrides it off (see
+   *State* below).
 
 2. **Standard git flow, appended to the current steps.** After `git init` → first commit
    (`--no-verify`) → wire `core.hooksPath`, add:
@@ -68,18 +70,24 @@ Approach A) must know whether to touch a remote. Two *distinct* facts, and only 
    (and the upstream `git rev-parse --abbrev-ref @{u}`) are the source of truth; no
    invented state file. A `--remote`-created brain has `origin` set by us; a **cloned**
    brain (an Approach-A peer) has it set automatically by `git clone`. Scripts query git.
-2. **"Should the hooks auto-sync (pull/push)?" — a new per-machine toggle.** You can have a
-   remote yet not want every commit to push (offline, slow link, manual-sync preference).
-   Store this as a **local git-config key**, e.g. `git config secondbrain.autosync true`,
-   set by `new_brain --remote` on a successful push. It lives in `.git/config` → per-repo,
-   **per-machine, not committed** — so each clone/machine chooses its own sync behavior (a
-   *committed* flag would wrongly force one policy on all peers). It's also cheap to read
-   from shell hooks (`git config --bool --get secondbrain.autosync`).
+2. **"Should the hooks auto-sync (pull/push)?" — a new per-machine toggle, ON by default.**
+   **DECIDED (2026-07-07): auto-sync is the default whenever a remote exists**; a
+   `new_brain.py` option **overrides** it off. Stored as a **local git-config key**
+   `secondbrain.autosync` in `.git/config` → per-repo, **per-machine, not committed** (each
+   clone/machine chooses its own behavior; a *committed* flag would wrongly force one policy
+   on all peers). Read semantics make ON the default: `git config --bool --get
+   secondbrain.autosync` **absent or `true` → ON**, only an explicit **`false` → off**.
+   - So `new_brain --remote <URL>` → auto-sync **on** by default (nothing to write — absent
+     reads as on).
+   - `new_brain --remote <URL> --no-autosync` → writes `git config secondbrain.autosync
+     false` for users who want a remote but manual sync (offline, slow link).
+   - A **cloned** Approach-A peer has no such key → **auto-syncs by default** (desired).
+   - Flip anytime: `git config secondbrain.autosync false` / `true` — no need to touch the
+     remote.
 
-The sync scripts then gate on **both**: *remote exists* **and** *autosync on* → act
+The sync scripts gate on **both**: *remote exists* **and** *autosync-not-false* → act
 (warn-not-block on failure, matching the existing hooks). This task **defines and sets**
-that state at connect time; big-brain Approach A **consumes** it. (Manual override: a user
-flips `secondbrain.autosync` to pause/resume auto-sync without removing the remote.)
+that state at connect time; big-brain Approach A **consumes** it.
 
 ## Testing — a local bare remote (no creds, CI-friendly)
 

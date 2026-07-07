@@ -18,10 +18,12 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
       reachable), remote **empty** — fail early with the exact fix, leave the local brain
       intact. README gains a credential/empty-remote prerequisites section. **No** SSH-key/
       token installer (invasive, provider-specific — same call as Ollama). **State:** "is
-      a remote set up" is already persisted by git (`git remote get-url origin`); add a
-      new **per-machine, uncommitted** sync-policy toggle `git config secondbrain.autosync`
-      (set on a successful push) that the post-commit/`post-merge` sync scripts gate on —
-      this task *sets* it, big-brain Approach A *consumes* it. **CI-testable with no creds**
+      a remote set up" is already persisted by git (`git remote get-url origin`); the new
+      state is a **per-machine, uncommitted** sync-policy toggle `secondbrain.autosync` git
+      config — **auto-sync is ON by default** whenever a remote exists (absent/`true` → on),
+      and `new_brain --no-autosync` overrides it to `false`; cloned peers auto-sync by
+      default. The post-commit/`post-merge` sync scripts gate on *remote-exists AND
+      autosync-not-false* — this task *sets* it, big-brain Approach A *consumes* it. **CI-testable with no creds**
       via a local **bare repo** (`git init --bare` + `file://`): connect → push → clone-as
       -peer → pull all run in the harness (only the auth layer is skipped — a runtime
       preflight concern). Foundation for [big-brain Approach A](docs/big-brain.md); full
