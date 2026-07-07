@@ -18,6 +18,7 @@ spec so they cannot drift.
 - MCP server design + Claude Desktop → [docs/mcp-server.md](docs/mcp-server.md),
   [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
+- Roadmap: shared brain (git-remote or Postgres/S3/Lambda) → [docs/big-brain.md](docs/big-brain.md)
 
 ## Style & conventions (devkit code)
 

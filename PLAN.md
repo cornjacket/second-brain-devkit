@@ -435,3 +435,28 @@ populated brain**, not a single example. (The prompting example that raised this
 - [x] Resolve OQ-1 long-term (golden storage → Option A, tracked files in devkit)
       — **done** via the CI milestone: the golden is vendored at `tests/golden/`
       and the harness reads it there. `open-questions.md`
+
+## Roadmap: big-brain — a shared brain (two approaches)
+A **shared** brain (many people/clients), not a replacement for the local-first single
+-user brain — details to be hashed out. Full design in [docs/big-brain.md](docs/big-brain.md).
+Surfaced a real gap in the **current** design: the brain has **no sync layer at all**
+(`new_brain.py` inits a local repo with no remote; hooks never pull/push) — fine for one
+machine, but multi-machine/multi-user would silently drift.
+- [ ] **Approach A — shared git remote (distributed, keeps local-first) — start here.**
+      Vault in a shared git remote; every user runs the same local-first brain and syncs
+      by git: *pull → rebuild-cache* before reading, *commit → pull --rebase → push*
+      after writing; concurrency = git merge; the derived cache stays per-user/git-ignored.
+      Needs only a small `sync` helper + flipping the sidecar-commit policy
+      ([OQ-3](open-questions.md)) so peers search pulled notes without re-embedding (same
+      -model invariant). No new services. Also fixes the single-user-multi-machine gap.
+- [ ] **Approach B — deployed, centralized (Postgres + S3 + Lambda).** Only when clients
+      **can't run locally** (claude.ai-web, no-install) or you need one central store.
+      Brain logic on **Lambda**, notes in **S3**, vector index in **Postgres/`pgvector`**
+      (MVCC → real concurrent writers, **retiring the SQLite-only
+      [OQ-5](open-questions.md#oq-5) WAL/hydrate/`flock` layering** for this variant),
+      embeddings via a cloud API, reached over HTTP / remote MCP (the hosted variant
+      [mcp-server.md §2](docs/mcp-server.md) deferred). Requires abstracting three seams —
+      **store** (git→S3), **cache** (sqlite-vec→pgvector), **embedder** (→cloud) — via the
+      `embedder.py` pattern. Bigger lift.
+      Both reuse the `add_note` write design (G6 / task #5). **Local-first must not be
+      eroded to enable either.** Not started.

@@ -94,4 +94,5 @@ Lives only here, under `tools/`. Never copied into a brain.
 | [`mcp-server.md`](mcp-server.md) | MCP server design, verify recipe (§10), Claude Desktop `outputSchema` gotcha (§11). |
 | [`retrieval-quality.md`](retrieval-quality.md) | Planned hybrid FTS5 search + nomic embedding prefixes. |
 | [`claude-desktop-workflow.md`](claude-desktop-workflow.md) | End-to-end Claude Desktop walk-thru. |
+| [`big-brain.md`](big-brain.md) | Roadmap — shared brain (git-remote sync, or Postgres/S3/Lambda). |
 | **this file** | What every source file is for. |
