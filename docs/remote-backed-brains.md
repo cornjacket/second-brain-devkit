@@ -59,6 +59,45 @@ A **preflight verify** (does auth already work?) is the right amount of automati
 credential *installer* is not. If we want a single "am I ready to create a remote-backed
 brain?" command, fold the checks into `doctor.py` or a tiny `--check` mode of `new_brain`.
 
+## State — how scripts know a brain is remote-backed
+
+Downstream scripts (the post-commit push, the `post-merge` pull-reaction — big-brain
+Approach A) must know whether to touch a remote. Two *distinct* facts, and only one is new:
+
+1. **"Is a remote configured?" — git already persists this.** `git remote get-url origin`
+   (and the upstream `git rev-parse --abbrev-ref @{u}`) are the source of truth; no
+   invented state file. A `--remote`-created brain has `origin` set by us; a **cloned**
+   brain (an Approach-A peer) has it set automatically by `git clone`. Scripts query git.
+2. **"Should the hooks auto-sync (pull/push)?" — a new per-machine toggle.** You can have a
+   remote yet not want every commit to push (offline, slow link, manual-sync preference).
+   Store this as a **local git-config key**, e.g. `git config secondbrain.autosync true`,
+   set by `new_brain --remote` on a successful push. It lives in `.git/config` → per-repo,
+   **per-machine, not committed** — so each clone/machine chooses its own sync behavior (a
+   *committed* flag would wrongly force one policy on all peers). It's also cheap to read
+   from shell hooks (`git config --bool --get secondbrain.autosync`).
+
+The sync scripts then gate on **both**: *remote exists* **and** *autosync on* → act
+(warn-not-block on failure, matching the existing hooks). This task **defines and sets**
+that state at connect time; big-brain Approach A **consumes** it. (Manual override: a user
+flips `secondbrain.autosync` to pause/resume auto-sync without removing the remote.)
+
+## Testing — a local bare remote (no creds, CI-friendly)
+
+A git remote need not be a network server: `git init --bare <path>` is a fully-functional
+remote addressed by a `file://` path. So the entire flow is testable in the harness/CI
+**without any network or credentials** (verified):
+
+- create a bare repo → use it as `--remote file://…/remote.git`;
+- assert the preflight probes (`ls-remote` succeeds, remote is empty), then the push lands
+  the scaffold in the bare repo;
+- `git clone` the bare repo into a second dir = an **Approach-A peer**, and assert it
+  receives the notes (and that `origin`/autosync state is correct on both sides).
+
+This exercises the real `remote add` / `push` / `pull` / `ls-remote` code paths; only the
+**auth** layer (SSH/HTTPS) is skipped — a per-machine concern the runtime preflight covers,
+not something CI should carry secrets for. A `tools/check_remote_sync.py` (opt-in, like the
+other behavioral checks) can own this against a temp bare repo.
+
 ## Open questions
 
 - **Branch name** — standardize on `main` (`git branch -M main` before push) or stay
