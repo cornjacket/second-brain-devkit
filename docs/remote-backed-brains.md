@@ -1,6 +1,11 @@
 # Remote-backed brains — connect a new brain to a git remote at creation
 
-**Status:** task — to build (the **very next** task). Design below; nothing built yet.
+**Status:** **BUILT 2026-07-07** (task #6). `new_brain.py --remote <URL>` (+
+`--no-autosync`), the fail-early preflight, and hermetic CI coverage
+(`tools/check_remote_sync.py`, `ci.py` gate 6/6, local bare repo) all landed; the
+emitted brain is unchanged (Mode A ≡ B). The design below is what shipped. The
+ongoing **sync loop** (pull → re-embed/hydrate, push-after-write, conflict UX) remains
+[big-brain Approach A](big-brain.md), layered on top later.
 
 `new_brain.py` today `git init`s a **local-only** repo with no remote (verified). That
 leaves a hole: no off-machine **backup**, no **multi-machine** use, and no foundation for

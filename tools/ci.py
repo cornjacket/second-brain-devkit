@@ -23,6 +23,10 @@ Gate (fail-fast on any red):
   5. **Mode-B smoke** — ``new_brain.py`` into a throwaway temp path, then the same
      structural-diff oracle on it (proves production output ≡ the validated Mode-A
      output).
+  6. **Remote-sync** — ``new_brain.py --remote`` connect → push → clone-as-peer
+     against a local **bare** repo (``file://``). Hermetic (git + stdlib, no network
+     or credentials), unlike the Ollama/``mcp`` behavioral checks, so it belongs in
+     the gate (``tools/check_remote_sync.py``).
 
     python3 tools/ci.py
 
@@ -122,12 +126,21 @@ def step_mode_b_smoke() -> bool:
         shutil.rmtree(parent, ignore_errors=True)
 
 
+def step_remote_sync() -> bool:
+    # Hermetic: git + a file:// bare repo, no network/credentials. Uses the same
+    # self-contained identity as the Mode-B smoke so the brain's first commit and
+    # the --remote preflight's identity probe both pass on a bare runner.
+    env = {**os.environ, **{k: v for k, v in GIT_IDENTITY.items() if k not in os.environ}}
+    return _run([PY, str(TOOLS / "check_remote_sync.py")], env=env)
+
+
 STEPS = [
-    ("1/5 manifest partition", step_partition),
-    ("2/5 template in sync with golden", step_template_in_sync),
-    ("3/5 emitted scripts compile", step_py_compile),
-    ("4/5 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("5/5 Mode-B smoke (new_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("1/6 manifest partition", step_partition),
+    ("2/6 template in sync with golden", step_template_in_sync),
+    ("3/6 emitted scripts compile", step_py_compile),
+    ("4/6 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("5/6 Mode-B smoke (new_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("6/6 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
 ]
 
 

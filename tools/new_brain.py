@@ -6,6 +6,7 @@ choose and bootstraps it as its **own** git repo, owned by you — distinct from
 devkit's throwaway ``sandbox/scratch/`` (Mode A, validation only).
 
     python3 tools/new_brain.py ~/my-brain
+    python3 tools/new_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
 
 It shares the generator core with Mode A — ``generate()`` from ``generate.py`` —
 so the scaffold you get is byte-identical to what the harness validates against the
@@ -15,12 +16,21 @@ Mode B does ``git init`` + first commit, so your brain's history *starts* here.
 What it does:
   1. Refuse to nest inside an existing git repo (the repo-inside-a-repo antipattern,
      OQ-1) — pick a standalone path like ``~/my-brain``.
-  2. ``generate()`` the scaffold (copy the template, seed the vault). Refuses a
+  2. With ``--remote``, **preflight** the remote *before generating anything* (git
+     identity set, ``git ls-remote`` authenticates + reaches it, the remote is
+     empty) — on any failure, print the exact fix and stop, having created nothing.
+     Detect + instruct; never configure credentials (the devkit's standing stance).
+  3. ``generate()`` the scaffold (copy the template, seed the vault). Refuses a
      non-empty target unless ``--force`` (protects your data).
-  3. ``git init`` + ``core.hooksPath .githooks`` (wires the embed hook) + a first
-     commit (``--no-verify``: the scaffold ships pre-embedded ``test`` fixtures and
-     git-ignores live vault vectors, so the initial commit never depends on a
-     working embedder — you wire that up in first-time setup).
+  4. ``git init`` + first commit (``--no-verify``: the scaffold ships pre-embedded
+     ``test`` fixtures and git-ignores live vault vectors, so the initial commit
+     never depends on a working embedder) + ``core.hooksPath .githooks``.
+  5. With ``--remote``, ``git remote add origin`` + ``git push -u origin HEAD`` — run
+     *after* the local brain is complete, so a push failure still leaves a usable
+     local brain (it prints how to push by hand). Auto-sync is **on** by default
+     whenever a remote exists; ``--no-autosync`` writes ``secondbrain.autosync
+     false`` (a per-machine, uncommitted toggle the sync hooks — big-brain Approach
+     A — consume).
 
 After it runs, follow the printed setup steps (``pip install -r requirements.txt``)
 and start writing notes. The brain is yours; the devkit never touches it again.
@@ -30,6 +40,7 @@ This is a devkit tool; it is never emitted into a brain.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -60,6 +71,18 @@ def enclosing_git_repo(location: Path) -> Path | None:
     return None
 
 
+def _existing_ancestor(location: Path) -> Path:
+    """Nearest already-existing ancestor of ``location`` — a neutral cwd for the
+    preflight probes. Because ``enclosing_git_repo`` has already refused a target
+    under version control, this dir is *not* inside a git repo, so ``git config``
+    reads there resolve exactly the global/system/env identity the brain's first
+    commit will use (no repo-local contamination)."""
+    p = location.parent
+    while not p.exists():
+        p = p.parent
+    return p
+
+
 def _git(target: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess:
     result = subprocess.run(
         ["git", "-C", str(target), *args], capture_output=True, text=True,
@@ -69,6 +92,62 @@ def _git(target: Path, *args: str, check: bool = True) -> subprocess.CompletedPr
         sys.stderr.write(result.stderr)
         raise SystemExit(f"new_brain: `git {' '.join(args)}` failed in {target}")
     return result
+
+
+def _indent(text: str, prefix: str = "    ") -> str:
+    text = text.strip()
+    if not text:
+        return prefix + "(no output)"
+    return "\n".join(prefix + line for line in text.splitlines())
+
+
+def preflight_remote(url: str, neutral: Path) -> None:
+    """Verify the prerequisites for pushing to ``url``; ``SystemExit`` with the exact
+    fix on any failure.
+
+    Runs **before** anything is generated, so a failure leaves the filesystem
+    untouched (the cleanest non-destructive outcome). Detect + instruct — it never
+    configures credentials, generates keys, or provisions tokens (same stance as
+    ``doctor.py`` / ``install_skill.py`` and the Ollama runtime).
+    """
+    # 1. git identity — the first commit needs one. Env vars override config, so
+    #    honor both (CI supplies GIT_AUTHOR_* ; humans set user.name/email).
+    name = (os.environ.get("GIT_AUTHOR_NAME") or os.environ.get("GIT_COMMITTER_NAME")
+            or _git(neutral, "config", "--get", "user.name", check=False).stdout.strip())
+    email = (os.environ.get("GIT_AUTHOR_EMAIL") or os.environ.get("GIT_COMMITTER_EMAIL")
+             or _git(neutral, "config", "--get", "user.email", check=False).stdout.strip())
+    if not name or not email:
+        raise SystemExit(
+            "new_brain: git identity is not set — the first commit needs one.\n"
+            '  Fix: git config --global user.name  "Your Name"\n'
+            '       git config --global user.email "you@example.com"\n'
+            "  Nothing was created; re-run once your identity is set."
+        )
+
+    # 2. credentials + reachability — ls-remote exercises the exact auth path (SSH or
+    #    HTTPS) the push will use, without writing anything to the remote.
+    ls = _git(neutral, "ls-remote", url, check=False)
+    if ls.returncode != 0:
+        raise SystemExit(
+            f"new_brain: cannot reach or authenticate to {url}\n"
+            "  git ls-remote failed:\n"
+            f"{_indent(ls.stderr or ls.stdout)}\n"
+            "  Fix: create the remote repo, then set up credentials once per machine —\n"
+            f"   - SSH:   load your key (ssh-add), then verify:  git ls-remote {url}\n"
+            "   - HTTPS: configure a token via a git credential helper, verify the same.\n"
+            "  The local brain was NOT created; re-run once ls-remote succeeds."
+        )
+
+    # 3. remote must be empty — pushing a fresh history into a populated remote is
+    #    rejected or entangles unrelated histories.
+    if ls.stdout.strip():
+        raise SystemExit(
+            f"new_brain: remote {url} is not empty (it already has refs).\n"
+            "  Pushing a new brain there would be rejected or entangle histories.\n"
+            "  Fix: create a fresh EMPTY repo (no README / license / .gitignore) and\n"
+            "       use its URL. Attaching a brain to an existing repo is a later step.\n"
+            "  The local brain was NOT created."
+        )
 
 
 def bootstrap_git(target: Path) -> None:
@@ -84,8 +163,45 @@ def bootstrap_git(target: Path) -> None:
     _git(target, "config", "core.hooksPath", ".githooks")
 
 
-def new_brain(target, *, force: bool = False) -> Path:
-    """Generate a brain at ``target`` and bootstrap it as its own repo."""
+def connect_remote(target: Path, url: str, *, autosync: bool = True) -> bool:
+    """Attach ``origin``, record the per-machine autosync policy, and push the scaffold.
+
+    Runs **after** the local brain is fully generated + committed, so a push failure
+    still leaves a complete, usable local brain. Returns ``True`` if the push landed.
+    """
+    _git(target, "remote", "add", "origin", url)
+    # Auto-sync is ON by default whenever a remote exists: the sync hooks (big-brain
+    # Approach A) read `secondbrain.autosync` as absent/true → on. Only --no-autosync
+    # writes an explicit `false`. This key is per-repo AND per-machine (.git/config,
+    # never committed) — each clone/machine picks its own policy; a committed flag
+    # would wrongly force one policy on every peer.
+    if not autosync:
+        _git(target, "config", "secondbrain.autosync", "false")
+
+    # -u sets upstream so later `git pull`/`push` need no args; HEAD (not a literal
+    # `main`) keeps it agnostic to the user's default branch name.
+    push = _git(target, "push", "-u", "origin", "HEAD", check=False)
+    if push.returncode != 0:
+        sys.stderr.write(push.stdout)
+        sys.stderr.write(push.stderr)
+        print(
+            f"\n⚠  new_brain: the local brain at {target} is complete, but the push to\n"
+            f"   {url} failed (see above). `origin` is set — finish it by hand:\n"
+            f"      git -C {target} push -u origin HEAD",
+            file=sys.stderr,
+        )
+        return False
+    return True
+
+
+def new_brain(
+    target, *, force: bool = False, remote: str | None = None, autosync: bool = True,
+) -> tuple[Path, bool | None]:
+    """Generate a brain at ``target`` and bootstrap it as its own repo.
+
+    Returns ``(resolved_target, pushed)`` where ``pushed`` is ``None`` when no remote
+    was requested, else whether the push to ``remote`` succeeded.
+    """
     target = Path(target).resolve()
 
     enclosing = enclosing_git_repo(target)
@@ -96,13 +212,29 @@ def new_brain(target, *, force: bool = False) -> Path:
             f"Choose a standalone path (e.g. ~/my-brain)."
         )
 
+    # Preflight the remote BEFORE generating, so a credentials/identity/non-empty
+    # failure leaves the filesystem untouched (fail early, non-destructive).
+    if remote is not None:
+        preflight_remote(remote, _existing_ancestor(target))
+
     generate(target, force=force)
     bootstrap_git(target)
-    return target
+
+    pushed: bool | None = None
+    if remote is not None:
+        pushed = connect_remote(target, remote, autosync=autosync)
+    return target, pushed
 
 
-def _print_next_steps(target: Path) -> None:
+def _print_next_steps(
+    target: Path, *, remote: str | None = None, autosync: bool = True,
+    pushed: bool | None = None,
+) -> None:
     print(f"\n✅ new brain at {target}")
+    if remote is not None and pushed:
+        state = "on" if autosync else "off"
+        print(f"   backed up to {remote}")
+        print(f"     (remote 'origin' set + upstream tracked; auto-sync {state})")
     print("   next steps:")
     print(f"     cd {target}")
     print("     pip install -r requirements.txt   # embed pipeline deps")
@@ -119,10 +251,28 @@ def main(argv: list[str]) -> int:
         "--force", action="store_true",
         help="overwrite a non-empty target (default: refuse, to protect data)",
     )
+    ap.add_argument(
+        "--remote", metavar="URL", default=None,
+        help="attach this git remote and push the scaffold at creation (opt-in): "
+             "off-machine backup + multi-machine use. Requires a pre-created EMPTY "
+             "repo and working credentials (preflighted).",
+    )
+    ap.add_argument(
+        "--no-autosync", action="store_true",
+        help="with --remote: connect the remote but leave auto-sync OFF "
+             "(writes secondbrain.autosync=false); the default is auto-sync on.",
+    )
     args = ap.parse_args(argv)
+    if args.no_autosync and args.remote is None:
+        ap.error("--no-autosync only applies together with --remote")
 
-    out = new_brain(args.target, force=args.force)
-    _print_next_steps(out)
+    out, pushed = new_brain(
+        args.target, force=args.force, remote=args.remote,
+        autosync=not args.no_autosync,
+    )
+    _print_next_steps(
+        out, remote=args.remote, autosync=not args.no_autosync, pushed=pushed,
+    )
     return 0
 
 

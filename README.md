@@ -122,6 +122,43 @@ harness `tools/run_sandbox.py` (Mode A) share one generator core
 (`tools/generate.py`); only the post-step differs — a first commit you keep vs. a
 diff-and-discard. See [SPEC §5.1](SPEC.md).
 
+### Back it up / share it (git remote)
+
+By default a new brain is a **local-only** repo — no off-machine backup and no
+second machine. Pass `--remote <URL>` to connect it to a git remote and push the
+scaffold at creation, so the brain is backed up and can be cloned on another
+machine:
+
+```bash
+python3 tools/new_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
+```
+
+**Prerequisites (do these once):**
+
+1. **Create an empty remote repo** on GitHub / GitLab / a self-hosted host — *empty*
+   means no README, license, or `.gitignore` (an initialized repo already has a
+   commit, and the brain's fresh history can't be pushed into it).
+2. **Set up credentials once per machine** — the devkit **never** configures these
+   for you (it only checks they work):
+   - **SSH:** add your key to the host and load it (`ssh-add`); use the `git@…:…`
+     URL.
+   - **HTTPS:** configure a token via a git credential helper; use the `https://…`
+     URL.
+   - **Verify** either with `git ls-remote <URL>` — if that prints (empty) output
+     with no error, you're ready.
+3. **Set your git identity** if you haven't: `git config --global user.name/…email`.
+
+`new_brain.py` **preflights** all three *before generating anything* — a bad URL,
+missing credentials, a non-empty remote, or unset identity fail early with the exact
+fix and create nothing. And because the push runs only *after* the local brain is
+complete, even a mid-push failure leaves you a usable local brain (it prints how to
+push by hand). A brain is personal data — make the remote **private**.
+
+Once a remote exists, **auto-sync is on by default**; pass `--no-autosync` to connect
+the remote but keep sync manual (it records `secondbrain.autosync=false`, a
+per-machine setting). *(The sync automation that consumes this — pull/re-embed/push —
+is a follow-on; `--remote` establishes the connection today.)*
+
 ## Tech Stack
 
 - **Runtime:** Python 3.11+

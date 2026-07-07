@@ -8,26 +8,31 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-05)
-- [ ] **▶▶ NEXT — remote-backed brains: connect a new brain to a git remote at creation.**
-      (task #6) `new_brain.py` inits a **local-only** repo — no backup, no multi-machine,
-      no basis for shared/sync ([big-brain §0](docs/big-brain.md)). Add an **opt-in**
-      `new_brain.py --remote <URL>`: after `git init` + first commit + hooks, `git remote
-      add origin` + `git push -u origin HEAD`. **Preflight verify (detect + instruct, never
-      auto-configure creds):** git identity set, `git ls-remote <URL>` works (auth +
-      reachable), remote **empty** — fail early with the exact fix, leave the local brain
-      intact. README gains a credential/empty-remote prerequisites section. **No** SSH-key/
-      token installer (invasive, provider-specific — same call as Ollama). **State:** "is
-      a remote set up" is already persisted by git (`git remote get-url origin`); the new
-      state is a **per-machine, uncommitted** sync-policy toggle `secondbrain.autosync` git
-      config — **auto-sync is ON by default** whenever a remote exists (absent/`true` → on),
-      and `new_brain --no-autosync` overrides it to `false`; cloned peers auto-sync by
-      default. The post-commit/`post-merge` sync scripts gate on *remote-exists AND
-      autosync-not-false* — this task *sets* it, big-brain Approach A *consumes* it. **CI-testable with no creds**
-      via a local **bare repo** (`git init --bare` + `file://`): connect → push → clone-as
-      -peer → pull all run in the harness (only the auth layer is skipped — a runtime
-      preflight concern). Foundation for [big-brain Approach A](docs/big-brain.md); full
-      design in [docs/remote-backed-brains.md](docs/remote-backed-brains.md).
+## ▶ Next up (2026-07-07)
+- **▶▶ NEXT — backlog, pick one:** #3 hybrid FTS5 retrieval, #5 `add_note` write
+  tool (design-first), or #8 Obsidian auto-linking. All emit into a brain, so
+  prototype-in-the-golden first. Bigger roadmap: big-brain Approach A (the sync loop
+  on top of task #6), then Approach B (Postgres, capability-gated — not on the
+  critical path).
+- [x] **Remote-backed brains — connect a new brain to a git remote at creation
+      (task #6; BUILT 2026-07-07).** `new_brain.py --remote <URL>` (+ `--no-autosync`):
+      after `git init` + first commit + hooks, `git remote add origin` + `git push -u
+      origin HEAD`. **Preflight (detect + instruct, never configure creds), run BEFORE
+      generating so a failure creates nothing:** git identity set, `git ls-remote <URL>`
+      authenticates + reaches, remote **empty** — each fails early with the exact fix.
+      The push runs **after** the local brain is complete, so a mid-push failure still
+      leaves a usable local brain (prints how to push by hand). **State:** a per-machine,
+      uncommitted `secondbrain.autosync` git config — **auto-sync ON by default** whenever
+      a remote exists (absent/`true` → on); `--no-autosync` writes `false`; cloned peers
+      auto-sync by default. This task *sets* it; big-brain Approach A *consumes* it (the
+      sync loop is out of scope here — connect-at-creation only). README gained a "Back it
+      up / share it (git remote)" prerequisites section; the devkit **CLAUDE.md** pointer
+      updated. **Hermetic CI coverage** (`tools/check_remote_sync.py`, wired as `ci.py`
+      gate 6/6): connect → push → clone-as-peer → autosync default/`--no-autosync` → both
+      preflight rejections (non-empty + unreachable, non-destructive), all against a local
+      **bare repo** (`file://`) — git + stdlib only, no network/creds, so it lives in the
+      gate (unlike the Ollama/`mcp` opt-in checks). Emitted brain unchanged (Mode A ≡ B,
+      45/45). Full design in [docs/remote-backed-brains.md](docs/remote-backed-brains.md).
 - [x] **Author two devkit docs (done).** (task #4)
   - [x] **`docs/source-map.md`** — inventory of every source file (emitted brain
         `scripts/`+`skill/`, devkit `tools/`, hooks/config) with a one-line purpose,
