@@ -29,27 +29,46 @@ Put the vault in a **shared git remote** (GitHub/GitLab/self-hosted). Every user
 it and runs the **same local-first brain** (SQLite cache, Ollama, hooks). "Sharing" is
 just git sync — no cloud services, no rewrite:
 
-- **Before reading/searching:** `git pull`, then rebuild the local cache from the pulled
-  sidecars (`hydrate_cache.py` / `update_cache.py`). Now you see peers' notes.
+- **Before reading/searching:** `git pull`, then react to whatever it brought (see
+  *"the post-pull reaction"* below), so the local cache reflects peers' notes.
 - **After writing a note:** commit (the pre-commit hook embeds it locally) → `git pull
   --rebase` → `git push`.
-- **Concurrency = git merge.** Different notes → clean auto-merge. The same note edited
-  twice → an ordinary (rare) merge conflict, resolved by hand. No central lock needed.
 - **The cache stays per-user, derived, git-ignored** → it never conflicts; each user
   rebuilds it locally after a pull.
-- **Sidecar policy is the crux ([OQ-3](../open-questions.md)).** Today `.embed.json`
-  sidecars are git-ignored (a single-user assumption). For a shared brain, either:
-  - **commit the sidecars** — a peer then searches pulled notes with **no re-embed** (a
-    vector is a vector; works given the same-model invariant), or
-  - keep them ignored and have **each user re-embed** pulled notes locally (needs Ollama
-    + the same model).
-  Committing sidecars is simplest for a team; it just requires everyone use the **same
-  embedding backend/model**.
 
-**What's missing to make this real:** a small `sync` helper (a script and/or a hook)
-that runs pull → rebuild-cache and commit → pull --rebase → push, so users don't have to
-remember the dance — plus flipping the sidecar-commit policy. That's the whole feature:
-no new services, still local-first.
+**The post-pull reaction (new — this is essential, not optional).** A `git pull` is not
+the end of the story: any PARA note it **adds or changes** must trigger the same local
+reaction a commit does — *(re-)embed the note → hydrate/re-hydrate the cache* — or the
+new/edited notes are invisible to search until then. The natural home is a git
+**`post-merge` hook** (git's post-pull equivalent of the existing `post-commit` hook):
+it runs `update_cache.py --from-commit` over the merged range, embedding what's missing
+and rebuilding the cache. Without it, a user pulls new notes but can't find them.
+
+**Embeddings in git — an optimization, not a requirement.** Whether the pull needs to
+*re-embed* depends on the sidecar policy ([OQ-3](../open-questions.md); today `.embed.json`
+sidecars are git-ignored):
+  - **Commit the sidecars (optimization):** the pull brings each note's vector with it,
+    so the post-pull reaction is **hydrate only — no re-embedding** (a vector is a vector,
+    given the same-model invariant). Faster, and a peer without Ollama can still search.
+    Cost: derived data in git + everyone must share the embedding model.
+  - **Keep them git-ignored (strictly sufficient):** the post-merge hook **re-embeds**
+    the added/changed notes locally (needs Ollama + the same model), then hydrates. Keeps
+    git clean; costs each peer the compute.
+  So committing embeddings is a **caching optimization** the shared repo *may* adopt —
+  strictly, correctness only needs the per-user re-embed + hydrate.
+
+**Merge conflicts need a human (or an AI) in the loop.** A `git pull` can hit a merge
+conflict — most likely two users editing the **same note**. This **cannot be silently
+auto-resolved**: a `sync` helper must **stop and surface** the conflict for the user (or
+an agent) to resolve, then finish the embed/hydrate reaction on the resolved file. Upside:
+notes are Markdown, so conflicts are human-readable and an AI can often resolve them; but
+the sync path must treat "conflict → intervention required" as a first-class outcome, not
+an error to paper over.
+
+**What's missing to make this real:** a small `sync` helper (pull → post-pull reaction →
+handle-conflicts; and commit → pull --rebase → push), most of the reaction living in a
+`post-merge` hook that mirrors `post-commit`; plus the sidecar-commit policy decision.
+No new services, still local-first.
 
 **Best for:** a small team (or one person across machines) who all run the brain locally
 (CLI / Claude Desktop).

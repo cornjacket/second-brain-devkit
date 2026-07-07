@@ -444,11 +444,15 @@ Surfaced a real gap in the **current** design: the brain has **no sync layer at 
 machine, but multi-machine/multi-user would silently drift.
 - [ ] **Approach A — shared git remote (distributed, keeps local-first) — start here.**
       Vault in a shared git remote; every user runs the same local-first brain and syncs
-      by git: *pull → rebuild-cache* before reading, *commit → pull --rebase → push*
-      after writing; concurrency = git merge; the derived cache stays per-user/git-ignored.
-      Needs only a small `sync` helper + flipping the sidecar-commit policy
-      ([OQ-3](open-questions.md)) so peers search pulled notes without re-embedding (same
-      -model invariant). No new services. Also fixes the single-user-multi-machine gap.
+      by git: *pull → post-pull reaction* before reading, *commit → pull --rebase → push*
+      after writing; the derived cache stays per-user/git-ignored. **Post-pull reaction
+      (essential):** any pulled/changed note must (re-)embed + hydrate — natural home is a
+      `post-merge` hook mirroring `post-commit`, or new notes stay unsearchable.
+      **Merge conflicts need a human/AI in the loop** (two users, same note) — the `sync`
+      helper must surface, not auto-resolve. **Committing sidecars is an optimization**
+      (peers skip re-embedding; needs the same model) — strictly, per-user re-embed +
+      hydrate suffices ([OQ-3](open-questions.md)). No new services; also fixes the
+      single-user-multi-machine gap.
 - [ ] **Approach B — deployed, centralized (Postgres + S3 + Lambda).** Only when clients
       **can't run locally** (claude.ai-web, no-install) or you need one central store.
       Brain logic on **Lambda**, notes in **S3**, vector index in **Postgres/`pgvector`**
