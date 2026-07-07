@@ -64,7 +64,7 @@ Lives only here, under `tools/`. Never copied into a brain.
 | File | Purpose |
 |---|---|
 | `tools/generate.py` | The generator **core** — `generate(target, params)` copies `template/` → target + runs the `seed_vault` post-step. The pure function both modes call. |
-| `tools/new_brain.py` | **Mode B** (production) — generate a real brain you own: `generate` + `git init` + first commit. The end-user entry point. |
+| `tools/create_second_brain.py` | **Mode B** (production) — generate a real brain you own: `generate` + `git init` + first commit. The end-user entry point. |
 | `tools/update_brain.py` | **Lifecycle (G4)** — non-destructively upgrade an existing brain's tooling from `template/` (dry-run; `--apply` commits). Preserves `vault/`/`data/`/`config/`/`CLAUDE.md`/`GEMINI.md` + history. |
 | `tools/run_sandbox.py` | **Mode A** harness — wipe `sandbox/scratch/`, regenerate, and run the gates. |
 

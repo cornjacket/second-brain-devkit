@@ -9,7 +9,7 @@ with it.
 
 ## 0. The current brain has no sync layer (the gap that motivates this)
 
-Verified: `new_brain.py` `git init`s a **local** repo with **no remote**, and both hooks
+Verified: `create_second_brain.py` `git init`s a **local** repo with **no remote**, and both hooks
 are purely local (embed + hydrate). Nothing ever pulls, pushes, or fetches.
 
 - **Fine for the stated scope** — single user, single machine, local-first. There's no

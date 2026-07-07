@@ -7,7 +7,7 @@ remote-backed-brains). Next is the queued **task #6 — remote-backed brains**: 
 brain an *opt-in* git remote at creation. Same loop: prototype emitted bits in the golden
 → vendor → template → `tools/ci.py` green.
 
-- **▶▶ Build task #6 — `new_brain.py --remote <URL>`.** After init/first-commit/hooks:
+- **▶▶ Build task #6 — `create_second_brain.py --remote <URL>`.** After init/first-commit/hooks:
   `git remote add origin` + `git push -u origin HEAD`. **Preflight (detect + instruct, no
   credential installer):** git identity, `git ls-remote` auth+reachable, remote empty —
   fail early, leave the local brain intact. **State:** `secondbrain.autosync` git config
@@ -23,7 +23,7 @@ brain an *opt-in* git remote at creation. Same loop: prototype emitted bits in t
               docs: source-map · desktop-workflow · retrieval · big-brain · remote-backed
                                    │
                                    ▼
- tue 07-07  ▶▶ task #6 remote-backed brains (new_brain --remote + preflight + autosync state)
+ tue 07-07  ▶▶ task #6 remote-backed brains (create_second_brain --remote + preflight + autosync state)
             then ▸ #3 hybrid FTS5 · #5 add_note
 
  loop:  golden ─vendor→ tests/golden ─build→ template ─ci.py→ green

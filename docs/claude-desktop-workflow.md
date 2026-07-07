@@ -20,7 +20,7 @@ own a brain ─▶ deps + Ollama ─▶ embed ─▶ install Desktop ─▶ regi
 ```
 
 ### 1. Own a brain
-Generate one with `python3 tools/new_brain.py ~/my-brain` (Mode B), or use an existing
+Generate one with `python3 tools/create_second_brain.py ~/my-brain` (Mode B), or use an existing
 brain. The MCP server resolves its own brain root, so it works wherever the brain lives.
 
 ### 2. Install dependencies

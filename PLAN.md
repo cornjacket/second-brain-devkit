@@ -15,7 +15,7 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   on top of task #6), then Approach B (Postgres, capability-gated — not on the
   critical path).
 - [x] **Remote-backed brains — connect a new brain to a git remote at creation
-      (task #6; BUILT 2026-07-07).** `new_brain.py --remote <URL>` (+ `--no-autosync`):
+      (task #6; BUILT 2026-07-07).** `create_second_brain.py --remote <URL>` (+ `--no-autosync`):
       after `git init` + first commit + hooks, `git remote add origin` + `git push -u
       origin HEAD`. **Preflight (detect + instruct, never configure creds), run BEFORE
       generating so a failure creates nothing:** git identity set, `git ls-remote <URL>`
@@ -158,7 +158,7 @@ Two complementary tiers (see [OQ-2](open-questions.md#oq-2)):
 ## Milestone G3 — Production generation (Mode B)  ✅
 The durable product path ([SPEC §5.1](SPEC.md)): generate a real, persistent brain
 the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
-`tools/new_brain.py` is the end-user entry point (`python3 tools/new_brain.py ~/my-brain`).
+`tools/create_second_brain.py` is the end-user entry point (`python3 tools/create_second_brain.py ~/my-brain`).
 - [x] Generate to a **user-chosen path** (not `sandbox/`) — calls the same
       `generate()` core as Mode A, so nothing about the output is mode-specific.
 - [x] Refuse to overwrite a non-empty target unless `--force` — `generate()`'s
@@ -179,7 +179,7 @@ the end user owns — distinct from the throwaway `sandbox/scratch/` of G2.
       call the identical `generate()` core. So production is trusted without
       re-diffing.
 - [x] Document the end-user "generate your brain" flow — `README.md` "Generate a
-      brain" section + `new_brain.py`'s own `--help`/docstring.
+      brain" section + `create_second_brain.py`'s own `--help`/docstring.
 
 ## Milestone CI — Self-sustaining automation  ✅
 Robust, hands-off regression checking on every push/PR. **Hard requirement: the
@@ -189,7 +189,7 @@ resolution: vendor the golden's *expected output* **into** the devkit as a track
 regression baseline (Option A). The live `../second-brain-test/` reverts to a
 hand-prototyping surface only, and its mothball ([G4](#milestone-g4--lifecycle))
 gets closer. Vendoring loses no coverage: the pre-commit hook is still exercised
-**for real** via Mode-B generation (`new_brain.py` git-inits and the hook fires on
+**for real** via Mode-B generation (`create_second_brain.py` git-inits and the hook fires on
 a note commit), so the vendored golden only needs to be static expected output.
 - [x] **Vendor the golden (resolve [OQ-1](open-questions.md#oq-1) → Option A).**
       `tools/vendor_golden.py` snapshots the live golden's 42 *tracked* files
@@ -209,7 +209,7 @@ a note commit), so the vendored golden only needs to be static expected output.
       (stdlib only), runs `python3 tools/ci.py`. No external repo, network, or pip.
 - [x] **Local ≡ CI parity.** `tools/ci.py` is the single entry point CI invokes,
       running the full gate: partition → template-in-sync (rebuild + `git diff`
-      guard) → Mode-A harness → Mode-B smoke (`new_brain.py` + the same diff
+      guard) → Mode-A harness → Mode-B smoke (`create_second_brain.py` + the same diff
       oracle). Passes locally end-to-end; a self-contained git identity lets the
       Mode-B commit run on a bare CI runner.
 
@@ -250,7 +250,7 @@ freshly-generated brain to a working semantic index.
       `hydrate_cache.py` — the brain isn't useful without it. Fix: a **`post-commit`**
       hook that runs `hydrate_cache.py` (after the commit, so it never blocks/undoes
       it; warns on failure; needs sqlite-vec, not Ollama). Standard flow becomes
-      write note → commit → searchable. `new_brain.py` must commit the scaffold
+      write note → commit → searchable. `create_second_brain.py` must commit the scaffold
       **before** wiring `core.hooksPath` so generation fires neither hook (no
       embedder / no derived `brain.db` in the diffed tree).
 - [x] **Incremental cache updates (no teardown → no downtime).** BUG: the only
@@ -481,7 +481,7 @@ populated brain**, not a single example. (The prompting example that raised this
 ## Milestone G4 — Lifecycle
 - [x] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
       brain (surfaced 2026-07-03; BUILT 2026-07-06).** The devkit can only *generate* —
-      `new_brain.py` refuses a non-empty target — so before this, every devkit
+      `create_second_brain.py` refuses a non-empty target — so before this, every devkit
       improvement (WAL, `doctor.py`, `--nudge`, the **MCP server**) reached an existing
       brain only via delete + regenerate. `update_brain.py`:
       - re-emits **tooling** from the tracked `template/` tree (`scripts/`, `skill/`,
@@ -517,7 +517,7 @@ populated brain**, not a single example. (The prompting example that raised this
 A **shared** brain (many people/clients), not a replacement for the local-first single
 -user brain — details to be hashed out. Full design in [docs/big-brain.md](docs/big-brain.md).
 Surfaced a real gap in the **current** design: the brain has **no sync layer at all**
-(`new_brain.py` inits a local repo with no remote; hooks never pull/push) — fine for one
+(`create_second_brain.py` inits a local repo with no remote; hooks never pull/push) — fine for one
 machine, but multi-machine/multi-user would silently drift.
 - [ ] **Approach A — shared git remote (distributed, keeps local-first) — start here.**
       Vault in a shared git remote; every user runs the same local-first brain and syncs

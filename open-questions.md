@@ -90,7 +90,7 @@ so the "revisit when" trigger is met.
   live `../second-brain-test/` by hand (a dev-machine step; CI never runs it).
 - **The "exercise the pre-commit hook" requirement is met elsewhere.** Firing the
   hook needs a live `.git`, which `golden/` deliberately lacks — but Mode-B
-  generation (`tools/new_brain.py`) already `git init`s a brain and fires the hook
+  generation (`tools/create_second_brain.py`) already `git init`s a brain and fires the hook
   on a note commit for real. So the vendored golden needs no history at rest; it
   is purely the diff baseline. This retires the original conflict between "tracked"
   and "fires the hook" — the two requirements are now satisfied by two different

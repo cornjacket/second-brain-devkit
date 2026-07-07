@@ -5,8 +5,8 @@ This is the end-user entry point. It writes a brain scaffold into a path *you*
 choose and bootstraps it as its **own** git repo, owned by you — distinct from the
 devkit's throwaway ``sandbox/scratch/`` (Mode A, validation only).
 
-    python3 tools/new_brain.py ~/my-brain
-    python3 tools/new_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
+    python3 tools/create_second_brain.py ~/my-brain
+    python3 tools/create_second_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
 
 It shares the generator core with Mode A — ``generate()`` from ``generate.py`` —
 so the scaffold you get is byte-identical to what the harness validates against the
@@ -90,7 +90,7 @@ def _git(target: Path, *args: str, check: bool = True) -> subprocess.CompletedPr
     if check and result.returncode != 0:
         sys.stderr.write(result.stdout)
         sys.stderr.write(result.stderr)
-        raise SystemExit(f"new_brain: `git {' '.join(args)}` failed in {target}")
+        raise SystemExit(f"create_second_brain: `git {' '.join(args)}` failed in {target}")
     return result
 
 
@@ -118,7 +118,7 @@ def preflight_remote(url: str, neutral: Path) -> None:
              or _git(neutral, "config", "--get", "user.email", check=False).stdout.strip())
     if not name or not email:
         raise SystemExit(
-            "new_brain: git identity is not set — the first commit needs one.\n"
+            "create_second_brain: git identity is not set — the first commit needs one.\n"
             '  Fix: git config --global user.name  "Your Name"\n'
             '       git config --global user.email "you@example.com"\n'
             "  Nothing was created; re-run once your identity is set."
@@ -129,7 +129,7 @@ def preflight_remote(url: str, neutral: Path) -> None:
     ls = _git(neutral, "ls-remote", url, check=False)
     if ls.returncode != 0:
         raise SystemExit(
-            f"new_brain: cannot reach or authenticate to {url}\n"
+            f"create_second_brain: cannot reach or authenticate to {url}\n"
             "  git ls-remote failed:\n"
             f"{_indent(ls.stderr or ls.stdout)}\n"
             "  Fix: create the remote repo, then set up credentials once per machine —\n"
@@ -142,7 +142,7 @@ def preflight_remote(url: str, neutral: Path) -> None:
     #    rejected or entangles unrelated histories.
     if ls.stdout.strip():
         raise SystemExit(
-            f"new_brain: remote {url} is not empty (it already has refs).\n"
+            f"create_second_brain: remote {url} is not empty (it already has refs).\n"
             "  Pushing a new brain there would be rejected or entangle histories.\n"
             "  Fix: create a fresh EMPTY repo (no README / license / .gitignore) and\n"
             "       use its URL. Attaching a brain to an existing repo is a later step.\n"
@@ -185,7 +185,7 @@ def connect_remote(target: Path, url: str, *, autosync: bool = True) -> bool:
         sys.stderr.write(push.stdout)
         sys.stderr.write(push.stderr)
         print(
-            f"\n⚠  new_brain: the local brain at {target} is complete, but the push to\n"
+            f"\n⚠  create_second_brain: the local brain at {target} is complete, but the push to\n"
             f"   {url} failed (see above). `origin` is set — finish it by hand:\n"
             f"      git -C {target} push -u origin HEAD",
             file=sys.stderr,
@@ -194,7 +194,7 @@ def connect_remote(target: Path, url: str, *, autosync: bool = True) -> bool:
     return True
 
 
-def new_brain(
+def create_second_brain(
     target, *, force: bool = False, remote: str | None = None, autosync: bool = True,
 ) -> tuple[Path, bool | None]:
     """Generate a brain at ``target`` and bootstrap it as its own repo.
@@ -207,7 +207,7 @@ def new_brain(
     enclosing = enclosing_git_repo(target)
     if enclosing is not None:
         raise SystemExit(
-            f"new_brain: refusing to create a brain inside the git repo at "
+            f"create_second_brain: refusing to create a brain inside the git repo at "
             f"{enclosing} — a brain must be its own top-level repo (OQ-1). "
             f"Choose a standalone path (e.g. ~/my-brain)."
         )
@@ -266,7 +266,7 @@ def main(argv: list[str]) -> int:
     if args.no_autosync and args.remote is None:
         ap.error("--no-autosync only applies together with --remote")
 
-    out, pushed = new_brain(
+    out, pushed = create_second_brain(
         args.target, force=args.force, remote=args.remote,
         autosync=not args.no_autosync,
     )

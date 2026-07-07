@@ -97,7 +97,7 @@ in plain text.
 Create a real Second Brain you own — its own git repo, at a path you choose:
 
 ```bash
-python3 tools/new_brain.py ~/my-brain
+python3 tools/create_second_brain.py ~/my-brain
 ```
 
 This copies the tracked template, seeds the PARA vault, and bootstraps the target
@@ -117,7 +117,7 @@ python3 scripts/self_test.py        # confirm the pipeline is wired
 - The scaffold is byte-identical to what the devkit validates against the golden
   (Mode A ≡ Mode B), so production output is trusted without re-diffing.
 
-Under the hood, `tools/new_brain.py` (production, Mode B) and the validation
+Under the hood, `tools/create_second_brain.py` (production, Mode B) and the validation
 harness `tools/run_sandbox.py` (Mode A) share one generator core
 (`tools/generate.py`); only the post-step differs — a first commit you keep vs. a
 diff-and-discard. See [SPEC §5.1](SPEC.md).
@@ -130,7 +130,7 @@ scaffold at creation, so the brain is backed up and can be cloned on another
 machine:
 
 ```bash
-python3 tools/new_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
+python3 tools/create_second_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
 ```
 
 **Prerequisites (do these once):**
@@ -148,7 +148,7 @@ python3 tools/new_brain.py ~/my-brain --remote git@github.com:you/my-brain.git
      with no error, you're ready.
 3. **Set your git identity** if you haven't: `git config --global user.name/…email`.
 
-`new_brain.py` **preflights** all three *before generating anything* — a bad URL,
+`create_second_brain.py` **preflights** all three *before generating anything* — a bad URL,
 missing credentials, a non-empty remote, or unset identity fail early with the exact
 fix and create nothing. And because the push runs only *after* the local brain is
 complete, even a mid-push failure leaves you a usable local brain (it prints how to
@@ -202,7 +202,7 @@ python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
 | `emit-manifest.toml` | What a generated brain contains — classifies every golden file. |
 | `template/`          | The tracked, cleaned scaffold the generator copies into a brain. |
 | `tests/golden/`      | Vendored golden — the tracked regression baseline the harness diffs against (OQ-1 Option A). |
-| `tools/`             | The generator + validation harness (`new_brain.py`, `update_brain.py`, `generate.py`, `run_sandbox.py`, `vendor_golden.py`, `ci.py`, the `check_*` guards). |
+| `tools/`             | The generator + validation harness (`create_second_brain.py`, `update_brain.py`, `generate.py`, `run_sandbox.py`, `vendor_golden.py`, `ci.py`, the `check_*` guards). |
 | `.github/workflows/` | CI — runs `tools/ci.py` on every push/PR to `main`.           |
 | `sandbox/`           | Throwaway generated output for validation (gitignored).       |
 

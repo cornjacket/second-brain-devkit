@@ -20,10 +20,10 @@ Gate (fail-fast on any red):
      ``compile()`` — no import, no bytecode written, stays stdlib-only.
   4. **Mode-A harness** — wipe-regenerate ``sandbox/scratch/`` + guard + in-scaffold
      self-test + structural diff vs the golden (``tools/run_sandbox.py``).
-  5. **Mode-B smoke** — ``new_brain.py`` into a throwaway temp path, then the same
+  5. **Mode-B smoke** — ``create_second_brain.py`` into a throwaway temp path, then the same
      structural-diff oracle on it (proves production output ≡ the validated Mode-A
      output).
-  6. **Remote-sync** — ``new_brain.py --remote`` connect → push → clone-as-peer
+  6. **Remote-sync** — ``create_second_brain.py --remote`` connect → push → clone-as-peer
      against a local **bare** repo (``file://``). Hermetic (git + stdlib, no network
      or credentials), unlike the Ollama/``mcp`` behavioral checks, so it belongs in
      the gate (``tools/check_remote_sync.py``).
@@ -46,7 +46,7 @@ TOOLS = REPO_ROOT / "tools"
 TEMPLATE = REPO_ROOT / "template"  # the post-clean emitted scaffold
 PY = sys.executable
 
-# A self-contained git identity so new_brain's first commit works even in a bare
+# A self-contained git identity so create_second_brain's first commit works even in a bare
 # CI runner with no global git config. Only set if the environment lacks one.
 GIT_IDENTITY = {
     "GIT_AUTHOR_NAME": "devkit-ci",
@@ -119,7 +119,7 @@ def step_mode_b_smoke() -> bool:
     parent = Path(tempfile.mkdtemp(prefix="brain-smoke-"))
     target = parent / "brain"
     try:
-        if not _run([PY, str(TOOLS / "new_brain.py"), str(target)], env=env):
+        if not _run([PY, str(TOOLS / "create_second_brain.py"), str(target)], env=env):
             return False
         return _run([PY, str(TOOLS / "check_structural_diff.py"), str(target)])
     finally:
@@ -139,7 +139,7 @@ STEPS = [
     ("2/6 template in sync with golden", step_template_in_sync),
     ("3/6 emitted scripts compile", step_py_compile),
     ("4/6 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("5/6 Mode-B smoke (new_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("5/6 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
     ("6/6 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
 ]
 

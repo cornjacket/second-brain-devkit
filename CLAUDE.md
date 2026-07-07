@@ -19,7 +19,7 @@ spec so they cannot drift.
   [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 - Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
-- Connect a new brain to a git remote (`new_brain.py --remote`, built) → [docs/remote-backed-brains.md](docs/remote-backed-brains.md)
+- Connect a new brain to a git remote (`create_second_brain.py --remote`, built) → [docs/remote-backed-brains.md](docs/remote-backed-brains.md)
 - Roadmap: shared brain (git-remote or Postgres/S3/Lambda) → [docs/big-brain.md](docs/big-brain.md)
 
 ## Style & conventions (devkit code)
@@ -49,6 +49,32 @@ This repo is a **generator**: it produces a `second-brain/` repo. Build each fea
 - `sandbox/` is gitignored — it is regenerated output, never committed.
 - The live golden answers *"does the feature work?"*; `sandbox/scratch/` answers *"does the devkit generate it correctly?"*
 - **Golden location (OQ-1, RESOLVED → Option A):** the golden is **vendored into the devkit** at `tests/golden/` — plain tracked files (no `.git`), the regression baseline the whole harness reads. Refresh it from the live prototype with `python3 tools/vendor_golden.py` (a dev-machine step; **CI never runs it** and never reaches outside this repo). The live `../second-brain-test/` is now only the **hand-prototyping surface** — its own `.git` + hook still fire for real while you build a feature (step 1) — and heads for mothball ([G4](PLAN.md)); the pre-commit hook is exercised in CI via Mode-B generation, not via the golden. After prototyping in the live golden, run `vendor_golden.py` to update the snapshot, then commit. See OQ-1 in [open-questions.md](open-questions.md).
+
+### Creating a brain during development (review the README installation checklist)
+
+When you create or reinstall a real brain with `tools/create_second_brain.py`
+(dogfooding, a demo, or the user's own brain — **not** the throwaway `sandbox/scratch/`
+of the harness), **review the brain's installation checklist in the [README](README.md)
+and make sure every item is satisfied before reporting the brain ready.** Generating the
+scaffold is only step one; a brain is not "installed" until it is verified runnable.
+
+**Review, don't blindly repeat.** Walk the checklist and **complete the items not yet
+done**; you need not re-run steps already completed in this session/environment (deps
+already installed, Ollama already running) — but **verify** their end state rather than
+assume it. The README is the source of truth for the steps and their order — don't
+duplicate them here — but the shape is:
+
+1. `create_second_brain.py <path>` (add `--remote <URL>` to back it up — see the
+   README's "Back it up / share it" prerequisites: empty repo, per-machine creds, git
+   identity; all preflighted).
+2. `cd <path>` → `pip install -r requirements.txt` → `python3 scripts/self_test.py`
+   (confirm the plumbing).
+3. For real semantic search: start Ollama + pull the model, then
+   `python3 scripts/doctor.py` (the "is my brain ready?" preflight).
+
+Report the brain working only once you've walked the checklist and `doctor.py` is green —
+not merely because the files generated. If you skipped or couldn't verify an item, say so
+plainly rather than implying the brain is ready.
 
 <!-- ai-project-status:begin -->
 <!--

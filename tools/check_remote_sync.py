@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Behavioral check for remote-backed brains (task #6) — connect → push → clone-peer.
 
-``new_brain.py --remote`` attaches a git remote and pushes the scaffold at creation.
+``create_second_brain.py --remote`` attaches a git remote and pushes the scaffold at creation.
 CI byte-diffs the *emitted brain* but never exercises the remote flow, so this check
 drives it end-to-end against a **local bare repo** (``git init --bare`` addressed by a
 ``file://`` URL) — a fully-functional git remote that needs **no network and no
@@ -35,7 +35,7 @@ import tempfile
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-NEW_BRAIN = REPO_ROOT / "tools" / "new_brain.py"
+CREATE_SECOND_BRAIN = REPO_ROOT / "tools" / "create_second_brain.py"
 PY = sys.executable
 
 # A self-contained git identity so the brain's first commit (and the preflight
@@ -74,8 +74,8 @@ def _bare_remote(root: Path, name: str) -> str:
     return bare.as_uri()  # file:///abs/path/name.git
 
 
-def _new_brain(target: Path, *remote_args: str) -> subprocess.CompletedProcess:
-    return _run([PY, str(NEW_BRAIN), str(target), *remote_args])
+def _create_second_brain(target: Path, *remote_args: str) -> subprocess.CompletedProcess:
+    return _run([PY, str(CREATE_SECOND_BRAIN), str(target), *remote_args])
 
 
 def _autosync(repo: Path) -> str | None:
@@ -87,7 +87,7 @@ def _autosync(repo: Path) -> str | None:
 def check_connect_and_push(work: Path) -> None:
     url = _bare_remote(work, "origin.git")
     brain = work / "brain"
-    r = _new_brain(brain, "--remote", url)
+    r = _create_second_brain(brain, "--remote", url)
     if r.returncode != 0:
         raise CheckError(f"--remote into an empty bare repo failed:\n{r.stderr}")
     if not brain.exists():
@@ -115,7 +115,7 @@ def check_connect_and_push(work: Path) -> None:
 def check_no_autosync(work: Path) -> None:
     url = _bare_remote(work, "manual.git")
     brain = work / "manual-brain"
-    r = _new_brain(brain, "--remote", url, "--no-autosync")
+    r = _create_second_brain(brain, "--remote", url, "--no-autosync")
     if r.returncode != 0:
         raise CheckError(f"--remote --no-autosync failed:\n{r.stderr}")
     if (val := _autosync(brain)) != "false":
@@ -126,7 +126,7 @@ def check_no_autosync(work: Path) -> None:
 def check_clone_peer(work: Path) -> None:
     url = _bare_remote(work, "shared.git")
     brain = work / "author-brain"
-    r = _new_brain(brain, "--remote", url)
+    r = _create_second_brain(brain, "--remote", url)
     if r.returncode != 0:
         raise CheckError(f"author brain --remote failed:\n{r.stderr}")
 
@@ -150,11 +150,11 @@ def check_preflight_non_empty(work: Path) -> None:
     # Populate a remote by connecting one brain, then aim a second brain at it.
     url = _bare_remote(work, "populated.git")
     first = work / "first"
-    if _new_brain(first, "--remote", url).returncode != 0:
+    if _create_second_brain(first, "--remote", url).returncode != 0:
         raise CheckError("setup: seeding the populated remote failed")
 
     second = work / "second"
-    r = _new_brain(second, "--remote", url)
+    r = _create_second_brain(second, "--remote", url)
     if r.returncode == 0:
         raise CheckError("preflight accepted a NON-EMPTY remote (should refuse)")
     if second.exists():
@@ -167,7 +167,7 @@ def check_preflight_non_empty(work: Path) -> None:
 def check_preflight_unreachable(work: Path) -> None:
     url = (work / "does-not-exist.git").as_uri()  # valid file:// URL, no repo there
     brain = work / "unreachable-brain"
-    r = _new_brain(brain, "--remote", url)
+    r = _create_second_brain(brain, "--remote", url)
     if r.returncode == 0:
         raise CheckError("preflight accepted an UNREACHABLE remote (should refuse)")
     if brain.exists():

@@ -1,13 +1,13 @@
 # Remote-backed brains — connect a new brain to a git remote at creation
 
-**Status:** **BUILT 2026-07-07** (task #6). `new_brain.py --remote <URL>` (+
+**Status:** **BUILT 2026-07-07** (task #6). `create_second_brain.py --remote <URL>` (+
 `--no-autosync`), the fail-early preflight, and hermetic CI coverage
 (`tools/check_remote_sync.py`, `ci.py` gate 6/6, local bare repo) all landed; the
 emitted brain is unchanged (Mode A ≡ B). The design below is what shipped. The
 ongoing **sync loop** (pull → re-embed/hydrate, push-after-write, conflict UX) remains
 [big-brain Approach A](big-brain.md), layered on top later.
 
-`new_brain.py` today `git init`s a **local-only** repo with no remote (verified). That
+`create_second_brain.py` today `git init`s a **local-only** repo with no remote (verified). That
 leaves a hole: no off-machine **backup**, no **multi-machine** use, and no foundation for
 the shared/sync design ([big-brain.md §0 + Approach A](big-brain.md)). This task adds the
 *connect-and-push-at-creation* step. Ongoing pull/sync automation (the `post-merge` hook,
@@ -24,7 +24,7 @@ conflict handling) is [big-brain Approach A](big-brain.md) and layers on top lat
 
 ## Design (recommended)
 
-1. **Opt-in, not mandatory — `new_brain.py --remote <URL>`.** Local-only stays the
+1. **Opt-in, not mandatory — `create_second_brain.py --remote <URL>`.** Local-only stays the
    default so offline / single-machine / air-gapped creation still works (core
    local-first). With `--remote`, connect + push; without it, today's behavior. Once
    remote-backed, **auto-sync is on by default**; `--no-autosync` overrides it off (see
@@ -56,7 +56,7 @@ conflict handling) is [big-brain Approach A](big-brain.md) and layers on top lat
 5. **README — a "Back it up / share it (git remote)" prerequisites section.** Document:
    create an **empty** remote repo (GitHub/GitLab/self-hosted); set up credentials **once
    per machine** — SSH (key in `ssh-agent`) *or* HTTPS (a token via a credential helper);
-   then `new_brain.py ~/my-brain --remote <URL>`. Note both auth methods and how to verify
+   then `create_second_brain.py ~/my-brain --remote <URL>`. Note both auth methods and how to verify
    (`git ls-remote <URL>`).
 
 **Why not a credential-creating pre-setup script?** Generating SSH keys / provisioning
@@ -64,7 +64,7 @@ tokens is invasive, platform- and provider-specific, and sometimes needs interac
 auth — the same reasons the devkit chose *detect + instruct* over auto-install for Ollama.
 A **preflight verify** (does auth already work?) is the right amount of automation; a
 credential *installer* is not. If we want a single "am I ready to create a remote-backed
-brain?" command, fold the checks into `doctor.py` or a tiny `--check` mode of `new_brain`.
+brain?" command, fold the checks into `doctor.py` or a tiny `--check` mode of `create_second_brain`.
 
 ## State — how scripts know a brain is remote-backed
 
@@ -77,14 +77,14 @@ Approach A) must know whether to touch a remote. Two *distinct* facts, and only 
    brain (an Approach-A peer) has it set automatically by `git clone`. Scripts query git.
 2. **"Should the hooks auto-sync (pull/push)?" — a new per-machine toggle, ON by default.**
    **DECIDED (2026-07-07): auto-sync is the default whenever a remote exists**; a
-   `new_brain.py` option **overrides** it off. Stored as a **local git-config key**
+   `create_second_brain.py` option **overrides** it off. Stored as a **local git-config key**
    `secondbrain.autosync` in `.git/config` → per-repo, **per-machine, not committed** (each
    clone/machine chooses its own behavior; a *committed* flag would wrongly force one policy
    on all peers). Read semantics make ON the default: `git config --bool --get
    secondbrain.autosync` **absent or `true` → ON**, only an explicit **`false` → off**.
-   - So `new_brain --remote <URL>` → auto-sync **on** by default (nothing to write — absent
+   - So `create_second_brain --remote <URL>` → auto-sync **on** by default (nothing to write — absent
      reads as on).
-   - `new_brain --remote <URL> --no-autosync` → writes `git config secondbrain.autosync
+   - `create_second_brain --remote <URL> --no-autosync` → writes `git config secondbrain.autosync
      false` for users who want a remote but manual sync (offline, slow link).
    - A **cloned** Approach-A peer has no such key → **auto-syncs by default** (desired).
    - Flip anytime: `git config secondbrain.autosync false` / `true` — no need to touch the

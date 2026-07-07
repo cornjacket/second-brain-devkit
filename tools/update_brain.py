@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Non-destructively upgrade an existing brain's tooling from this devkit (G4).
 
-``new_brain.py`` can only *create* a brain (it refuses a non-empty target), so once a
+``create_second_brain.py`` can only *create* a brain (it refuses a non-empty target), so once a
 brain is generated and filled with notes there is no supported way to pull in later
 devkit improvements — new scripts, bug fixes, WAL, the MCP server — short of delete +
 regenerate, which destroys the vault and git history. This closes that gap.
