@@ -160,7 +160,7 @@ python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
 | `SPEC.md`            | System specification & generator/validation loop.             |
 | `PLAN.md`            | Durable milestone tracker for the devkit itself.              |
 | `open-questions.md`  | Unresolved design decisions (resolve before finalizing).      |
-| `docs/`              | Deep-dive design docs — [`source-map.md`](docs/source-map.md) (what every file does), [`mcp-server.md`](docs/mcp-server.md), [`claude-desktop-workflow.md`](docs/claude-desktop-workflow.md), [`retrieval-quality.md`](docs/retrieval-quality.md), [`big-brain.md`](docs/big-brain.md) (roadmap). |
+| `docs/`              | Deep-dive design docs — [`source-map.md`](docs/source-map.md) (what every file does), [`mcp-server.md`](docs/mcp-server.md), [`claude-desktop-workflow.md`](docs/claude-desktop-workflow.md), [`retrieval-quality.md`](docs/retrieval-quality.md), [`remote-backed-brains.md`](docs/remote-backed-brains.md), [`big-brain.md`](docs/big-brain.md) (roadmap). |
 | `daily-plan.md`      | Forward-looking, single-day plan (aggregated cross-repo).     |
 | `emit-manifest.toml` | What a generated brain contains — classifies every golden file. |
 | `template/`          | The tracked, cleaned scaffold the generator copies into a brain. |
