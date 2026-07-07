@@ -1,34 +1,30 @@
-# Daily plan — 2026-07-06
+# Daily plan — 2026-07-07
 
-**Focus:** The **MCP server v1 shipped and is Claude Desktop-verified** (weekend of
-07-04), along with OQ-5 **layer 2 in-place hydrate**. Monday shifts from *building* the
-server to *hardening the mechanism* and closing the lifecycle gap: add CI coverage for
-MCP (byte-diff alone let a real regression through), then `tools/update_brain.py`.
-Retrieval quality is designed and queued. Same loop: prototype in golden → vendor →
-template → `tools/ci.py` green.
+**Focus:** A hardening + design stretch landed (07-05→07): MCP **CI coverage** (compile
+gate + opt-in behavioral test), **`update_brain.py`** (G4 non-destructive upgrade), and a
+wave of design docs (source-map, Claude-Desktop workflow, retrieval-quality, big-brain,
+remote-backed-brains). Next is the queued **task #6 — remote-backed brains**: give a new
+brain an *opt-in* git remote at creation. Same loop: prototype emitted bits in the golden
+→ vendor → template → `tools/ci.py` green.
 
-- **CI coverage for MCP (tasks #1, #2).** The Claude Desktop `outputSchema` regression
-  proved CI byte-diffs `mcp_server.py` but never *runs* it. Layer 1: `py_compile` every
-  emitted script in `tools/ci.py` (hermetic, zero new deps). Layer 2: opt-in
-  `tools/check_mcp_server.py` on the `test` backend — assert 2 tools, **no
-  `outputSchema`**, `get_note` path-guard, search works; SKIP when `mcp` absent.
-- **Lifecycle G4 — `tools/update_brain.py`.** Non-destructive, manifest-driven
-  re-emit of tooling only (scripts/README/hooks/requirements), leaving vault/data/
-  config/history untouched, `--apply`-gated — so populated brains pull devkit
-  improvements (MCP, WAL, fixes) without delete+regenerate.
-- **Retrieval quality (designed — `docs/retrieval-quality.md`, task #3).** Hybrid
-  lexical+vector via SQLite **FTS5** + Reciprocal Rank Fusion; nomic
-  `search_document:`/`search_query:` prefixes. Build only when a *populated* brain shows
-  real recall failures — not the "magic number" false alarm.
-- Guards stay green (partition, structural diff, forbidden-ref); every change via `ci.py`.
+- **▶▶ Build task #6 — `new_brain.py --remote <URL>`.** After init/first-commit/hooks:
+  `git remote add origin` + `git push -u origin HEAD`. **Preflight (detect + instruct, no
+  credential installer):** git identity, `git ls-remote` auth+reachable, remote empty —
+  fail early, leave the local brain intact. **State:** `secondbrain.autosync` git config
+  **ON by default** (`--no-autosync` overrides); sync scripts gate on *remote-exists AND
+  autosync-not-false*. **CI test with no creds:** `tools/check_remote_sync.py` against a
+  local **bare repo** (`file://`) — connect → push → clone-as-peer → pull. README prereqs.
+- **Then:** #3 hybrid FTS5 search (emits into brains → prototype in golden first) and #5
+  `add_note` write tool (design-first).
+- Guards stay green; everything lands through `tools/ci.py` (now 5 gates incl. compile).
 
 ```
- weekend 07-04 ✅  layer 2 in-place hydrate · MCP server v1 (stdio) live in Claude Desktop
-                   outputSchema fix · magic-number test note · retrieval-quality design
+ 07-05→07 ✅  CI coverage (#1 compile · #2 behavioral) · update_brain.py (G4)
+              docs: source-map · desktop-workflow · retrieval · big-brain · remote-backed
                                    │
                                    ▼
- mon 07-06   CI coverage for MCP  ──▶  update_brain.py (G4)  ──▶  [backlog: hybrid FTS5]
-             #1 py_compile · #2 behavioral    non-destructive upgrade      task #3
+ tue 07-07  ▶▶ task #6 remote-backed brains (new_brain --remote + preflight + autosync state)
+            then ▸ #3 hybrid FTS5 · #5 add_note
 
  loop:  golden ─vendor→ tests/golden ─build→ template ─ci.py→ green
 ```
