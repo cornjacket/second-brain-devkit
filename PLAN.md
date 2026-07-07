@@ -402,23 +402,28 @@ populated brain**, not a single example. (The prompting example that raised this
       each brain; `test` fixtures/CI unaffected.
 
 ## Milestone G4 — Lifecycle
-- [ ] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
-      brain (surfaced 2026-07-03; now the top lifecycle priority).** The devkit can
-      only *generate* — `new_brain.py` git-inits a fresh repo and refuses a non-empty
-      target unless `--force`, so it **cannot** run over a real brain without
-      destroying notes + history. Every devkit improvement (WAL, `doctor.py`,
-      `--nudge`, and now the **MCP server**) therefore reaches an existing brain only
-      via delete + regenerate — fine for a disposable seed-only brain, unsafe for a
-      populated one. Build a `tools/update_brain.py` that:
-      - re-emits **tooling only** — the `verbatim` + `cleaned` sets from
-        `emit-manifest.toml` (`scripts/`, `README.md`, hooks, `requirements*.txt`,
-        `skill/`) — and **never** touches `vault/`, `data/`, `config/`, or git history;
-      - is driven by the same manifest (so new files like `mcp_server.py` /
-        `requirements-mcp.txt` are picked up automatically, no per-feature edits);
-      - **detect + instruct, `--apply`-gated** (dry-run diff by default), consistent
-        with `install_skill.py`/`doctor.py`; shows exactly what would change;
-      - preserves user edits sensibly (report/skip locally-modified emitted files
-        rather than clobber silently) and commits the upgrade in the brain's own repo.
+- [x] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
+      brain (surfaced 2026-07-03; BUILT 2026-07-06).** The devkit can only *generate* —
+      `new_brain.py` refuses a non-empty target — so before this, every devkit
+      improvement (WAL, `doctor.py`, `--nudge`, the **MCP server**) reached an existing
+      brain only via delete + regenerate. `update_brain.py`:
+      - re-emits **tooling** from the tracked `template/` tree (`scripts/`, `skill/`,
+        `.githooks/`, `requirements*.txt`, `tests/`, `seeds/`, `README.md`) — walks
+        the template so new files (`mcp_server.py`, `requirements-mcp.txt`) are picked
+        up automatically, no per-feature edits;
+      - **never touches** user territory — `vault/`, `data/`, `config/`, `CLAUDE.md`,
+        `GEMINI.md` (a PRESERVE list) — nor git history;
+      - **dry-run by default** (reports NEW / CHANGED / preserved); `--apply` writes
+        the files and records **one revertable commit** (`--no-verify`, stamped with
+        the devkit SHA), refusing a dirty tree so the update lands isolated;
+      - guards: refuses a non-brain target and the devkit itself.
+      Verified end-to-end: on a simulated outdated+personalized brain it added the MCP
+      files (NEW), restored a tampered `db.py` (CHANGED), and **preserved** the vault
+      note, customized `config/embedder.toml`, and personal `CLAUDE.md`; plus the
+      already-up-to-date, dirty-tree, and non-brain guard paths. **MVP limits:** additive
+      (won't delete a file the devkit dropped) and can't distinguish a user-edited
+      tooling file from an old version (both are git-revertable; dirty-tree guard +
+      dry-run preview cover it).
       Interim until it exists: if the brain is disposable, delete + regenerate (done
       for `~/second-brain` on 2026-07-04 to pick up the MCP server + layer-2 hydrate);
       a *populated* brain still has no safe path.

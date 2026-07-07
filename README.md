@@ -165,7 +165,7 @@ python3 -c "import sqlite3, sqlite_vec; print(sqlite_vec.__version__)"
 | `emit-manifest.toml` | What a generated brain contains — classifies every golden file. |
 | `template/`          | The tracked, cleaned scaffold the generator copies into a brain. |
 | `tests/golden/`      | Vendored golden — the tracked regression baseline the harness diffs against (OQ-1 Option A). |
-| `tools/`             | The generator + validation harness (`new_brain.py`, `generate.py`, `run_sandbox.py`, `vendor_golden.py`, `ci.py`, the `check_*` guards). |
+| `tools/`             | The generator + validation harness (`new_brain.py`, `update_brain.py`, `generate.py`, `run_sandbox.py`, `vendor_golden.py`, `ci.py`, the `check_*` guards). |
 | `.github/workflows/` | CI — runs `tools/ci.py` on every push/PR to `main`.           |
 | `sandbox/`           | Throwaway generated output for validation (gitignored).       |
 
