@@ -18,6 +18,7 @@ spec so they cannot drift.
 - MCP server design + Claude Desktop → [docs/mcp-server.md](docs/mcp-server.md),
   [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
+- Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
 - Connect a new brain to a git remote (`--remote`, next task) → [docs/remote-backed-brains.md](docs/remote-backed-brains.md)
 - Roadmap: shared brain (git-remote or Postgres/S3/Lambda) → [docs/big-brain.md](docs/big-brain.md)
 

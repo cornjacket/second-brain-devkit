@@ -447,6 +447,32 @@ populated brain**, not a single example. (The prompting example that raised this
       line-count guard hints at), so design it source-type-agnostic. Substantial — will
       likely want its own `docs/` design doc when picked up. Not started.
 
+## Auto-linking (backlog): vector-derived Obsidian note links
+- [ ] **Materialize vector neighborhoods as Obsidian-visible links.** (task #8) A pass
+      computes each note's nearest neighbors (KNN over the vectors already in
+      `data/brain.db` — no re-embed to link) and writes them into a **managed frontmatter
+      block** `related_auto:` as **quoted wikilinks** (`- "[[note-a]]"`), which Obsidian's
+      link-type properties render as real **graph edges** (a **hard requirement** — add a
+      build-time check, don't trust the client version; the `outputSchema`/Desktop lesson).
+      Two features: (a) auto-linking, (b) **manual-link preservation** — a hand-set link
+      (`related:` / inline `[[…]]`) is **never** touched; the auto-pass reads/writes *only*
+      its own `related_auto:` block (namespace partition, like `--nudge`'s marked region).
+      **Core invariant — embed *substance*, not *metadata about* the content** (author-
+      agnostic: AI writes substance too; the discriminator is content vs. bookkeeping, and
+      `related_auto:` is metadata *derived from the embedding*). Today `embed_staged.py`
+      embeds the **whole file**, so a naive auto-linker would form a **rich-get-richer
+      feedback loop** (links → vector drift → stronger links). Fix: embed a **canonical
+      substance view** (body only, frontmatter stripped). **`content_hash` no-op gate:** a
+      **byte-consistent** crypto hash (SHA-256 — a *change* detector, cross-machine stable,
+      the deliberate inverse of the non-reproducible neural vector) of the canonical body,
+      stored in frontmatter (committed → travels for [big-brain A](docs/big-brain.md));
+      unchanged hash → **skip re-embed**, which kills both the loop and the OQ-3 neural-noise
+      churn. Stability rules (threshold + top-N + deterministic order + hysteresis) keep
+      committed-note churn down. Composes with #3 (FTS5 lexical neighbors) and #7 (multi-
+      vector sources need a neighbor-aggregation rule). Full design in
+      [docs/auto-linking.md](docs/auto-linking.md). **Before** Postgres/big-brain Approach B
+      (local-first, no new service). Not started.
+
 ## Milestone G4 — Lifecycle
 - [x] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
       brain (surfaced 2026-07-03; BUILT 2026-07-06).** The devkit can only *generate* —
