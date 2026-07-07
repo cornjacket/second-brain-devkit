@@ -82,6 +82,7 @@ Lives only here, under `tools/`. Never copied into a brain.
 | `tools/check_no_forbidden_refs.py` | Grep the emitted tree against the denylist (`ai-project-status`) — zero hits. |
 | `tools/check_structural_diff.py` | The Mode-A acceptance oracle — generated tree **==** golden, byte-for-byte. |
 | `tools/check_semantic_retrieval.py` | Opt-in Ollama retrieval-quality check (SKIP + exit 0 when Ollama absent). |
+| `tools/check_mcp_server.py` | Opt-in behavioral MCP check — drives the emitted stdio server (test backend); asserts tools, **no `outputSchema`**, `get_note` path-guard, search. SKIP when `mcp` absent. |
 
 ---
 

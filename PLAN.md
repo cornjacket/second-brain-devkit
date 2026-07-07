@@ -198,13 +198,15 @@ or a behavior regression ships green. Two layers, only the first in the hermetic
       `compile()` over `template/**/*.py` (post-clean emitted tree) — no import, no
       `.pyc` written, zero new deps, stays stdlib-only. Verified it catches an injected
       `SyntaxError` (exact file+line) and passes on the 15 real scripts. (task #1)
-- [ ] **Layer 2 — opt-in behavioral MCP test** (`tools/check_mcp_server.py`, modeled
-      on `check_semantic_retrieval.py`): when `mcp` is importable, spawn the stdio
-      server on a `test`-backend brain and assert (1) both tools listed, (2) **no
-      `outputSchema`** on either (locks in the Desktop fix), (3) `get_note` refuses a
-      path outside `vault/`, (4) `search_second_brain` returns the seeded fixture.
-      **SKIP + exit 0** when `mcp` absent, so it never enters the portable gate; needs
-      `mcp`+`sqlite-vec` but **not** Ollama (deterministic `test` backend).
+- [x] **Layer 2 — opt-in behavioral MCP test** — DONE: `tools/check_mcp_server.py`
+      (modeled on `check_semantic_retrieval.py`). Spawns the emitted stdio server on a
+      generated `test`-backend brain via a real MCP client and asserts (1) exactly the
+      two tools listed, (2) **no `outputSchema`** on either (locks in the Desktop fix),
+      (3) `get_note` refuses a path outside `vault/`, (4) `search_second_brain` returns
+      absolute vault paths + `get_note` reads one back. **SKIP + exit 0** when `mcp`
+      absent (stays out of the portable gate); needs `mcp`+`sqlite-vec`, **not** Ollama.
+      Verified: passes green, and a negative test (reverting `structured_output=False`)
+      is caught on both tools. (task #2)
 
 ## Milestone G5 — Runtime setup (Ollama + embedder)
 Make a generated brain **runnable for real semantic search**, not just structurally
