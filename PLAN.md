@@ -420,6 +420,33 @@ populated brain**, not a single example. (The prompting example that raised this
       keyword concern — measured near-identical here). Requires a one-time re-embed of
       each brain; `test` fixtures/CI unaffected.
 
+## Ingestion (backlog): PDF segmentation + embedding
+- [ ] **Segment & embed a PDF into the brain.** (task #7) Support ingesting a PDF as a
+      searchable source, not just Markdown notes. The hard part: a PDF is long, so it must
+      be **segmented into passages** (chunks) and **each chunk embedded** — this breaks the
+      brain's core **"one note = one vector"** assumption and forces real design work:
+      - **Chunking strategy** — by page / paragraph / fixed token-window with overlap;
+        chunk size vs. retrieval quality; keep page/offset for locating the passage.
+      - **Multi-vector-per-source schema change** — the cache keys rows on `source_file`
+        (PRIMARY KEY, one row/note); PDF chunks need many rows per file, e.g.
+        `(source_file, chunk_id)` + the chunk's text/page span. Touches `hydrate_cache.py`,
+        `update_cache.py`, `search_vault.py`, and the sidecar format (one `.embed.json`
+        holding many chunk vectors). Reconcile with hybrid FTS5 (task #3).
+      - **Text extraction dependency** — a PDF parser (`pypdf` / PyMuPDF / `pdfplumber`)
+        kept an **isolated optional dependency** (like `requirements-mcp.txt`) so core +
+        CI stay lean/stdlib-only.
+      - **Storage** — PDFs are binary and can be large: commit the PDF (git, maybe LFS) or
+        keep it out and index only? Store extracted text/Markdown alongside? Sidecar holds
+        vectors + spans + page refs.
+      - **Search UX** — a hit points to the PDF **+ page/offset (+ chunk text)** so the
+        user/AI can open the passage; a `get_note`-equivalent for a PDF chunk (MCP/skill).
+      - **Document it in the emitted (brain) `README.md`** — a "Add a PDF" section: how to
+        ingest a PDF, the optional parser install, where PDFs live, and how chunk hits read
+        in search. Ships into every generated brain (the golden README → cleaned template).
+      Chunking also helps **long Markdown notes** (the same one-note-one-vector weakness the
+      line-count guard hints at), so design it source-type-agnostic. Substantial — will
+      likely want its own `docs/` design doc when picked up. Not started.
+
 ## Milestone G4 — Lifecycle
 - [x] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
       brain (surfaced 2026-07-03; BUILT 2026-07-06).** The devkit can only *generate* —
