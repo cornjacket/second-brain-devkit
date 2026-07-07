@@ -44,18 +44,25 @@ new/edited notes are invisible to search until then. The natural home is a git
 it runs `update_cache.py --from-commit` over the merged range, embedding what's missing
 and rebuilding the cache. Without it, a user pulls new notes but can't find them.
 
-**Embeddings in git — an optimization, not a requirement.** Whether the pull needs to
-*re-embed* depends on the sidecar policy ([OQ-3](../open-questions.md); today `.embed.json`
-sidecars are git-ignored):
-  - **Commit the sidecars (optimization):** the pull brings each note's vector with it,
-    so the post-pull reaction is **hydrate only — no re-embedding** (a vector is a vector,
-    given the same-model invariant). Faster, and a peer without Ollama can still search.
-    Cost: derived data in git + everyone must share the embedding model.
-  - **Keep them git-ignored (strictly sufficient):** the post-merge hook **re-embeds**
-    the added/changed notes locally (needs Ollama + the same model), then hydrates. Keeps
-    git clean; costs each peer the compute.
-  So committing embeddings is a **caching optimization** the shared repo *may* adopt —
-  strictly, correctness only needs the per-user re-embed + hydrate.
+**Don't store embeddings in git — they aren't reproducible across machines.** The
+tempting optimization is to commit each note's `.embed.json` so peers skip re-embedding.
+It doesn't hold up: neural embeddings are **not byte-reproducible** — the same model on
+the same text yields *byte-different* vectors on different hardware (CPU vs GPU, SIMD
+width, BLAS library, quantization, model/runtime version), and even same-machine without
+pinning. The project already relies on this fact: sidecars are git-ignored and CI +
+fixtures use the deterministic **`test`** backend *precisely because* real embeddings
+can't be byte-diffed ([OQ-2](../open-questions.md) / [OQ-3](../open-questions.md); "never
+byte-diff a neural model"). Committing them would mean **constant spurious diffs and
+unresolvable merge conflicts on the sidecar files** every time any machine writes one —
+churn a git-synced repo can't absorb, and float-JSON conflicts aren't human/AI-resolvable
+the way Markdown ones are.
+
+So the sidecar **stays git-ignored**, and the post-pull reaction **re-embeds added/changed
+notes locally** (Ollama + the same model), then hydrates — the only churn-free option, and
+the default. (Aside: the cross-machine float noise is tiny enough that a *query* embedded
+on one machine still ranks note vectors embedded on another correctly — proximity tolerates
+it — so non-reproducibility is a **git-storage** problem, not a search-correctness one. It
+just can't live in git.)
 
 **Merge conflicts need a human (or an AI) in the loop.** A `git pull` can hit a merge
 conflict — most likely two users editing the **same note**. This **cannot be silently
@@ -67,8 +74,9 @@ an error to paper over.
 
 **What's missing to make this real:** a small `sync` helper (pull → post-pull reaction →
 handle-conflicts; and commit → pull --rebase → push), most of the reaction living in a
-`post-merge` hook that mirrors `post-commit`; plus the sidecar-commit policy decision.
-No new services, still local-first.
+`post-merge` hook that mirrors `post-commit`. Sidecars stay git-ignored (see above), so
+each peer re-embeds locally — no cross-machine embedding storage to manage. No new
+services, still local-first.
 
 **Best for:** a small team (or one person across machines) who all run the brain locally
 (CLI / Claude Desktop).
@@ -118,9 +126,10 @@ gap for the ordinary single-user-multi-machine case, independent of any team use
 
 ## Open questions — to hash out
 
-- **A:** sidecar-commit vs. re-embed (revisits [OQ-3](../open-questions.md)); the `sync`
-  helper's shape (script vs. hook vs. wrapper); merge/conflict UX; do you also push the
-  git-ignored cache? (no — keep it derived/local).
+- **A:** the `sync` helper's shape (script vs. `post-merge` hook vs. wrapper); merge/
+  conflict UX (surface, don't auto-resolve). *Decided:* **don't commit embeddings** —
+  non-reproducible across machines → merge churn; each peer re-embeds locally (the cache
+  stays derived/local, never pushed).
 - **B:** auth & multi-tenancy; write consistency when the store (S3) and index (Postgres)
   are separate services; embedding provider + cost; privacy/data-residency (a shared
   cloud brain is the explicit opposite of local-first).

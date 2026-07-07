@@ -449,9 +449,10 @@ machine, but multi-machine/multi-user would silently drift.
       (essential):** any pulled/changed note must (re-)embed + hydrate — natural home is a
       `post-merge` hook mirroring `post-commit`, or new notes stay unsearchable.
       **Merge conflicts need a human/AI in the loop** (two users, same note) — the `sync`
-      helper must surface, not auto-resolve. **Committing sidecars is an optimization**
-      (peers skip re-embedding; needs the same model) — strictly, per-user re-embed +
-      hydrate suffices ([OQ-3](open-questions.md)). No new services; also fixes the
+      helper must surface, not auto-resolve. **Don't commit embeddings** — they're not
+      byte-reproducible across machines (the reason sidecars are git-ignored + CI uses
+      `test`), so committing → merge churn; each peer re-embeds changed notes locally then
+      hydrates ([OQ-3](open-questions.md)). No new services; also fixes the
       single-user-multi-machine gap.
 - [ ] **Approach B — deployed, centralized (Postgres + S3 + Lambda).** Only when clients
       **can't run locally** (claude.ai-web, no-install) or you need one central store.
