@@ -552,13 +552,23 @@ requirement**); they also produce the material for a future GitHub tutorial.
       into the embedding (the rich-get-richer loop is broken at the source). Committed test
       fixtures regenerated; manifest verbatim 35→36, golden re-vendored (56), template
       rebuilt (41), **CI 6/6 green (structural diff 47/47)**.
-      **Still to do:** (1) the `content_hash` no-op gate (SHA-256 of the canonical body in
-      frontmatter → skip re-embed on unchanged substance; note the pre-commit write-back
-      design tension, §7); (2) the KNN `related_auto:` pass with stability rules
-      (threshold + top-N + deterministic order + hysteresis), likely an on-demand
-      `scripts/autolink.py`; (3) the build-time Obsidian-format acceptance check (§5);
-      (4) manual-link preservation via namespace partition (§3). Uses the shared
-      [[marked-block splice helper]] (task #10) for the `related_auto:` block. Design detail:
+      **KNN calibration tool landed 2026-07-08** — `scripts/autolink.py` (emitted verbatim,
+      read-only) computes each note's neighbourhood from the vectors in `data/brain.db` (no
+      re-embed) reusing the vec0 cosine KNN, with `--k` / `--threshold` preview + a distance
+      summary. First run on `~/second-brain` (7 notes) showed the vectors behave well but the
+      corpus is **one topical cluster** with no clean gap for a global `t_max` — confirming a
+      distance cut alone is insufficient at small scale (top-N + mutual-KNN carry it) and that
+      a meaningful threshold needs the larger, diverse corpus from #12/#13. Full findings +
+      provisional defaults (`t_max≈0.45`, top-N 3–5, mutual-KNN) in
+      [docs/auto-linking.md §2.1](docs/auto-linking.md).
+      **Still to do:** (1) the **`related_auto:` write path** — turn the survivors into a
+      managed frontmatter block via the [[marked-block splice helper]] (task #10), with the
+      stability rules (top-N + deterministic order + hysteresis + mutual-KNN) and
+      manual-link preservation (§3 namespace partition); (2) the build-time Obsidian-format
+      acceptance check (§5); (3) the `content_hash` no-op gate (SHA-256 of the canonical body
+      in frontmatter → skip re-embed on unchanged substance; note the pre-commit write-back
+      design tension, §7 — independent of the above); (4) final `t_max`/hysteresis
+      calibration once the #12/#13 corpus exists. Design detail:
 - [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in
       `data/brain.db` — no re-embed to link) and writes them into a **managed frontmatter

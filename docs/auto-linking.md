@@ -85,6 +85,31 @@ the vector, and one pass reaches a fixed point.
   (bulk, like `embed_vault.py`) or an explicit command — **not** an automatic per-commit
   hook — precisely to control churn and keep it deterministic.
 
+### 2.1 First calibration (2026-07-08, `~/second-brain`, 7 notes, ollama + prefixes)
+
+`scripts/autolink.py` (read-only KNN, cosine metric identical to search) was run over the
+real brain after the prefix re-embed. All 42 directed note→neighbour distances:
+
+```
+min 0.177  median 0.387  max 0.572   (t_max=0.45 links 36/42 edges)
+```
+
+Findings that shape the threshold design:
+
+- **The vectors behave well.** Nearest pairs are semantically right (embeddings ↔
+  nomic-embedding-prefixes 0.177; second-brain ↔ sqlite-vec 0.236), and the deliberately
+  off-topic `magic-number` note is correctly the outlier (its links sit at 0.42–0.57).
+- **No clean gap to put a global `t_max` in.** Distances ramp smoothly 0.18 → 0.57 with no
+  elbow — because at this size the corpus is **one topical cluster** (six of seven notes are
+  about the brain / embeddings / search), so *everything is genuinely related to everything*.
+  A fixed cut either links the whole graph (`0.45`) or is arbitrary.
+- **Conclusion:** a distance threshold alone is not enough at small scale — the **top-N cap
+  and mutual-KNN** rule do the real work of keeping the graph legible; `t_max` mainly fences
+  off true outliers. **A meaningful `t_max` cannot be derived from this corpus** — it needs
+  the larger, more *topically diverse* dataset that the ablation-benchmark work (PLAN tasks
+  #12/#13) will build. Provisional starting point to **recalibrate at scale**: `t_max ≈ 0.45`,
+  `top-N = 3–5`, mutual-KNN on.
+
 ## 3. Manual-link preservation
 
 A human/AI hand-link must be **sticky**. The clean guarantee is **namespace partition**:
