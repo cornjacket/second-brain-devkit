@@ -520,6 +520,31 @@ populated brain**, not a single example. (The prompting example that raised this
       [docs/readme-managed-block.md](docs/readme-managed-block.md). Local-first; **before**
       Postgres/Approach B. Not started.
 
+## Project rename (backlog): second-brain-devkit → create-second-brain
+- [ ] **Rename the project `second-brain-devkit/` → `create-second-brain/`.** (task #11)
+      Aligns the repo name with its primary end-user entry point (`create_second_brain.py`) —
+      what a user actually runs to make a brain. Touches **four layers**, in order:
+      - **Emitted provenance (the risky part — do prototype-first).** `template/README.md`,
+        `template/CLAUDE.md`, and `template/tests/README.md` embed a devkit back-reference
+        that ships into **every generated brain** and links to the GitHub URL
+        (`github.com/cornjacket/second-brain-devkit`). A stale name/URL here breaks the
+        provenance link in every brain. Change it through the normal loop — prototype in the
+        golden (`../second-brain-test`), `vendor_golden.py`, rebuild `template/`, `ci.py`
+        green — **not** by hand-editing `template/`. Re-vendor updates `tests/golden/` too.
+      - **GitHub repo + remote.** Rename the repo on GitHub, update `origin`
+        (`git remote set-url origin …`). GitHub auto-redirects the old URL, but update the
+        emitted links so new brains point at the canonical name. (Keep the SSH-push note in
+        mind — see [[push-workflow-files-over-ssh]] — for any `.github/workflows/` edits.)
+      - **Devkit-internal references (~17 files).** PLAN.md, SPEC.md, open-questions.md,
+        docs/, and `tools/` (`build_template.py`, `check_remote_sync.py`, `ci.py`,
+        `create_second_brain.py`, `update_brain.py`) mention the name in prose/paths.
+      - **Local dir + ai-project-status tracking.** Rename the working directory; update the
+        meta-repo's tracked-repo config so `summary.md`/`daily-plan-summary.md` keep
+        aggregating this repo under the new name (this repo is *tracked by* ai-project-status,
+        but that must never leak into a brain — the forbidden-ref invariant still holds).
+      Best done as an isolated, mechanical commit (no behavior change); low risk but wide
+      blast radius, so gate on `ci.py` green + a grep for the old name afterward. Not started.
+
 ## Milestone G4 — Lifecycle
 - [x] **`tools/update_brain.py` — non-destructive upgrade of an existing populated
       brain (surfaced 2026-07-03; BUILT 2026-07-06).** The devkit can only *generate* —
