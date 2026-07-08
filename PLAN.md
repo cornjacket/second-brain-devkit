@@ -469,8 +469,26 @@ populated brain**, not a single example. (The prompting example that raised this
       `verbatim` 34→35, re-vendored golden (55 files), rebuilt `template/` (40 files),
       **CI green (6/6; structural diff 46/46, 16 emitted scripts compile)**. Unblocks #8 and #9.
 
-## Auto-linking (backlog): vector-derived Obsidian note links
-- [ ] **Materialize vector neighborhoods as Obsidian-visible links.** (task #8) A pass
+## Auto-linking (in progress): vector-derived Obsidian note links
+- [~] **Materialize vector neighborhoods as Obsidian-visible links.** (task #8)
+      **Foundation landed 2026-07-08 — embed substance, not metadata (§1/§4.1).** New
+      emitted verbatim script `scripts/note_view.py` exposes `canonical_body(text)`: body
+      only (leading YAML frontmatter stripped), `\n`-normalized, blank lines around the
+      fences dropped, one trailing `\n` pinned → byte-identical across machines.
+      `embed_staged.sidecar_bytes` now embeds `canonical_body(text)`, so the pre-commit hook
+      **and** `embed_vault` (which reuses it) are substance-only — verified a frontmatter
+      change no longer moves the vector, so writing `related_auto:` later can't feed back
+      into the embedding (the rich-get-richer loop is broken at the source). Committed test
+      fixtures regenerated; manifest verbatim 35→36, golden re-vendored (56), template
+      rebuilt (41), **CI 6/6 green (structural diff 47/47)**.
+      **Still to do:** (1) the `content_hash` no-op gate (SHA-256 of the canonical body in
+      frontmatter → skip re-embed on unchanged substance; note the pre-commit write-back
+      design tension, §7); (2) the KNN `related_auto:` pass with stability rules
+      (threshold + top-N + deterministic order + hysteresis), likely an on-demand
+      `scripts/autolink.py`; (3) the build-time Obsidian-format acceptance check (§5);
+      (4) manual-link preservation via namespace partition (§3). Uses the shared
+      [[marked-block splice helper]] (task #10) for the `related_auto:` block. Design detail:
+- [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in
       `data/brain.db` — no re-embed to link) and writes them into a **managed frontmatter
       block** `related_auto:` as **quoted wikilinks** (`- "[[note-a]]"`), which Obsidian's
@@ -493,7 +511,7 @@ populated brain**, not a single example. (The prompting example that raised this
       committed-note churn down. Composes with #3 (FTS5 lexical neighbors) and #7 (multi-
       vector sources need a neighbor-aggregation rule). Full design in
       [docs/auto-linking.md](docs/auto-linking.md). **Before** Postgres/big-brain Approach B
-      (local-first, no new service). Not started.
+      (local-first, no new service).
 
 ## README managed block (backlog): a devkit-owned region in a user-editable README
 - [ ] **Make the brain `README.md` a hybrid — devkit-owned block + user-owned space.**

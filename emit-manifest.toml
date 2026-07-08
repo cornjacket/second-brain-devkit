@@ -50,6 +50,7 @@ paths = [
   "scripts/install_skill.py",
   "scripts/marked_block.py",
   "scripts/mcp_server.py",
+  "scripts/note_view.py",
   "scripts/search_vault.py",
   "scripts/seed_vault.py",
   "scripts/self_test.py",
