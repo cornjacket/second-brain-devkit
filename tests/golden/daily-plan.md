@@ -1,26 +1,27 @@
-# Daily plan — 2026-07-06
+# Daily plan — 2026-07-08
 
-**Focus:** Serve as the **prototyping vehicle for `../second-brain-devkit`**. Every
-devkit feature is hand-built and proven *here* first (the golden), then productized
-into the devkit and diffed back against this repo. Monday's devkit work is OQ-5
-**layer 2 (in-place hydrate)** and the **MCP server v1**, so this repo hosts those
-prototypes before they're vendored.
+**Focus:** Back **in play** as the prototyping surface — the devkit's next work is the
+**emitted managed-block thread** (#10 splice helper → #8 auto-linking → #9 README markers),
+which all prototype here first. Build + prove them against real Ollama, then hand off
+(vendor → template → diff). Stay a clean diff oracle; mothball still nears.
 
-- Prototype-first surface: build layer 2 (in-place `hydrate_cache.py` rebuild) and a
-  live `scripts/mcp_server.py` here, confirm they behave, *then* the devkit vendors +
-  templatizes them.
-- Stay a stable, known-good **diff oracle**: keep the tree coherent so the devkit's
-  Mode-A generate→diff stays meaningful; `self_test.py` stays green.
-- Reactive: if the devkit's diff surfaces a golden/template mismatch, fix it *here*
-  first, then let the devkit re-templatize.
-- Ollama is live — real embed→hydrate→search + `doctor.py` exercise the semantic path
-  here when a prototype needs it.
+- **Prototype task #10 — the shared "splice a marked block" helper** in the emitted
+  `scripts/`, and **refactor this repo's `install_skill.py --nudge` onto it** (no behavior
+  change; install→idempotent→uninstall round-trip green). This is the emitted half the devkit
+  vendors + templatizes.
+- **Then start #8 auto-linking here:** canonical-body embedding (`embed_staged.py`),
+  `related_auto:` quoted-wikilink frontmatter (Obsidian graph edges), the `content_hash`
+  gate — exercise embed→hydrate→search with real Ollama to confirm no feedback-loop drift.
+- **Stay a stable diff oracle** — `self_test.py` green; fix any golden/template mismatch
+  here first. CI tooling (compile gate, `check_*`) lives in the devkit, not here.
+- Re-sequenced: the earlier "post-merge sync hook + FTS5" as the immediate next is
+  superseded — those stay queued, but the managed-block thread jumps ahead.
 
 ```
- role: hand-prototype → prove → hand off to the devkit
+ role: hand-prototype → prove (real Ollama) → hand off to the devkit
                               │
  devkit pulls:  vendor_golden.py → tests/golden → build_template → ci.py diff
                               │
- mon 07-06 ▸ prototype here: layer 2 (in-place hydrate) · mcp_server.py v1
-             then devkit vendors + diffs back against this repo
+ wed 07-08 ▸ prototype #10 splice helper (refactor --nudge) → start #8 auto-linking
+            (embed substance-not-metadata · related_auto frontmatter · content_hash)
 ```

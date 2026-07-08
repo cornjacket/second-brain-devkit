@@ -452,26 +452,22 @@ populated brain**, not a single example. (The prompting example that raised this
       line-count guard hints at), so design it source-type-agnostic. Substantial — will
       likely want its own `docs/` design doc when picked up. Not started.
 
-## Marked-block helper (backlog): one splice utility — do BEFORE #8/#9
-- [ ] **Extract a single reusable "splice a marked block" helper, then reuse it.**
-      (task #10) The same operation — find a BEGIN marker, find an END marker, replace the
-      text **between** them (markers absent → defined behavior; only one present → refuse)
-      — is needed by three features that use **different** documents and **different**
-      markers: `install_skill.py --nudge` (**built**; `<!-- second-brain:begin/end -->` in
-      `~/.claude/CLAUDE.md` + `~/.gemini/GEMINI.md`), **#8** auto-linking (`related_auto:`
-      in a note's frontmatter), and **#9** the README managed block. The find/replace logic
-      already lives **inline** in `install_skill.py`; without this, #8 and #9 would each
-      copy it (three divergent copies). Build the helper **first** and have all three call
-      it. Shape: `splice_block(text, begin, end, new_body) -> text` (+ `remove_block`,
-      `has_block`), **markers passed in as arguments** (they differ per feature — this
-      shares *code*, not tags). **Prove it by refactoring the existing `--nudge`
-      install/remove onto it with no behavior change** (the install→idempotent→uninstall
-      round-trip stays green). **Wrinkle to resolve:** callers span both trees —
-      `install_skill.py` and the #8 auto-linker are **emitted brain scripts** (`scripts/`),
-      while #9's `update_brain.py` is a **devkit tool** (`tools/`) — so decide the helper's
-      home (an emitted `scripts/` module the brain scripts share; `update_brain.py` reuses
-      it or keeps a thin copy). Small, local-first; **prerequisite for #8 and #9**. Not
-      started.
+## Marked-block helper: one splice utility — do BEFORE #8/#9
+- [x] **Extract a single reusable "splice a marked block" helper, then reuse it.**
+      (task #10; BUILT 2026-07-08) New emitted brain script `scripts/marked_block.py`
+      exposes `has_block` / `splice_block` / `remove_block` with **markers passed in as
+      arguments** (shares code, not tags). `splice_block` replaces the body in place
+      (append if absent) and is **idempotent** — re-splicing an unchanged body returns
+      byte-identical text; a lone marker raises `MarkedBlockError` (refuse a malformed
+      doc, per the plan). **Proved by refactoring `install_skill.py --nudge` onto it with
+      no behavior change:** the install→idempotent→uninstall round-trip was verified
+      byte-for-byte against a throwaway HOME, and `splice_block`'s append output
+      byte-matches the old inline logic. **Home decided:** an emitted `scripts/` module
+      the brain scripts (`install_skill.py`, and #8's auto-linker) import via the
+      established `sys.path.insert(parent)` + `from marked_block import …` convention;
+      #9's devkit-tool `update_brain.py` will reuse it from `template/scripts/`. Manifest
+      `verbatim` 34→35, re-vendored golden (55 files), rebuilt `template/` (40 files),
+      **CI green (6/6; structural diff 46/46, 16 emitted scripts compile)**. Unblocks #8 and #9.
 
 ## Auto-linking (backlog): vector-derived Obsidian note links
 - [ ] **Materialize vector neighborhoods as Obsidian-visible links.** (task #8) A pass

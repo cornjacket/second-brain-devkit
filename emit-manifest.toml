@@ -48,6 +48,7 @@ paths = [
   "scripts/embedder.py",
   "scripts/hydrate_cache.py",
   "scripts/install_skill.py",
+  "scripts/marked_block.py",
   "scripts/mcp_server.py",
   "scripts/search_vault.py",
   "scripts/seed_vault.py",
