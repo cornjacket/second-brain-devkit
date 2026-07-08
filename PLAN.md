@@ -481,6 +481,21 @@ requirement**); they also produce the material for a future GitHub tutorial.
       Depends on #13 (the catalog) and benefits from #3/#8 being built so there are real
       toggles to compare.
 
+## Outreach (backlog): a Medium post on creating a second-brain
+- [ ] **Write a Medium post: "How to create your own second-brain."** (task #14) A public,
+      end-to-end walkthrough of standing up a working brain with the devkit for a general
+      developer audience: `create_second_brain.py <path>` → the README install checklist
+      (`pip install`, Ollama + `ollama pull nomic-embed-text`, `self_test.py` /
+      `doctor.py`) → everyday loop (write a note under a PARA root → commit → the hook
+      embeds + hydrates → semantic search) → reaching it from any project via the
+      `second-brain` skill (and the Claude Desktop MCP option) → optionally the
+      `--remote` git-backed variant. **Respect the hard invariant:** describe the product
+      and the public generator only — **zero devkit-internal references** (no
+      `ai-project-status`, etc.). Distinct from the GitHub *tutorial* in #12/#13 (which
+      illustrates individual quality enhancements with worked examples); the Medium post is
+      the "get started from scratch" narrative and can reuse that made-up corpus for
+      screenshots. Not a code task — a writing deliverable. Not started.
+
 ## Ingestion (backlog): PDF segmentation + embedding
 - [ ] **Segment & embed a PDF into the brain.** (task #7) Support ingesting a PDF as a
       searchable source, not just Markdown notes. The hard part: a PDF is long, so it must
