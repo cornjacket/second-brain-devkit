@@ -452,6 +452,27 @@ populated brain**, not a single example. (The prompting example that raised this
       line-count guard hints at), so design it source-type-agnostic. Substantial — will
       likely want its own `docs/` design doc when picked up. Not started.
 
+## Marked-block helper (backlog): one splice utility — do BEFORE #8/#9
+- [ ] **Extract a single reusable "splice a marked block" helper, then reuse it.**
+      (task #10) The same operation — find a BEGIN marker, find an END marker, replace the
+      text **between** them (markers absent → defined behavior; only one present → refuse)
+      — is needed by three features that use **different** documents and **different**
+      markers: `install_skill.py --nudge` (**built**; `<!-- second-brain:begin/end -->` in
+      `~/.claude/CLAUDE.md` + `~/.gemini/GEMINI.md`), **#8** auto-linking (`related_auto:`
+      in a note's frontmatter), and **#9** the README managed block. The find/replace logic
+      already lives **inline** in `install_skill.py`; without this, #8 and #9 would each
+      copy it (three divergent copies). Build the helper **first** and have all three call
+      it. Shape: `splice_block(text, begin, end, new_body) -> text` (+ `remove_block`,
+      `has_block`), **markers passed in as arguments** (they differ per feature — this
+      shares *code*, not tags). **Prove it by refactoring the existing `--nudge`
+      install/remove onto it with no behavior change** (the install→idempotent→uninstall
+      round-trip stays green). **Wrinkle to resolve:** callers span both trees —
+      `install_skill.py` and the #8 auto-linker are **emitted brain scripts** (`scripts/`),
+      while #9's `update_brain.py` is a **devkit tool** (`tools/`) — so decide the helper's
+      home (an emitted `scripts/` module the brain scripts share; `update_brain.py` reuses
+      it or keeps a thin copy). Small, local-first; **prerequisite for #8 and #9**. Not
+      started.
+
 ## Auto-linking (backlog): vector-derived Obsidian note links
 - [ ] **Materialize vector neighborhoods as Obsidian-visible links.** (task #8) A pass
       computes each note's nearest neighbors (KNN over the vectors already in
@@ -493,8 +514,8 @@ populated brain**, not a single example. (The prompting example that raised this
       nothing (full user ownership; detect-+-instruct stance). Markers are inert comments
       (invisible in Markdown/Obsidian); structural-diff + self-test unaffected. Same
       **managed-block** primitive as `--nudge`, the `ai-project-status` block, and the
-      auto-link `related_auto:` block (task #8) — factor a shared "splice a marked block"
-      helper if both land. Touches: golden README (prototype-first → vendor → template) +
+      auto-link `related_auto:` block (task #8), all built on the shared splice helper
+      (task #10, do first). Touches: golden README (prototype-first → vendor → template) +
       `update_brain.py` splice logic (guard the malformed one-marker case). Full design in
       [docs/readme-managed-block.md](docs/readme-managed-block.md). Local-first; **before**
       Postgres/Approach B. Not started.

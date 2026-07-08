@@ -82,8 +82,9 @@ CLAUDE.md`, the `ai-project-status` block in the devkit's own `CLAUDE.md`, and t
 ## 5. Relationship to other work
 
 - Resolves the README-ownership tension surfaced during the task-#6 dogfooding.
-- Same **managed-block** primitive as [auto-linking](auto-linking.md) (task #8) — worth
-  factoring a tiny shared "splice a marked block" helper if both land.
+- Same **managed-block** primitive as [auto-linking](auto-linking.md) (task #8) — both
+  build on the shared **splice-a-marked-block helper (task #10)**, done first so this logic
+  isn't duplicated.
 - Purely local-first; no bearing on big-brain. Sits **before** Postgres/Approach B.
 
 Build loop unchanged: prototype in the golden → `vendor_golden.py` → rebuild `template/`
