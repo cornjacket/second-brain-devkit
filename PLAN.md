@@ -419,20 +419,21 @@ populated brain**, not a single example. (The prompting example that raised this
       server benefit at once. Fold `tags:` into the lexical text. **Do NOT** add a
       manual `keywords:` note section — FTS5 over the body + tags already covers literal
       terms, at real authoring cost for marginal gain.
-- [ ] **Use nomic task prefixes — PREREQUISITE for #8 threshold calibration.**
-      `embedder.py` sends raw text to Ollama; `nomic-embed-text` expects a per-call task
-      prefix. Thread a `task` arg through `embed(text, task=...)`, applied **only in the
-      Ollama backend** (`test` backend ignores it → fixtures/CI byte-unaffected). Two
+- [x] **Use nomic task prefixes — PREREQUISITE for #8, DONE 2026-07-08.** Threaded a
+      `task` arg through `embed(text, task="document"|"query")`, mapped to
+      `search_document:`/`search_query:` **only in the Ollama backend** (`test` backend
+      ignores it → committed fixtures/CI byte-unaffected, no manifest change). Callers:
+      `embed_staged`/`embed_vault` → document, `search_vault.search()` → query. Two
       comparison modes, and the prefix pair is **not** always query-vs-document:
-      **asymmetric** query↔note = `search_query:`/`search_document:` (search — `search_vault`,
-      skill, MCP); **symmetric** note↔note = `search_document:` on **both** sides
-      (auto-linking KNN #8, clustering). Requires a one-time re-embed of each brain.
-      Originally filed as "separate, cheap" (near-zero measured effect on today's tiny
-      corpus), but it is a **hard prerequisite for #8**: switching prefixes shifts the whole
-      cosine-distance distribution, so the auto-link `t_max` / hysteresis band must be
-      calibrated *after* prefixing + re-embed, not before. Full design in
-      [docs/retrieval-quality.md §1](docs/retrieval-quality.md); decision captured as a brain
-      note (`resources/nomic-embedding-prefixes.md`).
+      **asymmetric** query↔note (search — `search_vault`, skill, MCP); **symmetric**
+      note↔note = `search_document:` on **both** sides (auto-linking KNN #8, clustering).
+      Verified on real Ollama (document vs query vectors differ, bad task raises); golden
+      `44ea6f6`, CI 6/6 green. **Real brain (`~/second-brain`) upgraded + re-embedded**
+      (`update_brain` → `embed_vault` → `hydrate`): retrieval improved and *separation*
+      widened — `"magic number"` top-1 0.238 → **0.124** with #2 at 0.49. That separation
+      is exactly what #8's `t_max`/hysteresis calibrate on, so the distance scale is now
+      final. Full design in [docs/retrieval-quality.md §1](docs/retrieval-quality.md);
+      decision captured as a brain note (`resources/nomic-embedding-prefixes.md`).
 
 ## Ingestion (backlog): PDF segmentation + embedding
 - [ ] **Segment & embed a PDF into the brain.** (task #7) Support ingesting a PDF as a
