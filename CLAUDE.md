@@ -19,6 +19,7 @@ spec so they cannot drift.
   [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 - Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
+- Brain README managed block — devkit region + user space (backlog, task #9) → [docs/readme-managed-block.md](docs/readme-managed-block.md)
 - Connect a new brain to a git remote (`create_second_brain.py --remote`, built) → [docs/remote-backed-brains.md](docs/remote-backed-brains.md)
 - Roadmap: shared brain (git-remote or Postgres/S3/Lambda) → [docs/big-brain.md](docs/big-brain.md)
 
