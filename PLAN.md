@@ -435,6 +435,52 @@ populated brain**, not a single example. (The prompting example that raised this
       final. Full design in [docs/retrieval-quality.md §1](docs/retrieval-quality.md);
       decision captured as a brain note (`resources/nomic-embedding-prefixes.md`).
 
+## Benchmarking & feature toggles (backlog): quantify each quality enhancement
+Goal: measure the **relative** retrieval/graph-quality payoff of each enhancement by
+turning it on/off and benchmarking — an ablation study — so we know which features
+actually earn their keep. Both tasks below are exploratory (**may not become a shipped
+requirement**); they also produce the material for a future GitHub tutorial.
+
+- [ ] **Catalog every second-brain quality-enhancement feature.** (task #13; do FIRST —
+      it is the input to #12 and the outline for the tutorial.) Produce a single inventory
+      (likely `docs/quality-features.md`) listing each retrieval/graph quality feature the
+      brain has or plans, each with: **name**, one-line **what/why**, **mechanism**,
+      **index-time vs query-time** (does flipping it require a re-embed?), the intended
+      **config toggle key**, and **status**. Starting set (the task completes / corrects it):
+      - **Canonical substance view** — embed the body, not metadata; index-time. *(built, #8)*
+      - **Nomic task prefixes** — `search_document:`/`search_query:`, asymmetric for search
+        & symmetric for linking; index-time (re-embed on flip). *(built, #3)*
+      - **Hybrid lexical+vector search** — FTS5/BM25 + Reciprocal Rank Fusion; query-time.
+        *(planned, #3)*
+      - **Auto-linking `related_auto:`** — vector-KNN graph edges; offline pass, graph
+        quality (not retrieval). *(in progress, #8)*
+      - **`content_hash` no-op gate** — skip re-embed of unchanged substance; index-time
+        efficiency. *(planned, #8)*
+      - **Candidates:** long-note / PDF chunking + multi-vector (#7); note-hygiene
+        line-count guard. Each entry should be tutorial-ready (a made-up before/after
+        example illustrating the enhancement). Local-first, docs-only task.
+- [ ] **Global feature toggles + ablation benchmark harness.** (task #12) Make each feature
+      in the #13 catalog a **global feature toggle** (config-driven, following
+      `embedder.py`'s env-override > `config/…` > default pattern — e.g. a `[features]`
+      block or `config/features.toml`), then build an **ablation harness** that runs a
+      **labeled eval set** (queries → expected relevant notes) against the brain under each
+      toggle configuration and reports IR metrics (recall@k, MRR, nDCG, top-1 distance +
+      **margin/separation**) so each feature's contribution is quantified.
+      **Key design nuance — two toggle classes:** **index-time** toggles (prefixes,
+      canonical view, chunking, `content_hash`) change the *stored* vectors, so flipping one
+      forces a **full re-embed** of the corpus (expensive — matrix/cache the runs);
+      **query-time** toggles (RRF fusion, `k`, link thresholds) flip for free per query. The
+      harness must re-embed per index-time config but sweep query-time configs cheaply.
+      **Hard dependency — a real dataset.** Meaningful ablation needs a **large, well-designed
+      note corpus** + a labeled query set; today's ~7 notes make every metric noise (the same
+      "thresholds are meaningless at this scale" caveat as #8). So this task **includes
+      authoring a substantial made-but-realistic evaluation corpus** across the PARA roots —
+      which **doubles as the GitHub-tutorial material** (each enhancement illustrated with a
+      worked example). Opt-in / local-first (needs Ollama + the corpus), **not** in the
+      hermetic CI gate; emits nothing that perturbs the byte-exact `test`-backend diff.
+      Depends on #13 (the catalog) and benefits from #3/#8 being built so there are real
+      toggles to compare.
+
 ## Ingestion (backlog): PDF segmentation + embedding
 - [ ] **Segment & embed a PDF into the brain.** (task #7) Support ingesting a PDF as a
       searchable source, not just Markdown notes. The hard part: a PDF is long, so it must
