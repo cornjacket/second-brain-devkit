@@ -369,3 +369,62 @@ sub-decisions are now settled:
 `search_second_brain` returning absolute paths + `get_note` + out-of-vault read
 refused; hydrate-on-start keeps the JSON-RPC handshake clean). CI green (45 emitted).
 Layer 3 (`flock` writer lock) remains reactive under [OQ-5](#oq-5).
+
+---
+
+## OQ-7: Can the brain be reached from a phone / the Claude mobile app?
+
+**Status:** OPEN — parked for later review. Surfaced 2026-07-07. Direction leans
+**self-hosted remote MCP**, not an on-phone server.
+
+### Context
+
+Desired shape: store the `second-brain/` repo **on an Android phone**, run an **MCP
+server on the phone**, and drive it from the **Claude mobile app**. Attractive because
+it sounds fully local + always-in-your-pocket.
+
+### The constraint (the same local-vs-web line as [OQ-6](#oq-6) / [mcp-server.md §2](docs/mcp-server.md))
+
+The Claude mobile app is a **cloud client** — the model runs on Anthropic's servers, so
+it can only reach **remote MCP connectors on a public HTTPS URL**. It **cannot** spawn or
+reach a `stdio`/localhost server on the device, the way Claude Desktop can. The phone sits
+on the **web/remote** side of the exact line that put claude.ai-web out of scope in OQ-6.
+So *"MCP server on the phone + Claude mobile app"* **cannot connect — even on one device.**
+
+Two further on-device blockers even if that were solved:
+- **Ollama doesn't run on Android** → no local embeddings (`nomic-embed-text`).
+- **`sqlite-vec`/`apsw`** native extensions are fragile to build on Termux/ARM.
+
+### Viable paths (none is "repo on phone + mobile app")
+
+1. **Self-hosted remote MCP on an always-on box you own** (Raspberry Pi / mini-PC / cheap
+   VPS) — *leading option.* The brain lives there, kept current via the **git remote**
+   ([task #6](PLAN.md) → big-brain Approach A clone/pull); run a **remote (HTTP)** MCP
+   server, expose it privately to the mobile app via **Tailscale / a Cloudflare tunnel**
+   with auth, add it as a **Connector**. Data stays on *your* hardware; the phone is a thin
+   client. This is the "hosted brain, own security model" [mcp-server.md §2](docs/mcp-server.md)
+   defers to — **self-hosted**, not cloud, so it keeps most of local-first.
+2. **Hosted cloud — big-brain [Approach B](docs/big-brain.md)** (Postgres/S3/Lambda + a
+   remote MCP connector). Works with mobile, but the vault lives in the cloud → **breaks
+   local-first**. Only if you want zero self-hosting.
+3. **Termux + a shell-out agent (Claude Code) using the *skill*, not MCP.** The one path
+   where the repo genuinely lives *on the phone*: the devkit's **primary** mechanism is a
+   skill that shells out to the brain's Python (no server), which a local terminal agent
+   could call. But it's a **terminal** UX (not the polished mobile app) and still needs a
+   non-Ollama embedder (cloud or on-device).
+
+### Notes / caveats
+
+- Ties directly to big-brain **Approach B** and the deferred **hosted-MCP variant**
+  ([mcp-server.md §2](docs/mcp-server.md)); the just-built git-remote foundation (task #6)
+  makes **path 1** much more feasible now (the always-on box is just an Approach-A peer).
+- Knowledge current to **Jan 2026**; the mobile app's connector support evolves — verify
+  its current remote-connector capability before building. But the core constraint (a cloud
+  model can't reach your phone's `localhost`) is **architectural, not a version detail**.
+
+### Revisit when
+
+There's real demand for mobile access **and** a synced remote exists to point a self-hosted
+MCP at (big-brain Approach A underway), **or** the mobile app's connector story changes
+materially. Likely resolves as **"self-hosted remote MCP over a private tunnel,"** pairing
+with Approach A — not an on-phone server.
