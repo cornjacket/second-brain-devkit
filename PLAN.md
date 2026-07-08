@@ -419,11 +419,20 @@ populated brain**, not a single example. (The prompting example that raised this
       server benefit at once. Fold `tags:` into the lexical text. **Do NOT** add a
       manual `keywords:` note section — FTS5 over the body + tags already covers literal
       terms, at real authoring cost for marginal gain.
-- [ ] **(Separate, cheap) Use nomic task prefixes.** `embedder.py` sends raw text to
-      Ollama; `nomic-embed-text` expects `search_document: ` on notes and
-      `search_query: ` on queries. Principled correctness fix (not what caused the
-      keyword concern — measured near-identical here). Requires a one-time re-embed of
-      each brain; `test` fixtures/CI unaffected.
+- [ ] **Use nomic task prefixes — PREREQUISITE for #8 threshold calibration.**
+      `embedder.py` sends raw text to Ollama; `nomic-embed-text` expects a per-call task
+      prefix. Thread a `task` arg through `embed(text, task=...)`, applied **only in the
+      Ollama backend** (`test` backend ignores it → fixtures/CI byte-unaffected). Two
+      comparison modes, and the prefix pair is **not** always query-vs-document:
+      **asymmetric** query↔note = `search_query:`/`search_document:` (search — `search_vault`,
+      skill, MCP); **symmetric** note↔note = `search_document:` on **both** sides
+      (auto-linking KNN #8, clustering). Requires a one-time re-embed of each brain.
+      Originally filed as "separate, cheap" (near-zero measured effect on today's tiny
+      corpus), but it is a **hard prerequisite for #8**: switching prefixes shifts the whole
+      cosine-distance distribution, so the auto-link `t_max` / hysteresis band must be
+      calibrated *after* prefixing + re-embed, not before. Full design in
+      [docs/retrieval-quality.md §1](docs/retrieval-quality.md); decision captured as a brain
+      note (`resources/nomic-embedding-prefixes.md`).
 
 ## Ingestion (backlog): PDF segmentation + embedding
 - [ ] **Segment & embed a PDF into the brain.** (task #7) Support ingesting a PDF as a

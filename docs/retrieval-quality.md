@@ -56,10 +56,32 @@ phrasing-sensitive.
 
 ### The change
 
-Prefix note text with `search_document: ` at embed time (`embed_vault.py` /
-`embed_staged.py`) and query text with `search_query: ` at search time
-(`search_vault.search()`), inside `embedder.py` so there is one place to keep them
-consistent. The `test` backend is untouched.
+Thread a **task** through `embedder.embed(text, task=...)` — the single place that maps
+a role to a prefix — so every caller declares its role and the prefixes stay consistent:
+
+- `embed_vault.py` / `embed_staged.py` embed notes as **`search_document:`**.
+- `search_vault.search()` embeds the query as **`search_query:`**.
+- the future `autolink.py` (task #8) embeds notes as **`search_document:` on *both*
+  sides** — see the two comparison modes below.
+
+The prefix is applied **only inside `embed_ollama`**; the deterministic `test` backend
+ignores `task` and keeps hashing raw text, so the committed fixtures and the byte-exact
+CI diff are unaffected.
+
+### Two comparison modes — asymmetric (search) vs symmetric (linking)
+
+The prefixes are **not** always "document on one side, query on the other." The correct
+pair depends on *what* you are comparing:
+
+| Comparison | Left side | Right side | Used by |
+|---|---|---|---|
+| **Asymmetric** — query ↔ note | `search_query:` | `search_document:` | search (`search_vault`, skill, MCP) |
+| **Symmetric** — note ↔ note | `search_document:` | `search_document:` | auto-linking KNN (task #8), clustering |
+
+Auto-linking measures **note-to-note** similarity, so **both** notes are documents;
+prefixing either side with `search_query:` would compare across the wrong space. This is
+exactly why `task` is a **per-call argument**, not a global toggle — the same embedder
+serves both modes.
 
 ### Why it's "separate, with a re-embed cost"
 
@@ -77,6 +99,17 @@ Honesty check: measured on the current corpus, prefixes made **near-zero differe
 (`"magic number"` retrieves the target at ~0.13 either way). Do it for correctness and
 future-proofing, not as a fix for a demonstrated problem. It is **independent** of
 hybrid search — ship them separately.
+
+### Dependency: prefixes gate auto-linking calibration
+
+Auto-linking (task #8) sets an **absolute** cosine-distance cutoff `t_max` (plus a
+hysteresis band and a mutual-KNN cutoff). Those numbers live on whatever distance scale
+the embeddings produce, and switching prefixes on **shifts the entire distance
+distribution** — so any `t_max` calibrated on unprefixed vectors is measuring a scale
+that is about to change. Therefore: land the prefix change and **re-embed the brain
+first**, *then* calibrate `t_max` against the corrected distances. Prefixes are optional
+for search quality but a **prerequisite** for a well-calibrated auto-linker — which is
+why #8's threshold work is sequenced after this.
 
 ---
 
