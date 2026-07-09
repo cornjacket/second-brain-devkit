@@ -9,10 +9,12 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-09)
-- **▶▶ NEXT — task #9: the README managed block** — a devkit-owned region in the brain `README.md`
-  (via the #10 splice helper) so `update_brain` refreshes it without clobbering the user's own
-  preamble/appendix. Closes the #10→#8→#9 thread. Prototype in the golden → vendor → template → `ci.py`.
-- **Then queued:** #15 (diverse benchmark corpus — can reuse the #16 corpus), #12/#13 (feature
+- **▶▶ NEXT — task #17: improve the #16 test-corpus clustering** — regenerate the 100 notes
+  longer and more topic-anchored so the topics separate better (only bodies change); re-run the
+  cohesion check. Analysis + levers in [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md).
+- **Then queued:** #9 (README managed block — closes the #10→#8→#9 thread), #18 (review the
+  corpus clustering / decide separation strategy), #15 (diverse benchmark corpus — can reuse the
+  #16 corpus), #12/#13 (feature
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool).
 - **Done recently:** #16 test-corpus seed/teardown utility (2026-07-09); #8 auto-linking
   (2026-07-08: canonical view + nomic prefixes + KNN calibration + `related_auto:` write path +
@@ -483,6 +485,27 @@ populated brain**, not a single example. (The prompting example that raised this
       distinct topics (CI/git/KM/web) cohere strongly, adjacent ones blend (rust↔golang, the two AI
       topics) — a realistic "everything's somewhat related" corpus, good for stressing the auto-link
       thresholds. Crisper separation would need less-adjacent topics or longer/more-anchored notes.
+
+## Test-corpus clustering — improve separation (task #17, NEXT)
+- [ ] **Regenerate the #16 corpus with longer, more topic-anchored notes to raise topic
+      separation, then re-measure.** (task #17) Under real embeddings the #16 corpus forms only
+      *moderate* clusters — 69% nearest-neighbour topic purity; rust↔golang and the two AI topics
+      blend — full analysis in [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md).
+      Apply **lever #1**: rewrite each of the 100 notes 2–3× longer, packed with topic-specific
+      vocabulary and avoiding generic cross-topic terms, so the topical signal dominates. Keep the
+      same 10 topics + `seed_{topic}_{desc}.md` names + the install/remove tooling — **only the note
+      bodies change**. Re-run the Ollama cohesion check and record the new purity/separation;
+      optionally also try nomic's `clustering:` prefix for the analysis (lever #2). Raises the
+      corpus's value for #15/#12/#13. **Next in line.**
+
+## Review test-corpus clustering (task #18, backlog)
+- [ ] **Review the clustering analysis + post-#17 cohesion and decide the separation strategy.**
+      (task #18) Once #17 improves the notes, reassess whether the corpus separates well enough for
+      the #12/#13 benchmark, or whether to pursue further levers (more notes/topic; merging the
+      adjacent rust↔golang / AI topics; a stronger embedder) — or to lean on the **ground-truth
+      topic labels** instead of unsupervised separation (the reframe in
+      [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md)). A decision checkpoint, not
+      new code.
 
 ## Benchmarking & feature toggles (backlog): quantify each quality enhancement
 Goal: measure the **relative** retrieval/graph-quality payoff of each enhancement by
