@@ -1,12 +1,13 @@
 # Test-corpus clustering analysis (task #16)
 
-**Status:** analysis / decision-pending. Measures how well the task #16 seed corpus
+**Status:** task #17 applied (lever #1 + #2). Measures how well the task #16 seed corpus
 (`tests/seed-corpus/`, 100 notes across 10 IT topics) forms topic clusters under real
-embeddings, and enumerates the levers to improve separation. Follow-ups: **task #17**
-(regenerate with longer, topic-anchored notes) and **task #18** (review + decide the
-separation strategy).
+embeddings, and enumerates the levers to improve separation. The **post-#17 re-measurement**
+is in [§ After task #17](#after-task-17--longer-topic-anchored-notes-2026-07-09). Remaining
+follow-up: **task #18** (review + decide whether the separation is enough for the #12/#13
+benchmark, or lean on the ground-truth topic labels).
 
-## What was measured (2026-07-09 · nomic-embed-text via Ollama · `search_document:` prefix)
+## Baseline — task #16 corpus (2026-07-09 · nomic-embed-text via Ollama · `search_document:` prefix)
 
 Embedded all 100 notes' canonical bodies, then measured topic cohesion — do notes group by
 their topic folder?
@@ -55,6 +56,39 @@ real second-brain — forces the machinery to earn its keep: the `t_max` cutoff 
 "related enough" from "merely adjacent", and mutual-KNN must suppress hubs. So this corpus is a
 good stress test as-is.
 
+## After task #17 — longer, topic-anchored notes (2026-07-09)
+
+Applied **lever #1**: rewrote all 100 note bodies ~3× longer (45 → 148 words avg), each packed
+with topic-specific vocabulary and steered away from generic cross-topic words; the two adjacent
+pairs (rust↔golang, ai-llm↔ai-agent-harness) got explicit "stay in your own jargon" guidance.
+Only the bodies changed — same 10 topics, same filenames, same frontmatter/titles. Re-measured
+with the same cohesion check.
+
+| metric | baseline (#16) | after #17 (`search_document:`) | after #17 (`clustering:` — lever #2) |
+|---|---|---|---|
+| topic purity @k=1 | 69% | **79%** | **84%** |
+| topic purity @k=5 | 55% | **75%** | **77%** |
+| mean intra-topic distance | 0.329 | 0.276 | 0.255 |
+| mean inter-topic distance | 0.382 | 0.348 | 0.341 |
+| separation (inter − intra) | +0.053 | **+0.072** | **+0.086** |
+
+The clusters tightened across the board — the biggest jump is purity **@k=5** (55% → 75–77%),
+i.e. a note's whole neighbourhood is now mostly same-topic, not just its single nearest match.
+The two adjacent AI topics rose from 6/10 to 8–9/10 and rust from 4/10 to 8–9/10.
+
+**Lever #2 (nomic's `clustering:` prefix) helps the analysis, not the brain.** Re-embedding the
+same notes with the `clustering:` prefix instead of `search_document:` adds ~5pp of purity — it is
+tuned for grouping. Use it only for *this cohesion analysis*; the brain itself keeps
+`search_document:`/`search_query:` for retrieval (the same-prefix invariant, retrieval-quality.md §1).
+
+**Residual — the golang laggard (5/10, unchanged) is concept-name collision, not weak jargon.**
+Its misses land on the *same subtopic in a sibling language/topic*, which is semantically correct:
+`generics`→`typescript_generics`, `interfaces`→`typescript_interfaces`, `error-handling`→
+`rust_result-error`, `context`→`ai-llm_context-window`. Notes that share a concept name across
+topics will co-locate no matter how much language-specific vocabulary they carry — pushing harder
+would only make them unrealistic. This is a floor set by the topic design, and the [reframe](#reframe--you-may-not-need-higher-purity)
+(ground-truth labels) absorbs it.
+
 ## Levers to improve separation (strongest first)
 
 1. **Longer, more topic-anchored notes** — rewrite each note 2–3× longer, packed with
@@ -81,6 +115,12 @@ supervised evaluation, the labels suffice.
 
 ## Recommendation
 
-Do lever #1 (longer, topic-anchored notes) + #2 (`clustering:` prefix for the analysis) — both
-preserve the chosen topics and realism. Reach for #4 only if a cleanly-separable benchmark is
-specifically needed.
+Levers #1 (longer, topic-anchored notes) + #2 (`clustering:` prefix for the analysis) were
+applied in **task #17** — see [§ After task #17](#after-task-17--longer-topic-anchored-notes-2026-07-09).
+Purity@1 rose 69% → 79% (84% under `clustering:`) and the neighbourhood purity@5 55% → 75–77%,
+with both levers preserving the chosen topics and realism. The residual blend is concept-name
+collision across sibling topics (see above), a floor set by topic design, not a note-quality
+problem. For **task #18**: this is likely good enough for a *supervised* benchmark (the topic
+folders are ground-truth labels — the [reframe](#reframe--you-may-not-need-higher-purity)); reach
+for lever #4 (merge/replace adjacent topics) only if a cleanly-separable *unsupervised* benchmark
+is specifically needed.

@@ -9,14 +9,15 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-09)
-- **▶▶ NEXT — task #17: improve the #16 test-corpus clustering** — regenerate the 100 notes
-  longer and more topic-anchored so the topics separate better (only bodies change); re-run the
-  cohesion check. Analysis + levers in [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md).
-- **Then queued:** #9 (README managed block — closes the #10→#8→#9 thread), #18 (review the
-  corpus clustering / decide separation strategy), #15 (diverse benchmark corpus — can reuse the
-  #16 corpus), #12/#13 (feature
-  catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool).
-- **Done recently:** #16 test-corpus seed/teardown utility (2026-07-09); #8 auto-linking
+- **▶▶ NEXT — task #9 (README managed block)** — closes the #10→#8→#9 thread.
+- **Then queued:** #18 (review the corpus clustering / decide separation strategy — now a lighter
+  checkpoint after #17 raised purity), #15 (diverse benchmark corpus — can reuse the #16/#17
+  corpus), #12/#13 (feature catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5
+  (`add_note` write tool).
+- **Done recently:** #17 test-corpus clustering improvement (2026-07-09: rewrote all 100 notes
+  ~3× longer + topic-anchored; purity@1 69%→79%, purity@5 55%→75%, separation +0.053→+0.072 —
+  84%/+0.086 under the `clustering:` prefix; only bodies changed, tooling untouched);
+  #16 test-corpus seed/teardown utility (2026-07-09); #8 auto-linking
   (2026-07-08: canonical view + nomic prefixes + KNN calibration + `related_auto:` write path +
   Obsidian-format CI gate + `content_hash` skip-gate; `--apply` deferred to #15). Bigger roadmap:
   big-brain Approach A (sync loop on task #6), then Approach B (Postgres, capability-gated).
@@ -486,17 +487,24 @@ populated brain**, not a single example. (The prompting example that raised this
       topics) — a realistic "everything's somewhat related" corpus, good for stressing the auto-link
       thresholds. Crisper separation would need less-adjacent topics or longer/more-anchored notes.
 
-## Test-corpus clustering — improve separation (task #17, NEXT)
-- [ ] **Regenerate the #16 corpus with longer, more topic-anchored notes to raise topic
-      separation, then re-measure.** (task #17) Under real embeddings the #16 corpus forms only
-      *moderate* clusters — 69% nearest-neighbour topic purity; rust↔golang and the two AI topics
-      blend — full analysis in [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md).
-      Apply **lever #1**: rewrite each of the 100 notes 2–3× longer, packed with topic-specific
-      vocabulary and avoiding generic cross-topic terms, so the topical signal dominates. Keep the
-      same 10 topics + `seed_{topic}_{desc}.md` names + the install/remove tooling — **only the note
-      bodies change**. Re-run the Ollama cohesion check and record the new purity/separation;
-      optionally also try nomic's `clustering:` prefix for the analysis (lever #2). Raises the
-      corpus's value for #15/#12/#13. **Next in line.**
+## Test-corpus clustering — improve separation (task #17, DONE 2026-07-09)
+- [x] **Regenerated the #16 corpus with longer, more topic-anchored notes to raise topic
+      separation, then re-measured.** (task #17) The #16 corpus formed only *moderate* clusters
+      (69% nearest-neighbour purity; rust↔golang + the two AI topics blended). Applied **lever #1**:
+      rewrote all 100 notes ~3× longer (45→148 words avg), packed with topic-specific vocabulary and
+      steered away from generic cross-topic terms (the two adjacent pairs got explicit
+      "stay-in-your-own-jargon" guidance). Same 10 topics + `seed_{topic}_{desc}.md` names + the
+      install/remove tooling — **only the note bodies changed** (titles + frontmatter byte-untouched;
+      `git diff` shows zero changes to `# ` / `tags:` lines). Re-ran the Ollama cohesion check:
+      **purity@1 69%→79%, purity@5 55%→75%, separation +0.053→+0.072** (`search_document:`); with
+      **lever #2** (nomic's `clustering:` prefix, for the analysis only — the brain keeps
+      `search_document:`) **84% / +0.086**. rust jumped 4/10→8–9/10 and the two AI topics 6→8–9.
+      The lone laggard (golang, 5/10) is **concept-name collision** across sibling topics
+      (`generics`→`typescript_generics`, `interfaces`→`typescript_interfaces`, etc.), semantically
+      correct and a floor set by topic design — the ground-truth-label reframe absorbs it. Full
+      before/after table + interpretation in [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md).
+      Raises the corpus's value for #15/#12/#13. **These are devkit-side seed files, not emitted —
+      CI unaffected.**
 
 ## Review test-corpus clustering (task #18, backlog)
 - [ ] **Review the clustering analysis + post-#17 cohesion and decide the separation strategy.**
