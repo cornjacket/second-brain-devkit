@@ -77,6 +77,14 @@ Report the brain working only once you've walked the checklist and `doctor.py` i
 not merely because the files generated. If you skipped or couldn't verify an item, say so
 plainly rather than implying the brain is ready.
 
+## Commit & working style (devkit-owned)
+
+This section is **outside** the `ai-project-status` managed block below, so it is this
+repo's own directive: `setup-new-repo.sh --update` only ever rewrites the content
+*between* its begin/end markers and leaves everything else (including this) untouched.
+
+- **Commit autonomously; never push unless asked; stop at the task boundary.** Do **not** ask permission to commit and do **not** ask "shall I commit?" in prose — stage and commit completed work following the commit-message schema below on your own initiative. To keep commits silent (no permission prompt), match the allow-list: run `git add <paths>` and `git commit` as **separate** calls (not a `&&` compound), and pass the message as a **single-quoted** string — **no `$(cat <<EOF)` command substitution** (avoid apostrophes in the body so single-quoting works). **Never `git push` on your own** — push only when the user **explicitly** asks; do not ask to push either. Autonomy is *within* a task: do everything the task needs **except** pushing. Once a task's commit is announced, **stop and yield to the user** — report what landed and wait, rather than rolling forward into the next task unprompted. The task boundary is a checkpoint, not a place to keep going.
+
 <!-- ai-project-status:begin -->
 <!--
   This block is injected and refreshed by ai-project-status:
@@ -115,8 +123,6 @@ Every commit MUST follow this shape:
 4. **Automate the commit before session close.** Stage the work (`git add`) and run `git commit -m` with a schema-compliant message before ending the session. Do not leave completed work uncommitted — uncommitted work is invisible to the meta-repo.
 
 5. **Announce each task commit.** Immediately after committing, print `✅ <short-hash> — <title>` on its own line in the conversation, so the user can scan the transcript for recorded work at a glance. One checkmark per task commit — the commit *is* the record, so there is nothing else to back-fill.
-
-6. **Commit autonomously; never push unless asked; stop at the task boundary.** Do **not** ask permission to commit and do **not** ask "shall I commit?" in prose — stage and commit completed work under this schema on your own initiative. To keep commits silent (no permission prompt), match the allow-list: run `git add <paths>` and `git commit` as **separate** calls (not a `&&` compound), and pass the message as a **single-quoted** string — **no `$(cat <<EOF)` command substitution** (avoid apostrophes in the body so single-quoting works). **Never `git push` on your own** — push only when the user **explicitly** asks; do not ask to push either. Autonomy is *within* a task: do everything the task needs **except** pushing. Once a task's commit is announced, **stop and yield to the user** — report what landed and wait, rather than rolling forward into the next task unprompted. The task boundary is a checkpoint, not a place to keep going.
 
 ## Daily plan (daily-plan.md)
 
