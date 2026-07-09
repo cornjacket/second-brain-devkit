@@ -457,6 +457,13 @@ requirement**); they also produce the material for a future GitHub tutorial.
       runs are repeatable; **realistic note bodies** (real substance, not lorem ipsum) so
       semantic distances mean something. Opt-in/local (needs Ollama to embed), out of the
       hermetic CI gate. Unblocks #12/#13 and #8 final threshold calibration. Not started.
+  - **Reminder — run the deferred auto-link `--apply` here.** #8's write path is built and
+    dry-run-verified, but **deliberately not applied** to any brain: on today's 7 homogeneous
+    notes it draws a near-complete graph (nothing to discriminate) and churns every committed
+    note. Once this diverse corpus is seeded, calibrate `t_max` on it (§2.2), then
+    `autolink.py --apply` — that is the first point where the graph is actually illuminating
+    (distinct topic clusters, sparse cross-topic edges) and worth committing / viewing in
+    Obsidian's graph view.
 - [ ] **Catalog every second-brain quality-enhancement feature.** (task #13; do FIRST —
       it is the input to #12 and the outline for the tutorial.) Produce a single inventory
       (likely `docs/quality-features.md`) listing each retrieval/graph quality feature the
