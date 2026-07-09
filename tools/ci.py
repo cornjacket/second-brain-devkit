@@ -18,12 +18,17 @@ Gate (fail-fast on any red):
      never executed in CI and ``mcp_server.py`` can't even be imported (its optional
      ``mcp`` dep is absent), so a ``SyntaxError`` would otherwise ship green. Pure
      ``compile()`` — no import, no bytecode written, stays stdlib-only.
-  4. **Mode-A harness** — wipe-regenerate ``sandbox/scratch/`` + guard + in-scaffold
+  4. **Autolink format** — assert ``autolink.py`` emits ``related_auto:`` as *quoted*
+     wikilinks in a YAML list (the only form Obsidian graphs; a bare ``[[x]]`` ships
+     green but is silently un-graphed — the ``outputSchema`` lesson). Imports the emitted
+     ``apply_links`` (db import is lazy → no sqlite-vec); asserts the format independently
+     with a negative self-test (``tools/check_autolink_format.py``). Hermetic.
+  5. **Mode-A harness** — wipe-regenerate ``sandbox/scratch/`` + guard + in-scaffold
      self-test + structural diff vs the golden (``tools/run_sandbox.py``).
-  5. **Mode-B smoke** — ``create_second_brain.py`` into a throwaway temp path, then the same
+  6. **Mode-B smoke** — ``create_second_brain.py`` into a throwaway temp path, then the same
      structural-diff oracle on it (proves production output ≡ the validated Mode-A
      output).
-  6. **Remote-sync** — ``create_second_brain.py --remote`` connect → push → clone-as-peer
+  7. **Remote-sync** — ``create_second_brain.py --remote`` connect → push → clone-as-peer
      against a local **bare** repo (``file://``). Hermetic (git + stdlib, no network
      or credentials), unlike the Ollama/``mcp`` behavioral checks, so it belongs in
      the gate (``tools/check_remote_sync.py``).
@@ -110,6 +115,10 @@ def step_py_compile() -> bool:
     return ok
 
 
+def step_autolink_format() -> bool:
+    return _run([PY, str(TOOLS / "check_autolink_format.py")])
+
+
 def step_mode_a() -> bool:
     return _run([PY, str(TOOLS / "run_sandbox.py")])
 
@@ -135,12 +144,13 @@ def step_remote_sync() -> bool:
 
 
 STEPS = [
-    ("1/6 manifest partition", step_partition),
-    ("2/6 template in sync with golden", step_template_in_sync),
-    ("3/6 emitted scripts compile", step_py_compile),
-    ("4/6 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("5/6 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("6/6 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("1/7 manifest partition", step_partition),
+    ("2/7 template in sync with golden", step_template_in_sync),
+    ("3/7 emitted scripts compile", step_py_compile),
+    ("4/7 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/7 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/7 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/7 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
 ]
 
 
