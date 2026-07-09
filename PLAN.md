@@ -8,17 +8,16 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-08)
-- **▶▶ NEXT — task #16: the test-corpus seed/teardown utility** — 100 realistic notes across
-  10 IT topics (in a non-emitted `tests/seed-corpus/`), install/remove scripts (target-path
-  driven, for CI / sandbox / external brains), and a `create_second_brain --seed-test-corpus`
-  switch. Full spec in the **Test corpus** section below.
-- **Then queued:** #9 (README managed block), #15 (diverse benchmark corpus), #12/#13
-  (feature catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool).
-  **#8 auto-linking shipped 2026-07-08** (canonical view + nomic prefixes + KNN calibration +
-  `related_auto:` write path + Obsidian-format CI gate + `content_hash` skip-gate; `--apply`
-  deferred to #15). Bigger roadmap: big-brain Approach A (the sync loop on task #6), then
-  Approach B (Postgres, capability-gated — not on the critical path).
+## ▶ Next up (2026-07-09)
+- **▶▶ NEXT — task #9: the README managed block** — a devkit-owned region in the brain `README.md`
+  (via the #10 splice helper) so `update_brain` refreshes it without clobbering the user's own
+  preamble/appendix. Closes the #10→#8→#9 thread. Prototype in the golden → vendor → template → `ci.py`.
+- **Then queued:** #15 (diverse benchmark corpus — can reuse the #16 corpus), #12/#13 (feature
+  catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool).
+- **Done recently:** #16 test-corpus seed/teardown utility (2026-07-09); #8 auto-linking
+  (2026-07-08: canonical view + nomic prefixes + KNN calibration + `related_auto:` write path +
+  Obsidian-format CI gate + `content_hash` skip-gate; `--apply` deferred to #15). Bigger roadmap:
+  big-brain Approach A (sync loop on task #6), then Approach B (Postgres, capability-gated).
 - [x] **Remote-backed brains — connect a new brain to a git remote at creation
       (task #6; BUILT 2026-07-07).** `create_second_brain.py --remote <URL>` (+ `--no-autosync`):
       after `git init` + first commit + hooks, `git remote add origin` + `git push -u
@@ -440,9 +439,9 @@ populated brain**, not a single example. (The prompting example that raised this
       final. Full design in [docs/retrieval-quality.md §1](docs/retrieval-quality.md);
       decision captured as a brain note (`resources/nomic-embedding-prefixes.md`).
 
-## Test corpus (task #16, NEXT): seed + tear down a large multi-topic note set
-- [ ] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
-      and cleanly remove it (notes + every derived remnant).** (task #16) For exercising a brain
+## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
+- [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
+      and cleanly remove it (notes + every derived remnant). (task #16; BUILT 2026-07-09.)** For exercising a brain
       at realistic scale — auto-link thresholds, retrieval quality, benchmarking, CI, dogfooding
       — without hand-authoring notes each time. **Separate from #15** (the ablation-benchmark
       corpus); #15 may reuse this corpus if the topic spread suits. Everything here is
@@ -475,7 +474,15 @@ populated brain**, not a single example. (The prompting example that raised this
         their derived `.embed.json` sidecars, and their `data/brain.db` cache rows (`update_cache
         --delete` or re-hydrate) — then commits the removal, leaving the brain byte-clean of the
         corpus. Identify artifacts by the `seed_` prefix (no manifest needed). Idempotent.
-      Not started.
+      **Built:** corpus committed (`tests/seed-corpus/`, 100 notes, `119f7d6`); `tools/test_corpus.py`
+      (install/remove, target-path driven) + `create_second_brain --seed-test-corpus` (`9de9a8c`).
+      Verified end-to-end on a throwaway `test`-backend brain: create+seed embeds 100 notes and
+      searches; remove leaves **zero remnants** (notes, sidecars, cache rows) and is idempotent; CI
+      7/7 green (default `create_second_brain` unchanged). **Cluster check (real Ollama):** real but
+      *moderate* topic structure — 69% nearest-neighbour topic purity, intra 0.329 < inter 0.382;
+      distinct topics (CI/git/KM/web) cohere strongly, adjacent ones blend (rust↔golang, the two AI
+      topics) — a realistic "everything's somewhat related" corpus, good for stressing the auto-link
+      thresholds. Crisper separation would need less-adjacent topics or longer/more-anchored notes.
 
 ## Benchmarking & feature toggles (backlog): quantify each quality enhancement
 Goal: measure the **relative** retrieval/graph-quality payoff of each enhancement by
