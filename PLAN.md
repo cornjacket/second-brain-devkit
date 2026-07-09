@@ -441,6 +441,22 @@ turning it on/off and benchmarking — an ablation study — so we know which fe
 actually earn their keep. Both tasks below are exploratory (**may not become a shipped
 requirement**); they also produce the material for a future GitHub tutorial.
 
+- [ ] **Seed a brain with a large, topically-diverse test corpus.** (task #15; the shared
+      dataset prerequisite — do before the calibration/ablation work depends on it.) A
+      test/harness that populates a second-brain with a **large collection of made-up notes
+      spanning many distinct topics** (e.g. cooking, personal finance, distributed systems,
+      history, biology, music theory…), so the embedding space has real **cluster structure**
+      — the thing today's ~7 homogeneous notes lack. This corpus is what makes several other
+      tasks meaningful: the auto-link threshold work (§2.2/§2.3 — `t_max` and topic-count
+      calibration need separable topics), the **ablation benchmark (#12)** (this **extracts
+      and satisfies** #12's "author a substantial evaluation corpus" sub-goal), the feature
+      catalog's worked examples (#13), and Medium-post/tutorial screenshots (#14). Design
+      points: enough notes per topic **and** enough topics that single-linkage/HDBSCAN
+      recovers the intended clusters (a clear plateau in the cluster-count sweep);
+      **deterministic/scriptable** seeding (a generator or a committed `seeds/` corpus) so
+      runs are repeatable; **realistic note bodies** (real substance, not lorem ipsum) so
+      semantic distances mean something. Opt-in/local (needs Ollama to embed), out of the
+      hermetic CI gate. Unblocks #12/#13 and #8 final threshold calibration. Not started.
 - [ ] **Catalog every second-brain quality-enhancement feature.** (task #13; do FIRST —
       it is the input to #12 and the outline for the tutorial.) Produce a single inventory
       (likely `docs/quality-features.md`) listing each retrieval/graph quality feature the
