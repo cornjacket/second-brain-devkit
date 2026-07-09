@@ -233,6 +233,18 @@ region.
 
 ## 4. The `content_hash` no-op gate
 
+> **Built 2026-07-08 — sidecar placement for now (frontmatter deferred to big-brain A).**
+> The no-op gate ships: `note_view.content_hash(text)` returns `sha256:<hex>` of the
+> canonical body, `embed_staged` records it in each `.embed.json` **sidecar**, and
+> `write_sidecar` skips the re-embed when the stored hash + backend are unchanged
+> (`force` bypasses it for `doctor --repair`). This fully delivers the local benefit —
+> no neural-noise churn, and a frontmatter-only `related_auto:` edit no longer triggers a
+> re-embed. **Frontmatter placement (below) is deliberately deferred:** it buys only the
+> *cross-machine* "my local vector is still valid" signal for [big-brain Approach
+> A](big-brain.md), and writing the hash back into the committed note is the pre-commit
+> write-back tension flagged in §7 — not worth taking on until big-brain A needs it. The
+> sidecar store is per-machine and regenerated, which is exactly right for a local gate.
+
 Store a hash of the canonical substance view in the note's frontmatter (metadata, so it's
 excluded from its own input — no self-reference):
 
