@@ -79,7 +79,9 @@ The two adjacent AI topics rose from 6/10 to 8–9/10 and rust from 4/10 to 8–
 **Lever #2 (nomic's `clustering:` prefix) helps the analysis, not the brain.** Re-embedding the
 same notes with the `clustering:` prefix instead of `search_document:` adds ~5pp of purity — it is
 tuned for grouping. Use it only for *this cohesion analysis*; the brain itself keeps
-`search_document:`/`search_query:` for retrieval (the same-prefix invariant, retrieval-quality.md §1).
+`search_document:`/`search_query:` for retrieval (the same-prefix invariant). What the prefix is,
+why it helps grouping, and why the brain must never adopt it is written up in
+[retrieval-quality.md §1 → The `clustering:` prefix](retrieval-quality.md#the-clustering-prefix--a-measurement-lens-never-the-brain).
 
 **Residual — the golang laggard (5/10, unchanged) is concept-name collision, not weak jargon.**
 Its misses land on the *same subtopic in a sibling language/topic*, which is semantically correct:
@@ -98,6 +100,7 @@ would only make them unrealistic. This is a floor set by the topic design, and t
 2. **Use nomic's `clustering:` prefix for topic analysis** — distinct from the
    `search_document:` / `search_query:` retrieval prefixes; optimised for grouping. Re-run the
    cohesion check with it (keep `search_document:` for the brain itself). Cheap, no corpus change.
+   Details: [retrieval-quality.md §1 → The `clustering:` prefix](retrieval-quality.md#the-clustering-prefix--a-measurement-lens-never-the-brain).
 3. **More notes per topic** — 20–30 instead of 10 densifies clusters, so @k=1 purity rises
    mechanically. More authoring cost.
 4. **Merge / replace adjacent topics** — collapse rust+golang or the two AI topics, or swap in a

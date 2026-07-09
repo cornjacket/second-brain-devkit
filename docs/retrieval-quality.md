@@ -83,6 +83,27 @@ prefixing either side with `search_query:` would compare across the wrong space.
 exactly why `task` is a **per-call argument**, not a global toggle — the same embedder
 serves both modes.
 
+### The `clustering:` prefix — a measurement lens, never the brain
+
+`nomic-embed-text` also ships a **`clustering:`** prefix, tuned for a different job than
+retrieval: **grouping similar things together** rather than matching a query to the
+document that answers it. Think of the prefix as telling the model *why* you're
+embedding — `search_query:`/`search_document:` optimise "does this query → this note?",
+while `clustering:` optimises "do these notes fall into clean groups?".
+
+That makes `clustering:` the right lens for **analysis about the corpus** — e.g. the
+[test-corpus clustering analysis](test-corpus-clustering.md), which measures how well the
+seed notes group by topic. Measured there (task #17), re-embedding the same 100 notes with
+`clustering:` instead of `search_document:` raised nearest-neighbour topic purity by ~5
+points (79% → 84%) — exactly because the prefix is built for the grouping question being
+asked.
+
+But it is **analysis-only — the brain itself must never switch to it.** The
+same-scheme invariant below is the reason: a note embedded with `clustering:` and a query
+embedded with `search_query:` live in different spaces, so mixing them *degrades* search.
+The brain keeps `search_document:`/`search_query:` for every stored vector and query; reach
+for `clustering:` only in a throwaway analysis script that embeds both sides itself.
+
 ### Why it's "separate, with a re-embed cost"
 
 Adding a prefix **changes every vector**, so every existing note's `.embed.json`
