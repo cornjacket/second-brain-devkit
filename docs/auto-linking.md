@@ -75,6 +75,20 @@ the vector, and one pass reaches a fixed point.
   enemy):**
   - **Threshold + top-N cap** — only link above a cosine/distance cut, capped at N
     neighbors, so weak links don't flood the graph.
+  - **Mutual-KNN (reciprocity) — hub suppression.** Keep an edge `A–B` only when **B is in
+    A's top-N _and_ A is in B's top-N**. Note what is and isn't symmetric here: the *distance*
+    `d(A,B)=d(B,A)` is always symmetric — that is **not** the discriminator — whereas
+    neighbor *membership/rank* is **asymmetric** (A can be in a sparse note's top-N while that
+    note is nowhere near A's, because they sit in neighborhoods of different density). A
+    **hub** — a note vaguely close to many others — lands in lots of top-N lists, so without
+    this rule everything links to it (a star that clutters the graph); but those notes are
+    usually *not* in the hub's own top-N, so the one-sided edges are dropped. Mutual-KNN thus
+    filters the asymmetric rank relation down to its **reciprocal subset**: fewer edges, each
+    higher-precision (both endpoints agree they're close). It raises relevance by *removing*
+    weak one-sided links, not by adding links; the surviving edges are symmetric/undirected as
+    a **result** of the filter, not its input. (Observed live: at `t_max=0.45`, `magic-number`
+    had 4 neighbors under threshold but kept only `[[embeddings]]` — the one pair that was
+    reciprocal; the rest were one-sided and pruned.)
   - **Deterministic ordering** — serialize the neighbor set in a fixed order (e.g. by
     distance then note path) so an unchanged set always renders byte-identically → no
     spurious diffs.
