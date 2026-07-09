@@ -110,6 +110,100 @@ Findings that shape the threshold design:
   #12/#13) will build. Provisional starting point to **recalibrate at scale**: `t_max ≈ 0.45`,
   `top-N = 3–5`, mutual-KNN on.
 
+### 2.2 What `t_max` is, and how to calibrate it
+
+**What `t_max` represents.** `t_max` is the **relatedness cutoff** — the *maximum cosine
+distance* at which two notes are still considered related enough to link. Vectors are
+L2-normalized, so cosine distance = `1 − cosine_similarity`, ranging **0** (identical
+direction) → **1** (orthogonal, unrelated) → **2** (opposite). A candidate neighbour at
+distance `d` becomes a link **only when `d < t_max`**. So `t_max ≈ 0.45` means "link notes
+whose cosine similarity exceeds ~0.55." It is a single scalar living on the *embedding's*
+distance scale — which is why it is **invalid across any index-time change** (model,
+task-prefix scheme, canonical-view on/off) and must be recalibrated after one.
+
+**Do not gate `t_max` on note count.** Count is a weak proxy for the thing that actually
+governs whether a global cut exists — *topical diversity*. The two failure modes:
+
+- **Many homogeneous notes** (500 notes on one project) — still a dense single cluster, no
+  clean gap; a count gate fires "big enough!" and hands you a meaningless `t_max`.
+- **Few diverse notes** (30 across cooking, taxes, distributed systems, poetry) — large
+  gaps, a clean `t_max`; a count gate says "too small" and misses it.
+
+**Derive it from the distance distribution instead.** Whenever calibration runs, estimate
+`t_max` from the observed note→note distances with a method that *also self-reports whether
+a cut is meaningful*:
+
+- **Background/null model** — take the mean/σ of *all* pairwise distances (the "random
+  pair" distribution) and require a link to beat chance by a margin: `t_max = mean − k·σ`. A
+  principled "closer than typical?" test.
+- **Gap / elbow** — the largest gap in the sorted distances is the natural cut; it only
+  *exists* when the corpus is separable, which is exactly the condition we want to detect.
+- **2-component mixture** (related vs. unrelated) — fit it; `t_max` is the crossover, and the
+  **overlap of the two components is the confidence score**.
+
+**The key property:** the same analysis that estimates `t_max` reports a **separation /
+confidence score**. When separation is low (a unimodal distribution — whether from 7
+homogeneous notes *or* 5 000 single-topic ones), emit **no global `t_max`** and fall back to
+**top-N + mutual-KNN** only. That is the honest behaviour at any scale, and it means the real
+gate is *distributional separability*, computed — not note count, guessed.
+
+**Mechanics (detect-and-instruct, matches the devkit stance).**
+
+- **`autolink.py --calibrate`** analyses the current distance distribution and **prints** a
+  recommended `t_max` plus the separation score (or "no confident cut → top-N + mutual-KNN").
+  Writing it to config requires an explicit flag — it never silently mutates config
+  (consistent with `install_skill`/`doctor`).
+- **Store the value with provenance** in an `[autolink]` config block: `t_max`,
+  `calibrated_at_size`, the method used, the separation score, and an **embedding-config
+  fingerprint** (model + prefix scheme + canonical-view flag). A mismatch between the
+  fingerprint and the live embedder **invalidates** `t_max` and forces recalibration.
+- **Count keeps two narrow roles** (this is where the "size threshold" instinct belongs):
+  (a) a **minimum-sample floor** — below ~20–30 notes any estimate is small-sample noise, so
+  skip calibration and use conservative defaults; (b) a **staleness trigger** — *suggest*
+  recalibration when the corpus has grown materially since `calibrated_at_size` (e.g. +X%).
+  Count triggers *re-running the deriver*; it never *sets* the value.
+
+### 2.3 Measuring topical structure — "how many topics?"
+
+Note count was a weak proxy for the real question: **does the corpus contain distinct
+topics?** If it has ≥2 *stable* topics a global `t_max` is meaningful; if it is one blob it
+is not — regardless of size. So an explicit **topic count** is the better diversity gate, and
+it doubles as a corpus-health metric for the benchmark (#12/#13). "Topics" here means
+**clusters in the embedding space**.
+
+**Stdlib-first method — connected components / single-linkage over the KNN graph.**
+`autolink.py` already builds the note↔neighbour graph. Connect any two notes within distance
+`d`, then count **connected components** via union-find (pure Python — no new dependency).
+Now *sweep* `d`:
+
+- At a very small `d` every note is its own component (`N` topics); at a large `d` everything
+  merges into one (`1` topic).
+- **A plateau — a range of `d` over which the component count stays flat — is robust topic
+  structure**, and that stable count *is* the topic count. Its `d`-range is a defensible
+  `t_max` band.
+- A single-cluster corpus (our 7 notes) shows **no plateau** — a monotonic collapse from `N`
+  to `1`. So the *existence and width of a plateau* is itself the "is a global `t_max`
+  meaningful?" signal.
+
+This **unifies §2.2 and §2.3**: one single-linkage sweep yields the cut height (`t_max`) and
+the resulting cluster count (topics) *together*, from the KNN edges autolink already has.
+
+**Optional heavier methods — for the benchmark only, as isolated optional deps** (kept out of
+the lean core, like `requirements-mcp.txt`):
+
+- **HDBSCAN** — density-based, needs no `k`, labels off-topic notes as noise. Best fit for
+  "how many topics + which notes are outliers," at the cost of the `hdbscan` dependency.
+- **k-means + model selection** (silhouette / gap statistic / BIC over `k`) — simple but
+  assumes roughly spherical clusters and a bounded `k` (`scikit-learn`).
+- **Spectral** — the number of near-zero eigenvalues of the KNN-graph Laplacian ≈ the number
+  of clusters (spectral-clustering theory). Principled, but pulls `scipy`/`numpy`.
+
+**Caveats.** "Number of topics" is not absolute — it is the cluster count at a chosen
+resolution, best read off a *stable plateau*, not a single cut. And at ~7 notes no method
+finds real topics (same small-sample limit as `t_max`), so meaningful topic analysis waits on
+the larger #12/#13 corpus. Topic structure also enables a richer future linking rule (prefer
+*within-topic* neighbours), but that is downstream of getting the corpus first.
+
 ## 3. Manual-link preservation
 
 A human/AI hand-link must be **sticky**. The clean guarantee is **namespace partition**:
