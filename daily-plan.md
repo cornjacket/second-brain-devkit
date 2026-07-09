@@ -1,29 +1,28 @@
-# Daily plan — 2026-07-08
+# Daily plan — 2026-07-09
 
-**Focus:** Yesterday (07-07) shipped **task #6 remote-backed brains** (`create_second_brain.py
---remote` + fail-early preflight + `secondbrain.autosync` + hermetic CI gate 6/6), renamed
-`new_brain.py → create_second_brain.py`, added a brain-install-checklist procedure to
-CLAUDE.md, and **recreated `~/second-brain` on a real GitHub remote** (SSH creds path
-validated end-to-end). Queued the managed-block thread: **#10 splice helper → #8 auto-linking
-→ #9 README block**. Today: build that thread bottom-up.
+**Focus:** 07-08 shipped the whole managed-block thread — **#10 splice helper** and **#8
+auto-linking end-to-end**: canonical-body embedding, nomic task-prefixes (#3), the read-only
+KNN calibration tool, the `related_auto:` **write path** (mutual-KNN + top-N + `t_max`, dry-run
+verified), the **Obsidian-format CI gate** (§5), and the **skip-unchanged `content_hash` gate**
+— all green through `ci.py` (7/7). #8 is feature-complete except corpus-dependent tuning.
+Today: **close the thread with #9**, then start the corpus that unblocks everything downstream.
 
-- **▶▶ Build task #10 — the shared "splice a marked block" helper (do first).** One
-  `splice_block(text, begin, end, new_body)` (+ `remove_block`/`has_block`), markers as
-  arguments. **Prove it by refactoring the existing `--nudge` install/remove onto it** — no
-  behavior change (install→idempotent→uninstall round-trip green). Prototype the emitted
-  bits in the golden → vendor → template → `ci.py`.
-- **Then start #8 auto-linking** (prototype in the golden): embed **substance, not metadata**
-  (canonical body view in `embed_staged.py`), `related_auto:` quoted wikilinks, `content_hash`
-  no-op gate.
-- **Push the 6 pending devkit commits** to `origin/main` early.
-- Guards stay green through `tools/ci.py` (6 gates).
+- **▶▶ Build task #9 — the README managed block (do first).** A devkit-owned region in the
+  brain `README.md` (`<!-- BEGIN/END generated -->`) spliced via the **#10 helper**, so
+  `update_brain` refreshes it without clobbering the user's own preamble/appendix. Prototype
+  in the golden README → vendor → template → `ci.py`. Closes the #10→#8→#9 thread.
+- **Then start task #15 — the topically-diverse test corpus.** Seed a brain with many
+  distinct-topic notes so the embedding space has real cluster structure. This is the rock
+  that unblocks the deferred auto-link `--apply`, real `t_max`/topic-count calibration
+  (§2.2/§2.3), and the #12/#13 ablation benchmark.
+- Guards stay green through `tools/ci.py` (**7 gates** now).
 
 ```
- 07-07 ✅ #6 remote-backed · rename → create_second_brain.py · ~/second-brain on GitHub
-          queued: #10 helper → #8 auto-link → #9 README block
+ wed 07-08 ✅ #10 splice helper · #8 auto-linking (calibrate→write→Obsidian gate→content_hash)
+             CI 7/7 · auto-link --apply deferred to #15
                               │
                               ▼
- wed 07-08  ▶▶ build #10 splice helper (refactor --nudge onto it) → start #8 auto-linking
-            push devkit (6 commits)
- loop:  golden ─vendor→ tests/golden ─build→ template ─ci.py→ green
+ thu 07-09  ▶▶ build #9 README managed block (via #10 helper) → start #15 diverse corpus
+            #15 unblocks: auto-link --apply · t_max calibration · #12/#13 benchmark
+ loop:  golden ─vendor→ tests/golden ─build→ template ─ci.py(7)→ green
 ```
