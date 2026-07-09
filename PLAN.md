@@ -584,14 +584,23 @@ requirement**); they also produce the material for a future GitHub tutorial.
       a meaningful threshold needs the larger, diverse corpus from #12/#13. Full findings +
       provisional defaults (`t_max≈0.45`, top-N 3–5, mutual-KNN) in
       [docs/auto-linking.md §2.1](docs/auto-linking.md).
-      **Still to do:** (1) the **`related_auto:` write path** — turn the survivors into a
-      managed frontmatter block via the [[marked-block splice helper]] (task #10), with the
-      stability rules (top-N + deterministic order + hysteresis + mutual-KNN) and
-      manual-link preservation (§3 namespace partition); (2) the build-time Obsidian-format
-      acceptance check (§5); (3) the `content_hash` no-op gate (SHA-256 of the canonical body
-      in frontmatter → skip re-embed on unchanged substance; note the pre-commit write-back
-      design tension, §7 — independent of the above); (4) final `t_max`/hysteresis
-      calibration once the #12/#13 corpus exists. Design detail:
+      **Write path landed 2026-07-08** — `autolink.py` gains `select_links` (top-N ∩
+      mutual-KNN ∩ `t_max`) and `apply_links` (frontmatter-aware `related_auto:` block via the
+      [[marked-block splice helper]]; idempotent; removes its block when empty; never touches
+      a hand-set `related:`/inline link — §3 namespace partition), plus a **dry-run diff**
+      default and `--apply`. Built + dry-run-verified on `~/second-brain` (mutual-KNN pruned
+      `magic-number` from 4 candidates to 1 reciprocal link) but **deliberately not applied**
+      — see the [[task #15]] reminder (a near-complete graph on the homogeneous corpus).
+      **Obsidian-format acceptance check landed 2026-07-08 (§5)** — `tools/check_autolink_format.py`
+      (ci.py gate 4/7): asserts `related_auto:` emits **quoted** wikilinks in a YAML list (the
+      only form Obsidian graphs), independently + negative self-test, hermetic (lazy `db`
+      import → no sqlite-vec); verified it catches a bare-wikilink regression.
+      **Still to do:** (1) the `content_hash` no-op gate (SHA-256 of the canonical body in
+      frontmatter → skip re-embed on unchanged substance; note the pre-commit write-back
+      design tension, §7 — **independent**, can be done anytime); (2) **hysteresis** in
+      `select_links` (add `t_hi`/drop `t_lo` band, needs the note's prior link set — deferred,
+      lower priority); (3) final `t_max`/hysteresis calibration once the #12/#13/#15 corpus
+      exists. Design detail:
 - [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in
       `data/brain.db` — no re-embed to link) and writes them into a **managed frontmatter
