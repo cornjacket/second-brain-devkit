@@ -8,12 +8,17 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-07)
-- **▶▶ NEXT — backlog, pick one:** #3 hybrid FTS5 retrieval, #5 `add_note` write
-  tool (design-first), or #8 Obsidian auto-linking. All emit into a brain, so
-  prototype-in-the-golden first. Bigger roadmap: big-brain Approach A (the sync loop
-  on top of task #6), then Approach B (Postgres, capability-gated — not on the
-  critical path).
+## ▶ Next up (2026-07-08)
+- **▶▶ NEXT — task #16: the test-corpus seed/teardown utility** — 100 realistic notes across
+  10 IT topics (in a non-emitted `tests/seed-corpus/`), install/remove scripts (target-path
+  driven, for CI / sandbox / external brains), and a `create_second_brain --seed-test-corpus`
+  switch. Full spec in the **Test corpus** section below.
+- **Then queued:** #9 (README managed block), #15 (diverse benchmark corpus), #12/#13
+  (feature catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool).
+  **#8 auto-linking shipped 2026-07-08** (canonical view + nomic prefixes + KNN calibration +
+  `related_auto:` write path + Obsidian-format CI gate + `content_hash` skip-gate; `--apply`
+  deferred to #15). Bigger roadmap: big-brain Approach A (the sync loop on task #6), then
+  Approach B (Postgres, capability-gated — not on the critical path).
 - [x] **Remote-backed brains — connect a new brain to a git remote at creation
       (task #6; BUILT 2026-07-07).** `create_second_brain.py --remote <URL>` (+ `--no-autosync`):
       after `git init` + first commit + hooks, `git remote add origin` + `git push -u
@@ -434,6 +439,39 @@ populated brain**, not a single example. (The prompting example that raised this
       is exactly what #8's `t_max`/hysteresis calibrate on, so the distance scale is now
       final. Full design in [docs/retrieval-quality.md §1](docs/retrieval-quality.md);
       decision captured as a brain note (`resources/nomic-embedding-prefixes.md`).
+
+## Test corpus (task #16, NEXT): seed + tear down a large multi-topic note set
+- [ ] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
+      and cleanly remove it (notes + every derived remnant).** (task #16) For exercising a brain
+      at realistic scale — auto-link thresholds, retrieval quality, benchmarking, CI, dogfooding
+      — without hand-authoring notes each time. **Separate from #15** (the ablation-benchmark
+      corpus); #15 may reuse this corpus if the topic spread suits. Everything here is
+      **devkit-side** — the corpus and scripts live in the devkit and are **never emitted** into
+      a generated brain.
+      - **Source corpus — authored, tracked, NOT emitted.** ~100 realistic Markdown notes under a
+        **new non-emitted** dir `tests/seed-corpus/{topic}/` — **10 IT topics × 10 notes** — named
+        `seed_{topic}_{short-description}.md` so every test artifact is identifiable by the `seed_`
+        prefix. Deliberately **outside** the emitted `seeds/` tree (which `seed_vault` copies into
+        every real brain) so it can never pollute a generated brain; add the dir to
+        `emit-manifest.toml`'s exclude set and keep the partition + structural-diff green.
+        **Topics (ones the user has shown interest in):** vector-embeddings · sqlite / local vector
+        DBs · semantic-search & RAG · LLM prompting (Claude) · MCP (model-context-protocol) ·
+        knowledge-management (PARA/Obsidian) · git automation & commit telemetry · CI & testing ·
+        Python CLI tooling · web-app architecture. **Real substance** per note (a few coherent
+        paragraphs) so embeddings form genuine topic clusters.
+      - **Install script (`tools/`, copy → commit).** Copies the corpus into a **target brain's**
+        `vault/resources/` — the target is a **path argument**, so one tool serves CI, the internal
+        `sandbox/`, or an external/real brain — then commits the added notes (the brain's hooks
+        embed + hydrate them). Idempotent.
+      - **`create_second_brain.py --seed-test-corpus` switch.** Generating a brain with this flag
+        *also* copies the 100 notes into the new brain's `vault/resources/` at creation — a one-shot
+        "give me a populated test brain."
+      - **Teardown script (`tools/`, remove → commit, no remnants).** Removes **all** corpus
+        artifacts from a target brain: the `vault/resources/seed_*.md` notes (committed removal),
+        their derived `.embed.json` sidecars, and their `data/brain.db` cache rows (`update_cache
+        --delete` or re-hydrate) — then commits the removal, leaving the brain byte-clean of the
+        corpus. Identify artifacts by the `seed_` prefix (no manifest needed). Idempotent.
+      Not started.
 
 ## Benchmarking & feature toggles (backlog): quantify each quality enhancement
 Goal: measure the **relative** retrieval/graph-quality payoff of each enhancement by
