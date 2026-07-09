@@ -116,6 +116,8 @@ Every commit MUST follow this shape:
 
 5. **Announce each task commit.** Immediately after committing, print `✅ <short-hash> — <title>` on its own line in the conversation, so the user can scan the transcript for recorded work at a glance. One checkmark per task commit — the commit *is* the record, so there is nothing else to back-fill.
 
+6. **Commit autonomously; stop at the task boundary.** Do **not** ask permission to commit or push, and do **not** ask "shall I commit?" in prose — stage and commit completed work under this schema on your own initiative (the `git` tool calls are already allow-listed). Autonomy is *within* a task: do everything the task needs, including the commit and push. But once a task's commit is announced, **stop and yield to the user** — report what landed and wait, rather than rolling forward into the next task unprompted. The task boundary is a checkpoint, not a place to keep going.
+
 ## Daily plan (daily-plan.md)
 
 `daily-plan.md` is a **forward-looking** plan file at the repo root. It captures the intent for one working day. ai-project-status aggregates every tracked repo's `daily-plan.md` into [`daily-plan-summary.md`](https://github.com/cornjacket/ai-project-status/blob/main/daily-plan-summary.md).
