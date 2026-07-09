@@ -454,11 +454,15 @@ populated brain**, not a single example. (The prompting example that raised this
         prefix. Deliberately **outside** the emitted `seeds/` tree (which `seed_vault` copies into
         every real brain) so it can never pollute a generated brain; add the dir to
         `emit-manifest.toml`'s exclude set and keep the partition + structural-diff green.
-        **Topics (ones the user has shown interest in):** vector-embeddings · sqlite / local vector
-        DBs · semantic-search & RAG · LLM prompting (Claude) · MCP (model-context-protocol) ·
-        knowledge-management (PARA/Obsidian) · git automation & commit telemetry · CI & testing ·
-        Python CLI tooling · web-app architecture. **Real substance** per note (a few coherent
-        paragraphs) so embeddings form genuine topic clusters.
+        **Topics — 10 deliberately distinct clusters (ones the user has shown interest in):**
+        AI / LLMs (condensed: embeddings, semantic search, RAG, prompting) · AI agent harnesses
+        (agent orchestration, tool-use loops, subagents, MCP) · Go (golang) · Rust · TypeScript ·
+        SQLite / embedded & vector databases · knowledge-management (PARA/Obsidian) · git
+        automation & commit telemetry · CI & testing · web-app architecture. Chosen for **topical
+        distance** (three separate languages + an AI-vs-agent split + distinct infra topics) so the
+        corpus forms real, separable clusters — the earlier draft was too AI-adjacent and would
+        collapse into one blob. **Real substance** per note (a few coherent paragraphs) so
+        embeddings cluster genuinely.
       - **Install script (`tools/`, copy → commit).** Copies the corpus into a **target brain's**
         `vault/resources/` — the target is a **path argument**, so one tool serves CI, the internal
         `sandbox/`, or an external/real brain — then commits the added notes (the brain's hooks
