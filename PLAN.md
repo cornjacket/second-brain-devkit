@@ -595,11 +595,16 @@ requirement**); they also produce the material for a future GitHub tutorial.
       (ci.py gate 4/7): asserts `related_auto:` emits **quoted** wikilinks in a YAML list (the
       only form Obsidian graphs), independently + negative self-test, hermetic (lazy `db`
       import → no sqlite-vec); verified it catches a bare-wikilink regression.
-      **Still to do:** (1) the `content_hash` no-op gate (SHA-256 of the canonical body in
-      frontmatter → skip re-embed on unchanged substance; note the pre-commit write-back
-      design tension, §7 — **independent**, can be done anytime); (2) **hysteresis** in
-      `select_links` (add `t_hi`/drop `t_lo` band, needs the note's prior link set — deferred,
-      lower priority); (3) final `t_max`/hysteresis calibration once the #12/#13/#15 corpus
+      **`content_hash` no-op gate landed 2026-07-08** — `note_view.content_hash` (SHA-256 of
+      the canonical body) is stored in each `.embed.json` **sidecar** and `write_sidecar`
+      skips the re-embed when substance + backend are unchanged (`force` bypass for `doctor
+      --repair`); so unchanged notes never re-embed and a frontmatter-only `related_auto:`
+      edit no longer churns the index. Stored in the sidecar (local gate) not frontmatter —
+      frontmatter placement (cross-machine, big-brain A) deferred to dodge the §7 pre-commit
+      write-back tension; recorded in [docs/auto-linking.md §4](docs/auto-linking.md). CI 7/7.
+      **Still to do:** (1) **hysteresis** in `select_links` (add `t_hi`/drop `t_lo` band, needs
+      the note's prior link set — deferred, lower priority); (2) final `t_max`/hysteresis
+      calibration once the #12/#13/#15 corpus
       exists. Design detail:
 - [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in
