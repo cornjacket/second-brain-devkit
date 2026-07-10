@@ -731,12 +731,14 @@ requirement**); they also produce the material for a future GitHub tutorial.
         the ~10:1 tiny definition notes out of `resources/` and out of search. Generated brains ship
         the **empty** folder + a `glossary/README.md` explaining the convention — **not** pre-filled
         terms (the vocabulary is the user's to curate).
-      - **Embedding-exclusion — the core decision.** The indexer/embedder skips glossary notes so
-        they never enter `data/brain.db` (a keyword-dense definition would otherwise rank too high
-        for its own term and crowd richer notes — stub-pollution). Touches every embed path:
-        pre-commit `embed_staged`, `embed_vault.py`, `hydrate_cache.py`, `update_cache.py`.
-        **Sharpest gotcha:** `doctor.py` must treat a glossary note as *intentionally* unembedded,
-        not as missing-sidecar / cache-drift, or it flags every one as broken. Distinct from
+      - **Embedding-exclusion — the core decision (near-free, verified 2026-07-10).** Glossary notes
+        must never enter `data/brain.db` (a keyword-dense definition would otherwise rank too high for
+        its own term — stub-pollution). **This falls out for free:** every embed/cache path already
+        scopes to `PARA_ROOTS`, and `glossary/` is a non-PARA sibling (like `templates/`) — proven by
+        committing seven glossary notes to `~/second-brain` (`update_cache: no PARA-note changes`,
+        zero sidecars/vectors). `doctor.py` is also `PARA_ROOTS`-scoped, so it ignores them (the
+        feared missing-sidecar false-drift does not happen). Subtask is thus **confirm + document +
+        keep `glossary/` out of `PARA_ROOTS`**, not new code. Distinct from
         emission-exclusion (glossary notes *are* emitted into a brain; the term-scan links they
         write into other notes' **bodies** *are* embedded — genuine substance, the deliberate
         opposite of `related_auto:` metadata).

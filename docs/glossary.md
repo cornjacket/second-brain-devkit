@@ -73,14 +73,20 @@ so they never enter `data/brain.db`'s vector table.
   in semantic search and crowd richer notes out of the results — stub-pollution of the
   vector space. And none of the glossary use cases *need* an embedding (§2). Their meaning
   is captured by reference structure, not by vector proximity.
-- **How:** the exclusion keys on the `glossary/` path (simplest, deterministic — the same
-  shape as other path-scoped rules) and/or the `type: glossary` marker. Touches every write
-  path that embeds: the pre-commit hook (`embed_staged`), `embed_vault.py`, and the cache
-  builders (`hydrate_cache.py`, `update_cache.py`) must not index a glossary note.
-- **`doctor.py` must know.** The consistency checks treat a glossary note as
-  **intentionally unembedded** — *not* as missing-sidecar / note-missing-from-cache drift.
-  Without this, `doctor` would flag every glossary note as broken. This is the sharpest
-  implementation gotcha.
+- **How — nearly free, because `glossary/` is a non-PARA root.** Verified 2026-07-10 while
+  seeding the real brain: every embed/cache path already scopes to
+  `PARA_ROOTS = (projects, areas, resources, archive)` — `embed_staged` (pre-commit),
+  `embed_vault.py`, and `update_cache.py` filter on it, and `hydrate_cache.py` only ingests
+  existing sidecars (none get written for a glossary note). So a `vault/glossary/` note is
+  ignored by the whole pipeline *for free*, exactly like `templates/`. The subtask is
+  therefore mostly **confirm + document + keep `glossary/` out of `PARA_ROOTS`**, not new
+  exclusion code. (Live proof: committing seven glossary notes to `~/second-brain` produced
+  `update_cache: no PARA-note changes in HEAD` and wrote zero sidecars/vectors.)
+- **`doctor.py` already ignores them — confirmed.** `doctor`'s `para_notes()` and its
+  sidecar scan are both `PARA_ROOTS`-scoped, so glossary notes are invisible to the drift
+  checks (no false missing-sidecar / note-missing-from-cache reports). This was the feared
+  gotcha; the PARA scoping resolves it with no change. Only revisit if the discriminator ever
+  moves from folder-path to the `type: glossary` marker.
 - **Not the same as emission-exclusion.** [[embedding-exclusion]] (does the *indexer*
   vectorize this note?) is a different mechanism from [[emission-exclusion]] (does the
   *generator* write this file into a brain at all — e.g. the devkit's `SPEC.md`, the test
