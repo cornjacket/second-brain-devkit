@@ -32,6 +32,11 @@ Gate (fail-fast on any red):
      against a local **bare** repo (``file://``). Hermetic (git + stdlib, no network
      or credentials), unlike the Ollama/``mcp`` behavioral checks, so it belongs in
      the gate (``tools/check_remote_sync.py``).
+  8. **README managed block** — create a brain, add a user preamble/appendix, let the
+     managed body go stale, then ``update_brain --apply`` and assert it **splices**:
+     user space preserved, the devkit block regenerated to match ``template/README.md``,
+     idempotent, and a marker-less/half-marked README left untouched
+     (``tools/check_readme_block.py``). Hermetic (git + stdlib).
 
     python3 tools/ci.py
 
@@ -143,14 +148,23 @@ def step_remote_sync() -> bool:
     return _run([PY, str(TOOLS / "check_remote_sync.py")], env=env)
 
 
+def step_readme_block() -> bool:
+    # Hermetic: create a brain + drive update_brain's README splice (git + stdlib,
+    # no Ollama/mcp). Same self-contained identity so the brain's commits pass on a
+    # bare runner.
+    env = {**os.environ, **{k: v for k, v in GIT_IDENTITY.items() if k not in os.environ}}
+    return _run([PY, str(TOOLS / "check_readme_block.py")], env=env)
+
+
 STEPS = [
-    ("1/7 manifest partition", step_partition),
-    ("2/7 template in sync with golden", step_template_in_sync),
-    ("3/7 emitted scripts compile", step_py_compile),
-    ("4/7 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/7 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/7 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/7 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("1/8 manifest partition", step_partition),
+    ("2/8 template in sync with golden", step_template_in_sync),
+    ("3/8 emitted scripts compile", step_py_compile),
+    ("4/8 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/8 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/8 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/8 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/8 README managed block (update_brain splices, preserves user space)", step_readme_block),
 ]
 
 
