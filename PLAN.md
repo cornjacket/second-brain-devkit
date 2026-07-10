@@ -536,29 +536,53 @@ turning it on/off and benchmarking — an ablation study — so we know which fe
 actually earn their keep. Both tasks below are exploratory (**may not become a shipped
 requirement**); they also produce the material for a future GitHub tutorial.
 
-- [ ] **Seed a brain with a large, topically-diverse test corpus.** (task #15; the shared
-      dataset prerequisite — do before the calibration/ablation work depends on it.) A
-      test/harness that populates a second-brain with a **large collection of made-up notes
-      spanning many distinct topics** (e.g. cooking, personal finance, distributed systems,
-      history, biology, music theory…), so the embedding space has real **cluster structure**
-      — the thing today's ~7 homogeneous notes lack. This corpus is what makes several other
-      tasks meaningful: the auto-link threshold work (§2.2/§2.3 — `t_max` and topic-count
-      calibration need separable topics), the **ablation benchmark (#12)** (this **extracts
-      and satisfies** #12's "author a substantial evaluation corpus" sub-goal), the feature
-      catalog's worked examples (#13), and Medium-post/tutorial screenshots (#14). Design
-      points: enough notes per topic **and** enough topics that single-linkage/HDBSCAN
-      recovers the intended clusters (a clear plateau in the cluster-count sweep);
-      **deterministic/scriptable** seeding (a generator or a committed `seeds/` corpus) so
-      runs are repeatable; **realistic note bodies** (real substance, not lorem ipsum) so
-      semantic distances mean something. Opt-in/local (needs Ollama to embed), out of the
-      hermetic CI gate. Unblocks #12/#13 and #8 final threshold calibration. Not started.
+- [ ] **Build a large, topically-diverse benchmark corpus — the unsupervised / calibration
+      dataset.** (task #15; the shared dataset prerequisite for the ablation + calibration work.)
+      Per the [[task #18]] decision, this is the **complement** to the #16/#17 IT corpus: where the
+      IT corpus is deliberately *everything-adjacent* (the supervised + adversarial stress test),
+      #15 is deliberately **far-apart domains** so the embedding space has clean, separable
+      **cluster structure** — the *unsupervised* topic-count / `t_max`-plateau case, and the first
+      corpus on which auto-link `--apply` is actually illuminating. Devkit-side and **never emitted**
+      (like #16). Design / subtasks (proposed defaults — confirm at build):
+      - **Topics & size.** ~**10 deliberately distant domains** (e.g. cooking, personal finance,
+        distributed systems, history, biology, music theory, astronomy, gardening, law, cinema) —
+        minimal shared vocabulary across domains, unlike the IT corpus. ~**20 notes/topic (~200
+        total)**: denser clusters than #16's 10/topic (clustering-doc lever #3) so a single-linkage
+        sweep shows a **clear plateau** at the intended topic count.
+      - **Note bodies.** Apply the #17 lesson — ~120–150 words each, packed with topic-specific
+        vocabulary, steered off generic cross-topic terms. **Committed static files** (not a random
+        generator) so embeddings + measurements are byte-repeatable.
+      - **Layout & tooling (reuse #16).** A new non-emitted dir `tests/bench-corpus/{domain}/` with
+        `bench_{domain}_{desc}.md` names (a distinct `bench_` prefix so teardown targets it
+        independently of #16's `seed_`). **Generalize `tools/test_corpus.py`** to be corpus-dir +
+        prefix driven so one tool installs/removes either corpus into a target brain's
+        `vault/resources/` (idempotent, commit-through-hooks). Add the dir to `emit-manifest.toml`'s
+        exclude set; keep the partition + structural-diff green.
+      - **Labeled query set (the benchmark ground truth).** Author a small committed
+        `tests/bench-corpus/queries.jsonl` (or similar) mapping each query → its expected note(s),
+        alongside the folder/topic labels ([[ground-truth-labels]]). This is the piece #12 consumes:
+        the topic folders give the supervised labels, the query set gives retrieval relevance.
+        **(Open — author here vs defer to #12; recommend here, since #15 *is* the dataset.)**
+      - **`create_second_brain` flag.** Generalize `--seed-test-corpus` (or add `--seed-bench-corpus`)
+        so a brain can be born pre-seeded with this corpus.
+      - **Acceptance (real Ollama, opt-in, out of the hermetic CI gate).** (1) Embeds; the §2.3
+        single-linkage / union-find sweep shows a **clear plateau** at ~10 topics (the separability
+        the IT corpus lacks). (2) `autolink.py --calibrate` reports a **confident global `t_max`** (a
+        real distance gap / high separation score) — vs the IT corpus's no-clean-cut. (3) Each
+        labeled query ranks its expected note(s) in top-k under threshold. (4) `autolink.py --apply`
+        on a seeded brain draws an **illuminating** graph (distinct clusters, sparse cross-topic
+        edges) — the first meaningful run of the deferred #8 write path.
+      - **Docs.** Author `docs/benchmark-corpus.md` at build time (design + calibration results),
+        cross-linked from [docs/auto-linking.md §2.2/§2.3](docs/auto-linking.md) and the
+        [test-corpus clustering doc](docs/test-corpus-clustering.md).
+      **Unblocks:** #12/#13 (the ablation dataset), #8 final `t_max`/hysteresis calibration **and the
+      deferred `autolink.py --apply`** (below), #14 tutorial screenshots. Not started.
   - **Reminder — run the deferred auto-link `--apply` here.** #8's write path is built and
-    dry-run-verified, but **deliberately not applied** to any brain: on today's 7 homogeneous
-    notes it draws a near-complete graph (nothing to discriminate) and churns every committed
-    note. Once this diverse corpus is seeded, calibrate `t_max` on it (§2.2), then
-    `autolink.py --apply` — that is the first point where the graph is actually illuminating
-    (distinct topic clusters, sparse cross-topic edges) and worth committing / viewing in
-    Obsidian's graph view.
+    dry-run-verified, but **deliberately not applied** to any brain: on the ~7 homogeneous real-brain
+    notes it draws a near-complete graph (nothing to discriminate) and churns every committed note.
+    This diverse corpus is the first place `t_max` calibration (§2.2) then `autolink.py --apply`
+    produces an illuminating, sparse cross-topic graph worth committing / viewing in Obsidian's
+    graph view.
 - [ ] **Catalog every second-brain quality-enhancement feature.** (task #13; do FIRST —
       it is the input to #12 and the outline for the tutorial.) Produce a single inventory
       (likely `docs/quality-features.md`) listing each retrieval/graph quality feature the
