@@ -13,7 +13,8 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   purity is enough for the #12/#13 benchmark or lean on the ground-truth topic labels. A decision,
   not code.
 - **Then queued:** #15 (diverse benchmark corpus — can reuse the #16/#17 corpus), #12/#13 (feature
-  catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool).
+  catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
+  controlled-vocabulary layer — local-first brain feature, alongside #3/#8).
 - **Done recently:** #9 README managed block (2026-07-09: markers around the golden/template README
   body + `update_brain.py` splices the devkit block into a brain's existing markers, preserving the
   user's preamble/appendix; hermetic CI gate 8/8 — closes the #10→#8→#9 thread);
@@ -713,6 +714,61 @@ requirement**); they also produce the material for a future GitHub tutorial.
       vector sources need a neighbor-aggregation rule). Full design in
       [docs/auto-linking.md](docs/auto-linking.md). **Before** Postgres/big-brain Approach B
       (local-first, no new service).
+
+## Glossary (task #19, backlog): a controlled-vocabulary term layer for the brain
+- [ ] **Give every generated brain a controlled-vocabulary glossary — one atomic note per
+      pre-identified term, linked from wherever the term is used.** (task #19) A curated
+      **symbolic-layer** feature (distinct from the vector/semantic layer): the vault's ad-hoc
+      concept notes become first-class. A term earns a `vault/glossary/{term}.md` note only when
+      **pre-identified** as glossary-worthy (reused / non-obvious); a periodic **scan** links every
+      body occurrence of the term to its definition. Definitions are **simple sub-notes** whose
+      meaning is carried by *how they are referenced*, not by an embedding — so they are **excluded
+      from the vector index**. A **devkit feature** (ships into every brain), built prototype-first
+      in the golden. Full design + rationale in [docs/glossary.md](docs/glossary.md). Subtasks:
+      - **Namespace — `vault/glossary/` (typed, non-PARA sibling).** A top-level folder beside
+        `templates/` (already a non-PARA sibling — the precedent), one note per term, plus a
+        `type: glossary` frontmatter marker as the tool-facing key. Advertised as **PARA(G)**. Keeps
+        the ~10:1 tiny definition notes out of `resources/` and out of search. Generated brains ship
+        the **empty** folder + a `glossary/README.md` explaining the convention — **not** pre-filled
+        terms (the vocabulary is the user's to curate).
+      - **Embedding-exclusion — the core decision.** The indexer/embedder skips glossary notes so
+        they never enter `data/brain.db` (a keyword-dense definition would otherwise rank too high
+        for its own term and crowd richer notes — stub-pollution). Touches every embed path:
+        pre-commit `embed_staged`, `embed_vault.py`, `hydrate_cache.py`, `update_cache.py`.
+        **Sharpest gotcha:** `doctor.py` must treat a glossary note as *intentionally* unembedded,
+        not as missing-sidecar / cache-drift, or it flags every one as broken. Distinct from
+        emission-exclusion (glossary notes *are* emitted into a brain; the term-scan links they
+        write into other notes' **bodies** *are* embedded — genuine substance, the deliberate
+        opposite of `related_auto:` metadata).
+      - **Scan tool — `scripts/glossary_scan.py` (emitted, stdlib).** Report unlinked term
+        occurrences by default; `--apply` inserts `[[term]]` inline. On-demand (not a hook — the
+        body edit re-embeds the touched note), `--apply`-gated + idempotent (the `install_skill` /
+        `doctor` / `autolink` stance). Start dumb (exact-term match); stemming/aliases/code-fence
+        skipping are follow-ons only if the dumb pass is noisy.
+      - **Docs — DUAL README subtask (explicit), and PARA → PARA(G).** Document the glossary in
+        **both** READMEs, and in both switch **PARA → PARA(G)**: spell out the letters
+        (**P**rojects, **A**reas, **R**esources, **A**rchive, **G**lossary) and state that the **G**
+        is a *slight modification* of the standard PARA method — an orthogonal note-*type* sibling
+        (the `templates/` precedent), **not** a fifth actionability bucket. (1) The **devkit
+        `README.md`** — the feature for a devkit developer (where it lives, the embed-exclusion, the
+        build loop). (2) The **generated brain `README.md`** (via the golden → cleaned template, per
+        the managed-block flow) — the convention for a brain *user*: how to add a glossary term, the
+        `glossary_scan.py` command, and that glossary notes are not semantically searchable by
+        design. Wherever either README lists the PARA roots today, update the wording to PARA(G) with
+        the G defined. (No devkit `CLAUDE.md` pointer — devkit development does not need the glossary
+        spec location; this task carries the reference, keeping the always-loaded index lean.)
+      - **Contract in the product spec.** Specify `type: glossary`, the folder, embed-exclusion, and
+        scan behavior in `../second-brain-test/SPEC.md` (per the no-duplicate-product-contracts rule)
+        — prototype-first in the golden.
+      - **Harness / plumbing.** Add the new emitted files (`glossary/README.md`, `glossary_scan.py`)
+        to `emit-manifest.toml`, re-vendor `tests/golden/`, rebuild `template/`, keep the structural
+        diff + partition green; the emitted-scripts-compile gate covers the scanner. Optional opt-in
+        semantic check that a glossary note is absent from the index (out of the hermetic gate, like
+        the Ollama checks).
+      - **Downstream (keep simple, defer).** Consistent term-title/definition-body structure makes
+        the notes drop-in for the *Spaced Repetition* Obsidian plugin (flashcards); graph
+        highlighting is native (`tag:#glossary` color group) — a per-term-coloring plugin is last, if
+        ever. Sequence: convention → embed-exclusion → scanner → flashcards → plugin. Not started.
 
 ## README managed block (task #9, BUILT 2026-07-09): a devkit-owned region in a user-editable README
 - [x] **Made the brain `README.md` a hybrid — devkit-owned block + user-owned space.**
