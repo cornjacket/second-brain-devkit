@@ -8,11 +8,16 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-09)
-- **▶▶ NEXT — task #18 (review corpus separation — light checkpoint)** — decide whether #17's
-  purity is enough for the #12/#13 benchmark or lean on the ground-truth topic labels. A decision,
-  not code.
-- **Then queued:** #15 (diverse benchmark corpus — can reuse the #16/#17 corpus), #12/#13 (feature
+## ▶ Next up (2026-07-10)
+- **▶▶ NEXT — task #15 (topically-diverse benchmark corpus).** Build a large corpus of far-apart
+  domains (cooking, finance, distributed systems, music theory…) — the *unsupervised* topic-count /
+  `t_max`-plateau case, complementing the #16/#17 IT corpus (which #18 fixed as the *supervised* +
+  adversarial stress test). Unblocks #12/#13 and the deferred auto-link `--apply` calibration.
+- **Done 2026-07-10:** #18 (corpus-separation decision — grade the #16/#17 corpus *supervised*
+  against its folder labels; do not chase purity; IT corpus = supervised + adversarial, #15 =
+  unsupervised). Also scoped #19 (glossary controlled-vocabulary layer) + seeded a PARA(G) glossary
+  in the real brain.
+- **Then queued:** #12/#13 (feature
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
   controlled-vocabulary layer — local-first brain feature, alongside #3/#8).
 - **Done recently:** #9 README managed block (2026-07-09: markers around the golden/template README
@@ -510,14 +515,20 @@ populated brain**, not a single example. (The prompting example that raised this
       Raises the corpus's value for #15/#12/#13. **These are devkit-side seed files, not emitted —
       CI unaffected.**
 
-## Review test-corpus clustering (task #18, backlog)
-- [ ] **Review the clustering analysis + post-#17 cohesion and decide the separation strategy.**
-      (task #18) Once #17 improves the notes, reassess whether the corpus separates well enough for
-      the #12/#13 benchmark, or whether to pursue further levers (more notes/topic; merging the
-      adjacent rust↔golang / AI topics; a stronger embedder) — or to lean on the **ground-truth
-      topic labels** instead of unsupervised separation (the reframe in
-      [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md)). A decision checkpoint, not
-      new code.
+## Review test-corpus clustering (task #18, DECIDED 2026-07-10)
+- [x] **Reviewed the post-#17 cohesion and chose the separation strategy.** (task #18) **Decision:
+      grade the corpus *supervised* — the 10 topic folders are ground-truth labels, so #12/#13
+      measure how well retrieval/auto-linking recovers the *known* topics; do NOT chase higher
+      purity.** Levers #3/#4 (more notes per topic, merging adjacent rust↔golang / AI topics) were
+      rejected: they game the purity metric and make the corpus *less* realistic, and the residual
+      blend is semantically-correct concept-name collision (a floor set by topic design), not a
+      note-quality defect. The moderate, everything-adjacent separation is the honest stress test
+      for the auto-linker's `t_max` + mutual-KNN. **Division of labor with #15:** the #16/#17 IT
+      corpus carries the *supervised* benchmark + the *adversarial* (everything-adjacent) stress
+      test; the #15 topically-diverse corpus (far-apart domains) carries the *unsupervised*
+      topic-count / plateau analysis where clean self-sorting matters. Unsupervised separation of the
+      *IT* topics (levers #3/#4) is deferred to only-if-a-plateau-demo-on-IT-topics is specifically
+      needed. No code — see [docs/test-corpus-clustering.md](docs/test-corpus-clustering.md).
 
 ## Benchmarking & feature toggles (backlog): quantify each quality enhancement
 Goal: measure the **relative** retrieval/graph-quality payoff of each enhancement by

@@ -127,3 +127,13 @@ problem. For **task #18**: this is likely good enough for a *supervised* benchma
 folders are ground-truth labels — the [reframe](#reframe--you-may-not-need-higher-purity)); reach
 for lever #4 (merge/replace adjacent topics) only if a cleanly-separable *unsupervised* benchmark
 is specifically needed.
+
+**Decided (task #18, 2026-07-10):** grade the #16/#17 corpus **supervised** — the 10 topic folders
+are ground-truth labels, so #12/#13 measure recovery against the *known* topics; **do not chase
+higher purity.** Levers #3/#4 were rejected (they game the metric and cut realism; the residual
+blend is semantically-correct concept-name collision, a floor set by topic design). The moderate,
+everything-adjacent separation is kept deliberately as the honest stress test for the auto-linker's
+`t_max` + mutual-KNN. **Division of labor:** this IT corpus = the *supervised* benchmark +
+*adversarial* stress test; the **#15** topically-diverse corpus (far-apart domains) = the
+*unsupervised* topic-count / `t_max`-plateau case. Unsupervised separation of the IT topics is
+deferred to only-if-specifically-needed.
