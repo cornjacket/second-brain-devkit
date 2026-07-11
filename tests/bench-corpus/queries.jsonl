@@ -1,0 +1,30 @@
+{"query": "how do I keep a mayonnaise from splitting", "domain": "cooking", "expected": ["bench_cooking_emulsions.md"]}
+{"query": "why searing meat needs a dry surface and very high heat", "domain": "cooking", "expected": ["bench_cooking_maillard.md"]}
+{"query": "turning a tough cut tender with long slow moist heat", "domain": "cooking", "expected": ["bench_cooking_braising.md"]}
+{"query": "teaching an actor to pursue an action instead of showing a feeling", "domain": "acting", "expected": ["bench_acting_teaching-objectives.md"]}
+{"query": "the repetition drill for working off impulse with a partner", "domain": "acting", "expected": ["bench_acting_meisner-repetition.md"]}
+{"query": "what a character really means underneath the spoken lines", "domain": "acting", "expected": ["bench_acting_teaching-subtext.md"]}
+{"query": "coaching outward rotation of the legs from the hip", "domain": "dancing", "expected": ["bench_dancing_teaching-turnout.md"]}
+{"query": "keeping from getting dizzy during repeated turns", "domain": "dancing", "expected": ["bench_dancing_teaching-spotting.md"]}
+{"query": "how to teach the graceful carriage of the arms", "domain": "dancing", "expected": ["bench_dancing_teaching-port-de-bras.md"]}
+{"query": "the plague that wiped out a third of medieval Europe", "domain": "history", "expected": ["bench_history_black-death.md"]}
+{"query": "what caused the outbreak of the First World War", "domain": "history", "expected": ["bench_history_world-war-one-causes.md"]}
+{"query": "Luther breaking away from the Catholic Church", "domain": "history", "expected": ["bench_history_protestant-reformation.md"]}
+{"query": "how cells release energy from glucose using oxygen", "domain": "biology", "expected": ["bench_biology_cellular-respiration.md"]}
+{"query": "how plants turn sunlight into sugar", "domain": "biology", "expected": ["bench_biology_photosynthesis.md"]}
+{"query": "how traits pass to offspring through dominant and recessive alleles", "domain": "biology", "expected": ["bench_biology_mendelian-genetics.md"]}
+{"query": "getting many machines to agree on one value despite failures", "domain": "distributed-systems", "expected": ["bench_distributed-systems_raft-paxos-consensus.md"]}
+{"query": "the tradeoff between consistency and availability under a network partition", "domain": "distributed-systems", "expected": ["bench_distributed-systems_cap-theorem.md"]}
+{"query": "making an operation safe to retry without duplicate side effects", "domain": "distributed-systems", "expected": ["bench_distributed-systems_idempotency.md"]}
+{"query": "the pattern of whole and half steps that defines a major scale", "domain": "music-theory", "expected": ["bench_music-theory_major-and-minor-scales.md"]}
+{"query": "the chord movement that resolves tension to close a passage", "domain": "music-theory", "expected": ["bench_music-theory_cadences.md"]}
+{"query": "the diagram arranging keys by fifths", "domain": "music-theory", "expected": ["bench_music-theory_circle-of-fifths.md"]}
+{"query": "what happens when a massive star collapses and explodes", "domain": "astronomy", "expected": ["bench_astronomy_supernovae.md"]}
+{"query": "how shifted starlight shows the universe is expanding", "domain": "astronomy", "expected": ["bench_astronomy_cosmic-expansion-redshift.md"]}
+{"query": "a region whose gravity is so strong not even light escapes", "domain": "astronomy", "expected": ["bench_astronomy_black-holes.md"]}
+{"query": "the guilty-mind mental element required for a crime", "domain": "law", "expected": ["bench_law_mens-rea.md"]}
+{"query": "courts being bound to follow earlier decisions", "domain": "law", "expected": ["bench_law_stare-decisis-precedent.md"]}
+{"query": "what turns a promise into an enforceable agreement", "domain": "law", "expected": ["bench_law_contract-formation.md"]}
+{"query": "spreading money across investments to lower risk", "domain": "personal-finance", "expected": ["bench_personal-finance_diversification.md"]}
+{"query": "how interest earns interest and snowballs over time", "domain": "personal-finance", "expected": ["bench_personal-finance_compound-interest.md"]}
+{"query": "investing a fixed amount on a schedule regardless of price", "domain": "personal-finance", "expected": ["bench_personal-finance_dollar-cost-averaging.md"]}

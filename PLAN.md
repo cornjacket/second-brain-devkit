@@ -9,14 +9,16 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-10)
-- **▶▶ NEXT — task #15 (topically-diverse benchmark corpus).** Build a large corpus of far-apart
-  domains (cooking, finance, distributed systems, music theory…) — the *unsupervised* topic-count /
-  `t_max`-plateau case, complementing the #16/#17 IT corpus (which #18 fixed as the *supervised* +
-  adversarial stress test). Unblocks #12/#13 and the deferred auto-link `--apply` calibration.
-- **Done 2026-07-10:** #18 (corpus-separation decision — grade the #16/#17 corpus *supervised*
-  against its folder labels; do not chase purity; IT corpus = supervised + adversarial, #15 =
-  unsupervised). Also scoped #19 (glossary controlled-vocabulary layer) + seeded a PARA(G) glossary
-  in the real brain.
+- **▶▶ NEXT — the #15 acceptance run (needs Ollama).** The #15 corpus is authored (200 notes +
+  30-query eval set + tooling, all committed); the remaining step is the real-Ollama measurement —
+  cluster plateau, a confident global `t_max`, `queries.jsonl` retrieval, the acting/dancing/
+  music-theory separation — then the deferred auto-link `--apply` calibration. See
+  [docs/benchmark-corpus.md §5](docs/benchmark-corpus.md). After that: **#13 → #12** (feature catalog
+  + ablation harness, which consume this dataset).
+- **Done 2026-07-10:** #15 authoring + tooling + query set (200 notes across 10 far-apart domains;
+  corpus-driven `test_corpus.py`; `--seed-bench-corpus`); #18 (corpus-separation decision — grade the
+  #16/#17 corpus *supervised*; IT = supervised + adversarial, #15 = unsupervised); scoped #19
+  (glossary layer) + seeded a PARA(G) glossary in the real brain.
 - **Then queued:** #12/#13 (feature
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
   controlled-vocabulary layer — local-first brain feature, alongside #3/#8).
@@ -536,8 +538,16 @@ turning it on/off and benchmarking — an ablation study — so we know which fe
 actually earn their keep. Both tasks below are exploratory (**may not become a shipped
 requirement**); they also produce the material for a future GitHub tutorial.
 
-- [ ] **Build a large, topically-diverse benchmark corpus — the unsupervised / calibration
+- [~] **Build a large, topically-diverse benchmark corpus — the unsupervised / calibration
       dataset.** (task #15; the shared dataset prerequisite for the ablation + calibration work.)
+      **BUILT 2026-07-10:** 200 notes (10 domains × 20, `tests/bench-corpus/`), a 30-query labeled
+      eval set (`tests/bench-corpus/queries.jsonl`, all 10 domains, every reference resolves), and
+      corpus-driven `test_corpus.py` (`--corpus bench`) + `create_second_brain --seed-bench-corpus`
+      (verified end-to-end on a `test`-backend brain: 200 install → clean remove; default seed corpus
+      still installs 100; CI 8/8). Full design in [docs/benchmark-corpus.md](docs/benchmark-corpus.md).
+      **Remaining (needs Ollama, out of CI):** the acceptance measurement (cluster plateau + confident
+      global `t_max`, and confirming the acting/dancing/music-theory trio separates) and the deferred
+      auto-link `--apply` calibration — §5 of the doc.
       Per the [[task #18]] decision, this is the **complement** to the #16/#17 IT corpus: where the
       IT corpus is deliberately *everything-adjacent* (the supervised + adversarial stress test),
       #15 is deliberately **far-apart domains** so the embedding space has clean, separable
