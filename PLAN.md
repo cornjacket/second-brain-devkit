@@ -543,12 +543,16 @@ requirement**); they also produce the material for a future GitHub tutorial.
       #15 is deliberately **far-apart domains** so the embedding space has clean, separable
       **cluster structure** — the *unsupervised* topic-count / `t_max`-plateau case, and the first
       corpus on which auto-link `--apply` is actually illuminating. Devkit-side and **never emitted**
-      (like #16). Design / subtasks (proposed defaults — confirm at build):
-      - **Topics & size.** ~**10 deliberately distant domains** (e.g. cooking, personal finance,
-        distributed systems, history, biology, music theory, astronomy, gardening, law, cinema) —
-        minimal shared vocabulary across domains, unlike the IT corpus. ~**20 notes/topic (~200
-        total)**: denser clusters than #16's 10/topic (clustering-doc lever #3) so a single-linkage
-        sweep shows a **clear plateau** at the intended topic count.
+      (like #16). Design / subtasks (**decisions locked 2026-07-10**: size 10×20, query set authored
+      in #15, generalize `test_corpus.py`):
+      - **Topics & size.** ~**10 deliberately distant domains**: cooking, personal finance,
+        distributed systems, history, biology, music theory, astronomy, **acting — framed as *how to
+        teach acting***, law, **dancing — framed as *how to teach dancing***. Minimal shared
+        vocabulary across domains, unlike the IT corpus. **Heads-up:** music-theory / acting /
+        dancing are all performing-arts-adjacent — steer each with its own pedagogy/jargon (the #17
+        lesson) and watch that group in the cluster check, like rust↔golang in #16. ~**20
+        notes/topic (~200 total)**: denser clusters than #16's 10/topic (clustering-doc lever #3) so
+        a single-linkage sweep shows a **clear plateau** at the intended topic count.
       - **Note bodies.** Apply the #17 lesson — ~120–150 words each, packed with topic-specific
         vocabulary, steered off generic cross-topic terms. **Committed static files** (not a random
         generator) so embeddings + measurements are byte-repeatable.
@@ -562,7 +566,7 @@ requirement**); they also produce the material for a future GitHub tutorial.
         `tests/bench-corpus/queries.jsonl` (or similar) mapping each query → its expected note(s),
         alongside the folder/topic labels ([[ground-truth-labels]]). This is the piece #12 consumes:
         the topic folders give the supervised labels, the query set gives retrieval relevance.
-        **(Open — author here vs defer to #12; recommend here, since #15 *is* the dataset.)**
+        **(Decided 2026-07-10 — authored here in #15, since #15 *is* the dataset; #12 consumes it.)**
       - **`create_second_brain` flag.** Generalize `--seed-test-corpus` (or add `--seed-bench-corpus`)
         so a brain can be born pre-seeded with this corpus.
       - **Acceptance (real Ollama, opt-in, out of the hermetic CI gate).** (1) Embeds; the §2.3
