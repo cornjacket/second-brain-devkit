@@ -4,6 +4,10 @@
 [PLAN.md → Retrieval quality](../PLAN.md#retrieval-quality-backlog-surfaced-2026-07-04).
 This document explains two independent improvements to how a brain retrieves notes.
 
+**Related:** for the separate problem of pulling *closely-related* topics apart in embedding
+space (relevant to an IT-heavy brain, surfaced by the #15 vs #16 corpus contrast), see
+[embedding-separation.md](embedding-separation.md).
+
 ## TL;DR
 
 A brain currently retrieves with **dense vector search only** — it embeds the note

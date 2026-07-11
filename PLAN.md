@@ -436,7 +436,9 @@ populated brain**, not a single example. (The prompting example that raised this
       Rank Fusion** in `search_vault.search()` so both the CLI, the skill, and the MCP
       server benefit at once. Fold `tags:` into the lexical text. **Do NOT** add a
       manual `keywords:` note section — FTS5 over the body + tags already covers literal
-      terms, at real authoring cost for marginal gain.
+      terms, at real authoring cost for marginal gain. **Highest-ROI lever for pulling
+      closely-related IT topics apart** (they differ by exact tokens dense vectors blur) —
+      see [docs/embedding-separation.md §1](docs/embedding-separation.md).
 - [x] **Use nomic task prefixes — PREREQUISITE for #8, DONE 2026-07-08.** Threaded a
       `task` arg through `embed(text, task="document"|"query")`, mapped to
       `search_document:`/`search_query:` **only in the Ollama backend** (`test` backend
@@ -630,7 +632,10 @@ requirement**); they also produce the material for a future GitHub tutorial.
       block or `config/features.toml`), then build an **ablation harness** that runs a
       **labeled eval set** (queries → expected relevant notes) against the brain under each
       toggle configuration and reports IR metrics (recall@k, MRR, nDCG, top-1 distance +
-      **margin/separation**) so each feature's contribution is quantified.
+      **margin/separation**) so each feature's contribution is quantified. **Also the vehicle
+      for comparing embedding models** (swap the `embedder.py` backend, re-score on the #15
+      corpus, pick the winner) — the practical way to pull closely-related IT topics apart, see
+      [docs/embedding-separation.md §6](docs/embedding-separation.md).
       **Key design nuance — two toggle classes:** **index-time** toggles (prefixes,
       canonical view, chunking, `content_hash`) change the *stored* vectors, so flipping one
       forces a **full re-embed** of the corpus (expensive — matrix/cache the runs);
