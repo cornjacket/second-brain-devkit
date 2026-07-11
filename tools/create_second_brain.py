@@ -197,7 +197,7 @@ def connect_remote(target: Path, url: str, *, autosync: bool = True) -> bool:
 
 def create_second_brain(
     target, *, force: bool = False, remote: str | None = None, autosync: bool = True,
-    seed_test_corpus: bool = False,
+    seed_test_corpus: bool = False, seed_bench_corpus: bool = False,
 ) -> tuple[Path, bool | None]:
     """Generate a brain at ``target`` and bootstrap it as its own repo.
 
@@ -228,8 +228,11 @@ def create_second_brain(
     bootstrap_git(target)
 
     if seed_test_corpus:
-        n = install_corpus(target)
+        n = install_corpus(target, corpus="test")
         print(f"   seeded {n} test-corpus note(s) into vault/resources/ (task #16)")
+    if seed_bench_corpus:
+        n = install_corpus(target, corpus="bench")
+        print(f"   seeded {n} benchmark-corpus note(s) into vault/resources/ (task #15)")
 
     pushed: bool | None = None
     if remote is not None:
@@ -275,8 +278,13 @@ def main(argv: list[str]) -> int:
     )
     ap.add_argument(
         "--seed-test-corpus", action="store_true",
-        help="also copy the devkit's test corpus (100 notes, 10 topics) into the new "
+        help="also copy the devkit's test corpus (100 notes, 10 IT topics) into the new "
              "brain and commit it — a populated test brain (task #16; needs an embedder).",
+    )
+    ap.add_argument(
+        "--seed-bench-corpus", action="store_true",
+        help="also copy the devkit's benchmark corpus (200 notes, 10 diverse domains) into "
+             "the new brain and commit it (task #15; needs an embedder).",
     )
     args = ap.parse_args(argv)
     if args.no_autosync and args.remote is None:
@@ -285,6 +293,7 @@ def main(argv: list[str]) -> int:
     out, pushed = create_second_brain(
         args.target, force=args.force, remote=args.remote,
         autosync=not args.no_autosync, seed_test_corpus=args.seed_test_corpus,
+        seed_bench_corpus=args.seed_bench_corpus,
     )
     _print_next_steps(
         out, remote=args.remote, autosync=not args.no_autosync, pushed=pushed,
