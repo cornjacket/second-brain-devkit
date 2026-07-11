@@ -1,30 +1,28 @@
-# Daily plan — 2026-07-09
+# Daily plan — 2026-07-13
 
-**Focus:** 07-08 shipped the managed-block thread (**#10** splice helper + **#8** auto-linking
-end-to-end). Today is test-corpus day: **#16** landed the seed/teardown utility (100 notes,
-install/remove + `--seed-test-corpus`) and **#17** raised its clustering — rewrote all 100 note
-bodies ~3× longer and topic-anchored (purity@1 69%→79%, @5 55%→75%; 84% under the `clustering:`
-prefix), with the `clustering:`-prefix reasoning captured in the retrieval docs. Both committed,
-CI 7/7. Remaining: **close the managed-block thread with #9**, then the light #18 checkpoint and
-start the diverse corpus #15.
+**Focus:** Fri 07-10 landed **#15** — the 200-note topically-diverse benchmark corpus + a
+30-query labeled eval set + corpus-driven tooling, with acceptance **passed on real Ollama**
+(purity@1 98%, separation +0.136, a confident `t_max ≈ 0.30`, retrieval top-5 30/30). With the
+dataset **and** the method now in hand, Monday opens the benchmarking thread and the top
+IT-separation lever.
 
-- **▶▶ Build task #9 — the README managed block (do first).** A devkit-owned region in the brain
-  `README.md` (`<!-- BEGIN/END generated -->`) spliced via the **#10 helper**, so `update_brain`
-  refreshes it without clobbering the user's own preamble/appendix. Prototype in the golden README
-  → vendor → template → `ci.py`. Closes the #10→#8→#9 thread.
-- **Then #18 — review the corpus separation (light checkpoint).** #17 already lifted purity; decide
-  whether it's enough for the #12/#13 benchmark or whether to lean on the ground-truth topic labels
-  (the reframe). A decision, not new code.
-- **Then start task #15 — the topically-diverse benchmark corpus.** Can reuse the #16/#17 corpus;
-  unblocks the deferred auto-link `--apply`, real `t_max`/topic-count calibration, and #12/#13.
-- Guards stay green through `tools/ci.py` (**7 gates**).
+- **▶▶ Start #13 — catalog the quality-enhancement features** (docs-only; the input to #12 and
+  the tutorial outline): each retrieval/graph feature with its mechanism, index- vs query-time,
+  config toggle, and status.
+- **Then #12 — the ablation harness** scaffold: run `queries.jsonl` against the #15 corpus under
+  each toggle, reporting recall@k / MRR / separation. Also the vehicle to **compare embedders**.
+- **Parallel lever — #3 hybrid FTS5/BM25:** highest-ROI for the IT-heavy real brain (exact tokens
+  dense vectors blur). See `docs/embedding-separation.md §1`.
+- **Optional:** run the now-unblocked auto-link `--apply` calibration on the real brain (derive
+  its own `t_max` — IT-heavy, so expect a looser cut than the diverse corpus).
+- Guards stay green via `tools/ci.py` (8 gates).
 
 ```
- wed 07-08 ✅ #10 splice helper · #8 auto-linking
+ fri 07-10 ✅ #15 corpus + eval set + tooling · acceptance PASS (98% purity, t_max≈0.30)
                               │
                               ▼
- thu 07-09 ✅ #16 test-corpus utility · #17 clustering improvement (purity 69→79% / 84%)
-            ▶▶ close #9 README managed block (via #10 helper)
-            → #18 review corpus separation (checkpoint) → start #15 diverse corpus
- loop:  golden ─vendor→ tests/golden ─build→ template ─ci.py(7)→ green
+ mon 07-13  ▶▶ #13 feature catalog ──► #12 ablation harness  (consumes #15 corpus + queries)
+            ‖ parallel: #3 hybrid FTS5/BM25 (IT-separation lever)
+            → optional: real-brain auto-link --apply calibration
+ guards: tools/ci.py (8) green
 ```
