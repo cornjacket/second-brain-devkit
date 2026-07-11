@@ -555,13 +555,19 @@ requirement**); they also produce the material for a future GitHub tutorial.
         a single-linkage sweep shows a **clear plateau** at the intended topic count.
       - **Note bodies.** Apply the #17 lesson — ~120–150 words each, packed with topic-specific
         vocabulary, steered off generic cross-topic terms. **Committed static files** (not a random
-        generator) so embeddings + measurements are byte-repeatable.
+        generator) so embeddings + measurements are byte-repeatable. **Authoring rule (from the
+        template review, 2026-07-10):** when a performing-arts note must touch music, describe the
+        *performer's physical reaction* — weight, suspension, rebound, attack, syncopation of steps —
+        **not** music-theory vocabulary (`metronome`, `staccato`, `legato`, `downbeat`, `phrase`),
+        which pulls the dancing cluster toward music-theory. (Caught + fixed in the dancing
+        `musicality` template note.)
       - **Layout & tooling (reuse #16).** A new non-emitted dir `tests/bench-corpus/{domain}/` with
         `bench_{domain}_{desc}.md` names (a distinct `bench_` prefix so teardown targets it
         independently of #16's `seed_`). **Generalize `tools/test_corpus.py`** to be corpus-dir +
         prefix driven so one tool installs/removes either corpus into a target brain's
-        `vault/resources/` (idempotent, commit-through-hooks). Add the dir to `emit-manifest.toml`'s
-        exclude set; keep the partition + structural-diff green.
+        `vault/resources/` (idempotent, commit-through-hooks). **No manifest change needed** —
+        confirmed like `tests/seed-corpus`, the partition check only walks `tests/golden/`, so
+        `tests/bench-corpus/` is invisible to CI; committing the notes keeps every gate green.
       - **Labeled query set (the benchmark ground truth).** Author a small committed
         `tests/bench-corpus/queries.jsonl` (or similar) mapping each query → its expected note(s),
         alongside the folder/topic labels ([[ground-truth-labels]]). This is the piece #12 consumes:
