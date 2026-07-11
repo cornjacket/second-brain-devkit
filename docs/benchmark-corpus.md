@@ -105,3 +105,59 @@ sidecars, domain labels from the topic folders) and retrieval (the brain's own
 
 **Verdict: PASS.** The corpus separates cleanly, yields a confident `t_max`, and retrieves
 its labeled queries — ready for the #12/#13 ablation work and the auto-link calibration.
+
+## 6. Ablation results (task #12, increment 2 — real Ollama, 2026-07-11)
+
+`tools/ablation.py` runs this corpus + `queries.jsonl` through real embeddings and reports IR
+metrics per feature configuration. Increment 1 covered the **query-time** task prefix; increment 2
+adds the two **index-time** ablations (each re-embeds the notes).
+
+**§1 — nomic task prefix (query-time; notes stored `search_document:`)**
+
+| query config | recall@1 | recall@5 | MRR | nDCG@5 | top-1 dist | margin |
+|---|---|---|---|---|---|---|
+| `search_query:` (correct asymmetric) | 0.900 | **1.000** | 0.926 | 0.944 | **0.238** | 0.067 |
+| no prefix | 0.900 | 1.000 | 0.939 | 0.954 | 0.263 | 0.067 |
+| `search_document:` (symmetric) | **0.867** | 0.967 | 0.907 | 0.917 | 0.237 | 0.055 |
+
+The **symmetric** scheme measurably hurts (recall@1 0.867); the correct asymmetric prefix and
+no-prefix tie on recall@1, with the prefix giving **tighter distances** (0.238 vs 0.263). On a
+cleanly-separable corpus prefixes pay in *separation*, not raw recall — matching the real-brain
+finding.
+
+**§2 — canonical substance view (index-time; nomic, correct prefixes)**
+
+| body config | recall@1 | recall@5 | MRR | nDCG@5 | top-1 dist | margin |
+|---|---|---|---|---|---|---|
+| canonical ON (body only) | 0.900 | 1.000 | 0.926 | 0.944 | 0.238 | 0.067 |
+| canonical OFF (full text) | 0.900 | 1.000 | 0.924 | 0.942 | 0.246 | 0.066 |
+
+**Retrieval-flat** (Δ negligible; canonical is a hair tighter). This is the expected null result:
+these notes carry only `tags:` in frontmatter, so stripping it barely moves the vector. Canonical
+view earns its keep in **graph legibility** (breaking the auto-link feedback loop, §1 of
+[quality-features](quality-features.md)), **not** retrieval.
+
+**§3 — embedder model swap (index-time; canonical body, each model's native scheme)**
+
+| model | recall@1 | recall@5 | MRR | nDCG@5 | top-1 dist | margin |
+|---|---|---|---|---|---|---|
+| `nomic-embed-text` (768d) | 0.900 | **1.000** | 0.926 | 0.944 | 0.238 | 0.067 |
+| `mxbai-embed-large` (1024d) | 0.900 | 0.967 | **0.939** | 0.942 | 0.257 | **0.089** |
+
+A **wash**: tie on recall@1, nomic holds recall@5=perfect, mxbai edges MRR + a wider margin. The
+heavier 1024-dim model does **not** clearly separate better here — because this corpus is
+deliberately *far-apart* domains, the model lever (which matters for *closely-related* topics) has
+nothing to pull apart. (recall/MRR/nDCG are rank-based → comparable across models; top-1 dist /
+margin are model-relative and not.)
+
+**Meta-finding — the diverse corpus saturates the metrics.** recall@5 ≈ 1.0 across nearly every
+config: #15 was built as the clean/separable case, so it has little headroom to *differentiate*
+features. Feature ablations that need to show separation deltas want the **adversarial IT corpus**
+(#16/#17, everything-adjacent) or the **real brain** — a follow-on for #12 is to author a
+`queries.jsonl` for the IT corpus and re-run §1–§3 there, where the levers have room to move.
+
+**Decision (gates task-#12 Half B).** None of the three index-time features is *situational*: the
+prefix and canonical view are always-on wins (symmetric hurts; canonical is for the graph), and the
+model swap shows no winner on this corpus. So a per-brain **`config/features.toml`** runtime toggle
+for them would be **dead config** — deferred until a genuinely optional feature exists to toggle
+(#3 hybrid FTS5 on/off, #7 chunking).

@@ -40,6 +40,9 @@ embedding is a function of *substance*, not *metadata about* it — so writing m
 `related_auto:` links can't feed back into the vector (the rich-get-richer loop).
 **Before/after:** editing a note's frontmatter (adding a tag or an auto-link) *used to* move its
 vector; now it doesn't — the vector only tracks the prose.
+**Measured (#12 ablation, [benchmark-corpus §6](benchmark-corpus.md)):** on retrieval this is
+**flat** (recall@1 0.900 both ways; canonical only a hair tighter, top-1 dist 0.238 vs 0.246) —
+its payoff is graph legibility / feedback-loop prevention, *not* retrieval, exactly as intended.
 
 ### 2. Nomic task prefixes — *built (#3), index-time*
 **Mechanism:** `embed(text, task="document"|"query")` maps to `search_document:` /
@@ -61,6 +64,10 @@ edit (or an unchanged commit) no longer calls the model or rewrites the sidecar.
 closely-related topics apart ([embedding-separation §2](embedding-separation.md)). **Before/after:**
 a stronger or code-aware embedder would separate `rust` vs `golang` notes that a general model
 blends — measured on the #15 corpus via the ablation.
+**Measured (#12 ablation, [benchmark-corpus §6](benchmark-corpus.md)):** `nomic-embed-text` vs
+`mxbai-embed-large` (1024d) is a **wash** on the diverse corpus (recall@1 tie; nomic holds
+recall@5 1.000, mxbai edges MRR) — the model lever needs *closely-related* topics to show its
+value, so this belongs re-run on the adversarial IT corpus / real brain, not the far-apart #15.
 
 ### 5. Hybrid lexical + vector search — *planned (#3), query-time*
 **Mechanism:** an **FTS5** (BM25) virtual table in the *same* `data/brain.db`, fused with the
@@ -108,3 +115,11 @@ key. **Index-time** keys (`canonical_view`, `task_prefixes`, `content_hash_skip`
 `whiten`, `chunking`, `graph_embedding`) force a re-embed when flipped; **query-time** keys
 (`hybrid_search`, `rrf_k`, and the auto-link `t_max`/`top_n`/`mutual`/`hysteresis`) flip for free.
 Building that config + the toggles is **task #12**, not this catalog.
+
+**Update (#12 increment 2, 2026-07-11):** the ablation ran the three *built* index-time features
+on the #15 corpus ([benchmark-corpus §6](benchmark-corpus.md)) and none is *situational* — the task
+prefix and canonical view are always-on wins (the symmetric prefix hurts; canonical view is for the
+graph), and the model swap shows no winner on far-apart domains. So shipping a per-brain
+`config/features.toml` toggle for them would be **dead config**; it is **deferred** until a
+genuinely optional feature exists to toggle — a query-time **`hybrid_search`** on/off (#3) or
+**`chunking`** (#7) — which is where the config surface first earns its place.

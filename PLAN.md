@@ -8,14 +8,25 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-10)
-- **▶▶ NEXT — finish #12 + #3 (parallel).** #12 increment 1 is built (`tools/ablation.py` — the
-  metrics engine + the query-prefix ablation on the #15 corpus). Remaining #12: a per-brain
-  `config/features.toml` wiring the toggles into the emitted scripts, and the **index-time**
-  ablations that re-embed (canonical view, embedder/model swap, chunking). In parallel, **#3 hybrid
-  FTS5** is both a feature and a query-time toggle the harness can then ablate. Separately, the
-  real-brain auto-link `--apply` calibration (task #8) is unblocked (the bench corpus proved a
-  confident `t_max ≈ 0.30`).
+## ▶ Next up (2026-07-11)
+- **▶▶ NEXT — #3 hybrid FTS5 (now the lead lever).** #12's measurement half is **done**
+  (increment 2, below): the three built index-time features were ablated on the #15 corpus and
+  none is *situational*, so shipping `config/features.toml` was **deferred as dead config** until
+  a genuinely optional feature exists to toggle. **#3 hybrid FTS5** is exactly that first feature —
+  a query-time `hybrid_search` on/off toggle the harness can ablate — **and** the top IT-separation
+  lever. Building #3 is what re-opens the `config/features.toml` half of #12 with a real toggle.
+- **Also unblocked:** the real-brain auto-link `--apply` calibration (task #8 — the bench corpus
+  proved a confident `t_max ≈ 0.30`). And a #12 follow-on: author a `queries.jsonl` for the
+  adversarial IT corpus (#16/#17) and re-run the ablation there — the far-apart #15 corpus
+  *saturates* the metrics (recall@5 ≈ 1.0), so the levers need the everything-adjacent corpus to
+  show separation deltas.
+- **Done 2026-07-11:** **#12 increment 2** — extended `tools/ablation.py` with the two index-time
+  ablations (canonical view ON/OFF, embedder model swap nomic vs mxbai-embed-large) + a memoized,
+  model-parametrized embedder. Results ([benchmark-corpus §6](docs/benchmark-corpus.md)): canonical
+  view is retrieval-**flat** (its value is graph legibility, not search); the model swap is a
+  **wash** on far-apart domains (the lever needs closely-related topics); the symmetric task prefix
+  measurably hurts. **Decision:** defer `config/features.toml` (Half B) — no built feature is
+  situational; the config surface waits for #3/#7. Devkit-side only, CI 8/8 green, nothing emitted.
 - **Done 2026-07-10:** **#15 COMPLETE** — 200-note diverse corpus + 30-query eval set + corpus-driven
   tooling; **acceptance passed on real Ollama** (purity@1 98%, separation +0.136, retrieval top-5
   30/30, the performing-arts trio separates). #18 (corpus-separation decision — grade the #16/#17
@@ -633,7 +644,24 @@ requirement**); they also produce the material for a future GitHub tutorial.
         line-count guard. Each entry should be tutorial-ready (a made-up before/after
         example illustrating the enhancement). Local-first, docs-only task.
 - [~] **Global feature toggles + ablation benchmark harness.** (task #12)
-      **INCREMENT 1 BUILT 2026-07-10 — the harness + metrics engine (`tools/ablation.py`).** Runs the
+      **INCREMENT 2 BUILT 2026-07-11 — the index-time ablations + a model-parametrized, memoized
+      embedder.** `tools/ablation.py` now runs three sections on the #15 corpus: §1 task prefix
+      (query-time, increment 1), §2 canonical view ON/OFF, §3 embedder model swap
+      (`nomic-embed-text` vs `mxbai-embed-large`, each with its native retrieval scheme). Each
+      index-time config re-embeds; a process-wide `(model, text)` memo dedupes shared passes.
+      **Results ([benchmark-corpus §6](docs/benchmark-corpus.md)):** canonical view is
+      retrieval-**flat** (Δ negligible — its payoff is graph legibility, not search); the model
+      swap is a **wash** on far-apart domains (recall@1 tie; the model lever needs *closely-related*
+      topics); the symmetric prefix measurably hurts (recall@1 0.867). **Meta-finding:** #15
+      *saturates* the metrics (recall@5 ≈ 1.0) — feature-separation ablations want the adversarial
+      IT corpus (#16/#17) or the real brain, so a follow-on is to author a `queries.jsonl` for the
+      IT corpus and re-run. **DECISION — Half B deferred:** no built index-time feature is
+      *situational* (all are always-on wins or immeasurable here), so a per-brain
+      `config/features.toml` toggle for them would be **dead config**; the config surface waits for
+      the first genuinely optional feature — #3 hybrid FTS5 (`hybrid_search` on/off) or #7 chunking.
+      Devkit-side only (Ollama-gated, out of the hermetic gate); `sys.dont_write_bytecode` keeps the
+      harness from dropping a `__pycache__` into the tracked `template/` tree; CI 8/8 green.
+      **INCREMENT 1 (2026-07-10) — the harness + metrics engine (`tools/ablation.py`).** Runs the
       #15 corpus + `queries.jsonl` through real Ollama and reports **recall@1/@5, MRR, nDCG@5, mean
       top-1 distance, mean rank-1 margin** per feature config; Ollama-gated (SKIP + exit 0 when
       absent, out of the hermetic CI gate, like `check_semantic_retrieval`). First ablation — the
