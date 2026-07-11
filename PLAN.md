@@ -9,11 +9,13 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-10)
-- **▶▶ NEXT — #13 → #12 (feature catalog, then the ablation harness).** #15 is done and its
-  acceptance passed, so the dataset is ready: #13 catalogs each quality feature, #12 builds the
-  ablation harness that runs `queries.jsonl` against the bench corpus under each toggle. Separately,
-  the real-brain auto-link `--apply` calibration (task #8) is now unblocked — the bench corpus proved
-  a confident `t_max ≈ 0.30`.
+- **▶▶ NEXT — #12 (the ablation harness).** #13 is done ([docs/quality-features.md](docs/quality-features.md)
+  catalogs the 10 features + their toggle keys and cost classes), so #12 can now build
+  `config/features.toml` + the ablation harness that runs `queries.jsonl` against the #15 bench
+  corpus under each toggle (recall@k / MRR / separation), re-embedding per index-time config and
+  sweeping query-time configs cheaply — also the vehicle to compare embedders. Parallel lever: **#3
+  hybrid FTS5**. Separately, the real-brain auto-link `--apply` calibration (task #8) is unblocked
+  (the bench corpus proved a confident `t_max ≈ 0.30`).
 - **Done 2026-07-10:** **#15 COMPLETE** — 200-note diverse corpus + 30-query eval set + corpus-driven
   tooling; **acceptance passed on real Ollama** (purity@1 98%, separation +0.136, retrieval top-5
   30/30, the performing-arts trio separates). #18 (corpus-separation decision — grade the #16/#17
@@ -608,12 +610,16 @@ requirement**); they also produce the material for a future GitHub tutorial.
     This diverse corpus is the first place `t_max` calibration (§2.2) then `autolink.py --apply`
     produces an illuminating, sparse cross-topic graph worth committing / viewing in Obsidian's
     graph view.
-- [ ] **Catalog every second-brain quality-enhancement feature.** (task #13; do FIRST —
-      it is the input to #12 and the outline for the tutorial.) Produce a single inventory
-      (likely `docs/quality-features.md`) listing each retrieval/graph quality feature the
-      brain has or plans, each with: **name**, one-line **what/why**, **mechanism**,
-      **index-time vs query-time** (does flipping it require a re-embed?), the intended
-      **config toggle key**, and **status**. Starting set (the task completes / corrects it):
+- [x] **Catalog every second-brain quality-enhancement feature.** (task #13; DONE 2026-07-10.)
+      Produced [docs/quality-features.md](docs/quality-features.md): 10 features, each with
+      what/why, mechanism, **cost class** (index-time = re-embed on flip vs query-time = free),
+      intended `config/features.toml` toggle key, status, and a tutorial-ready before/after —
+      grounded in the real code (`note_view.canonical_body`/`content_hash`, `embedder.py` task
+      prefixes, `autolink.select_links` top-N∩mutual∩`t_max`). Built: canonical view, task
+      prefixes, `content_hash` gate, embedder backend; in progress: auto-linking; planned: hybrid
+      FTS5 (#3), chunking (#7); candidates: vector whitening, clustering-embedding, line-count
+      guard. Feeds the #12 ablation (the toggles) and the #14 tutorial (the worked examples).
+      Original starting set (the catalog completed / corrected it):
       - **Canonical substance view** — embed the body, not metadata; index-time. *(built, #8)*
       - **Nomic task prefixes** — `search_document:`/`search_query:`, asymmetric for search
         & symmetric for linking; index-time (re-embed on flip). *(built, #3)*
