@@ -829,6 +829,16 @@ requirement**); they also produce the material for a future GitHub tutorial.
         body edit re-embeds the touched note), `--apply`-gated + idempotent (the `install_skill` /
         `doctor` / `autolink` stance). Start dumb (exact-term match); stemming/aliases/code-fence
         skipping are follow-ons only if the dumb pass is noisy.
+      - **New-term helper + template — `scripts/glossary_new.py <term>` (emitted, stdlib).**
+        Slugify the term → `vault/glossary/<slug>.md`; **dedup-check** the folder and refuse
+        (print the existing path) if it already exists; else **scaffold from the flashcard
+        template** — frontmatter (`type: glossary` + tags placeholder), `# Title`, the
+        `Term ? <definition — fill in>` card, and the `#flashcards/…` deck-tag placeholder — so
+        every new card is valid for the *Spaced Repetition* plugin by construction. Print the
+        path; never open or overwrite (detect-and-instruct). Ship the shared **term template**
+        (embedded or `glossary/_TEMPLATE.md`) so humans and the script scaffold identically. The
+        value is for a **human** hand-adding terms (consistency + dedup + plugin-valid structure);
+        an AI just follows the template.
       - **Docs — DUAL README subtask (explicit), and PARA → PARA(G).** Document the glossary in
         **both** READMEs, and in both switch **PARA → PARA(G)**: spell out the letters
         (**P**rojects, **A**reas, **R**esources, **A**rchive, **G**lossary) and state that the **G**

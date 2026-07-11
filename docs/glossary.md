@@ -154,12 +154,17 @@ system.
 Order by value / cost; earlier items must earn the later ones:
 
 1. **Convention** — `vault/glossary/` folder + `type: glossary` marker + the "link on
-   (second) use" rule + a starter `glossary/README.md`.
-2. **Embedding-exclusion** — indexer/hook/cache skip glossary notes; `doctor` treats them as
+   (second) use" rule + a starter `glossary/README.md` + a **term template** (the flashcard
+   shape: `Term ? <definition>` + `#flashcards/…` deck tag).
+2. **New-term helper** — `glossary_new.py <term>`: slugify, **dedup-check** (refuse if the term
+   exists, printing its path), else scaffold from the template with placeholders, print the path
+   (never open/overwrite — detect-and-instruct). Guarantees every card is plugin-valid; its value
+   is for a human hand-adding terms (an AI just follows the template).
+3. **Embedding-exclusion** — indexer/hook/cache skip glossary notes; `doctor` treats them as
    intentionally unembedded.
-3. **Scanner** — `glossary_scan.py`, report-then-`--apply`.
-4. **Flashcards** — free once the note structure is consistent.
-5. **Plugin / per-term graph coloring** — last, if ever.
+4. **Scanner** — `glossary_scan.py`, report-then-`--apply`.
+5. **Flashcards** — free once the note structure is consistent.
+6. **Plugin / per-term graph coloring** — last, if ever.
 
 Generated brains ship the **empty** `glossary/` folder + its README + the scanner + the
 embed-exclusion — **not** pre-filled terms (the vocabulary is the user's to curate). The
