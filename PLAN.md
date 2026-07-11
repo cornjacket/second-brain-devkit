@@ -9,13 +9,13 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-10)
-- **▶▶ NEXT — #12 (the ablation harness).** #13 is done ([docs/quality-features.md](docs/quality-features.md)
-  catalogs the 10 features + their toggle keys and cost classes), so #12 can now build
-  `config/features.toml` + the ablation harness that runs `queries.jsonl` against the #15 bench
-  corpus under each toggle (recall@k / MRR / separation), re-embedding per index-time config and
-  sweeping query-time configs cheaply — also the vehicle to compare embedders. Parallel lever: **#3
-  hybrid FTS5**. Separately, the real-brain auto-link `--apply` calibration (task #8) is unblocked
-  (the bench corpus proved a confident `t_max ≈ 0.30`).
+- **▶▶ NEXT — finish #12 + #3 (parallel).** #12 increment 1 is built (`tools/ablation.py` — the
+  metrics engine + the query-prefix ablation on the #15 corpus). Remaining #12: a per-brain
+  `config/features.toml` wiring the toggles into the emitted scripts, and the **index-time**
+  ablations that re-embed (canonical view, embedder/model swap, chunking). In parallel, **#3 hybrid
+  FTS5** is both a feature and a query-time toggle the harness can then ablate. Separately, the
+  real-brain auto-link `--apply` calibration (task #8) is unblocked (the bench corpus proved a
+  confident `t_max ≈ 0.30`).
 - **Done 2026-07-10:** **#15 COMPLETE** — 200-note diverse corpus + 30-query eval set + corpus-driven
   tooling; **acceptance passed on real Ollama** (purity@1 98%, separation +0.136, retrieval top-5
   30/30, the performing-arts trio separates). #18 (corpus-separation decision — grade the #16/#17
@@ -632,7 +632,20 @@ requirement**); they also produce the material for a future GitHub tutorial.
       - **Candidates:** long-note / PDF chunking + multi-vector (#7); note-hygiene
         line-count guard. Each entry should be tutorial-ready (a made-up before/after
         example illustrating the enhancement). Local-first, docs-only task.
-- [ ] **Global feature toggles + ablation benchmark harness.** (task #12) Make each feature
+- [~] **Global feature toggles + ablation benchmark harness.** (task #12)
+      **INCREMENT 1 BUILT 2026-07-10 — the harness + metrics engine (`tools/ablation.py`).** Runs the
+      #15 corpus + `queries.jsonl` through real Ollama and reports **recall@1/@5, MRR, nDCG@5, mean
+      top-1 distance, mean rank-1 margin** per feature config; Ollama-gated (SKIP + exit 0 when
+      absent, out of the hermetic CI gate, like `check_semantic_retrieval`). First ablation — the
+      **nomic task prefix** (query side, no note re-embed): on this cleanly-separable corpus the
+      prefix barely moves *ranking* (both correct schemes recall@1 0.90) but the **symmetric scheme
+      measurably hurts** (recall@1 0.867) and the correct `search_query:` gives **tighter distances**
+      (0.238 vs 0.263) — separation, not recall, is where prefixes pay, matching the real-brain
+      finding. **Follow-ons (rest of #12):** a per-brain `config/features.toml` wiring the toggles
+      into the emitted scripts, and the **index-time** ablations that force a re-embed (canonical
+      view, embedder/model swap — the [embedding-separation §6](docs/embedding-separation.md)
+      comparison, chunking) — matrixed/cached because each re-embeds the corpus. Original spec:
+      Make each feature
       in the #13 catalog a **global feature toggle** (config-driven, following
       `embedder.py`'s env-override > `config/…` > default pattern — e.g. a `[features]`
       block or `config/features.toml`), then build an **ablation harness** that runs a
