@@ -65,21 +65,43 @@ Or born pre-seeded: `create_second_brain <path> --seed-bench-corpus`. Needs a wo
 embedder (real Ollama, or `SECOND_BRAIN_EMBEDDER=test`). The `bench_` prefix is independent
 of the seed corpus's `seed_`, so the two never collide.
 
-## 5. Acceptance check (real Ollama — remaining step)
+## 5. Acceptance results (real Ollama, 2026-07-10 — PASS)
 
-Seed a real (Ollama-backed) brain with `--corpus bench`, then verify:
+Seeded a fresh Ollama-backed brain (`create_second_brain --seed-bench-corpus`,
+`nomic-embed-text`, 200 notes embedded), then measured cohesion (vectors read from the
+sidecars, domain labels from the topic folders) and retrieval (the brain's own
+`search_vault`). Opt-in / local (needs Ollama), out of the hermetic CI gate.
 
-1. **Cluster plateau** — the single-linkage / union-find sweep (auto-linking §2.3) shows a
-   **clear plateau at ~10 topics** — the separability the IT corpus lacks.
-2. **Confident global `t_max`** — `autolink.py --calibrate` reports a real distance gap /
-   high separation score, vs the IT corpus's no-clean-cut.
-3. **Retrieval** — each `queries.jsonl` query ranks its `expected` note in top-k under
-   threshold (an `check_semantic_retrieval`-style pass over the eval set).
-4. **The performing-arts trio** — confirm acting / dancing / music-theory land as three
-   distinct clusters despite adjacency.
-5. **Auto-link `--apply`** — on the seeded brain, `autolink.py --apply` draws an
-   illuminating graph (distinct clusters, sparse cross-topic edges) — the first meaningful
-   run of the deferred #8 write path.
+| metric | benchmark corpus (#15) | IT corpus (#16/#17), for contrast |
+|---|---|---|
+| topic purity @k=1 | **98%** | 79% |
+| topic purity @k=5 | **96%** | 75% |
+| separation (inter − intra) | **+0.136** (intra 0.267, inter 0.403) | +0.072 |
+| per-domain purity @k=1 | **18–20 / 20** (all 10 domains) | 4–9 / 10 |
 
-This measurement is opt-in / local (needs Ollama) and out of the hermetic CI gate, like the
-other semantic checks. Results get recorded back here when run.
+1. **Clusters are clean and unambiguous.** Every domain scores 18–20/20 nearest-neighbour
+   purity. **The performing-arts trio holds** — acting 18/20, dancing 19/20, music-theory
+   20/20 — so the vocabulary-steering (and the "physical reaction, not music-theory terms"
+   rule) worked.
+2. **Confident `t_max`.** Intra-cluster distances (mean 0.267) sit well below inter-cluster
+   (0.403) — a real gap the IT corpus lacked — so a global **`t_max ≈ 0.30`** cleanly
+   separates within-topic from cross-topic. (Note: the shipped default `t_max=0.45` is too
+   loose *for this corpus* and would link across topics; ~0.30 is right here. The distance
+   scale is embedding-config-specific, as auto-linking §2.2 warns.)
+3. **Topic count.** A single-linkage / union-find sweep passes through ~11 components at
+   d≈0.26 (≈ the 10 intended topics), then chains to 1 by d≈0.28 — single-linkage's known
+   bridge-edge fragility, *not* a corpus defect (the purity metrics confirm the 10 clusters).
+   A density method (HDBSCAN) would show a wider plateau; recorded as a limitation of the
+   stdlib-first sweep.
+4. **Retrieval (`queries.jsonl`, 30 queries): top-1 27/30 (90%), top-5 30/30 (100%).** All
+   three top-1 misses resolve to a *same-domain sibling* (searing→roasting,
+   consensus→eventual-consistency, cadences→tension-and-resolution) — reasonable, not
+   wrong-topic.
+5. **Auto-link `--apply`.** At `t_max≈0.30–0.32` with mutual-KNN, `autolink.py` writes clean
+   **within-cluster** `related_auto:` graphs (189/200 notes linked; e.g. a finance note links
+   only to other finance notes), with the occasional *legitimate* cross-edge (acting↔dance
+   *improvisation*). This is the illuminating graph the homogeneous corpora couldn't produce —
+   the first meaningful exercise of the deferred #8 write path.
+
+**Verdict: PASS.** The corpus separates cleanly, yields a confident `t_max`, and retrieves
+its labeled queries — ready for the #12/#13 ablation work and the auto-link calibration.

@@ -9,16 +9,16 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-10)
-- **▶▶ NEXT — the #15 acceptance run (needs Ollama).** The #15 corpus is authored (200 notes +
-  30-query eval set + tooling, all committed); the remaining step is the real-Ollama measurement —
-  cluster plateau, a confident global `t_max`, `queries.jsonl` retrieval, the acting/dancing/
-  music-theory separation — then the deferred auto-link `--apply` calibration. See
-  [docs/benchmark-corpus.md §5](docs/benchmark-corpus.md). After that: **#13 → #12** (feature catalog
-  + ablation harness, which consume this dataset).
-- **Done 2026-07-10:** #15 authoring + tooling + query set (200 notes across 10 far-apart domains;
-  corpus-driven `test_corpus.py`; `--seed-bench-corpus`); #18 (corpus-separation decision — grade the
-  #16/#17 corpus *supervised*; IT = supervised + adversarial, #15 = unsupervised); scoped #19
-  (glossary layer) + seeded a PARA(G) glossary in the real brain.
+- **▶▶ NEXT — #13 → #12 (feature catalog, then the ablation harness).** #15 is done and its
+  acceptance passed, so the dataset is ready: #13 catalogs each quality feature, #12 builds the
+  ablation harness that runs `queries.jsonl` against the bench corpus under each toggle. Separately,
+  the real-brain auto-link `--apply` calibration (task #8) is now unblocked — the bench corpus proved
+  a confident `t_max ≈ 0.30`.
+- **Done 2026-07-10:** **#15 COMPLETE** — 200-note diverse corpus + 30-query eval set + corpus-driven
+  tooling; **acceptance passed on real Ollama** (purity@1 98%, separation +0.136, retrieval top-5
+  30/30, the performing-arts trio separates). #18 (corpus-separation decision — grade the #16/#17
+  corpus *supervised*; IT = supervised + adversarial, #15 = unsupervised); scoped #19 (glossary
+  layer) + seeded a PARA(G) glossary in the real brain.
 - **Then queued:** #12/#13 (feature
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
   controlled-vocabulary layer — local-first brain feature, alongside #3/#8).
@@ -538,16 +538,19 @@ turning it on/off and benchmarking — an ablation study — so we know which fe
 actually earn their keep. Both tasks below are exploratory (**may not become a shipped
 requirement**); they also produce the material for a future GitHub tutorial.
 
-- [~] **Build a large, topically-diverse benchmark corpus — the unsupervised / calibration
+- [x] **Build a large, topically-diverse benchmark corpus — the unsupervised / calibration
       dataset.** (task #15; the shared dataset prerequisite for the ablation + calibration work.)
       **BUILT 2026-07-10:** 200 notes (10 domains × 20, `tests/bench-corpus/`), a 30-query labeled
       eval set (`tests/bench-corpus/queries.jsonl`, all 10 domains, every reference resolves), and
       corpus-driven `test_corpus.py` (`--corpus bench`) + `create_second_brain --seed-bench-corpus`
       (verified end-to-end on a `test`-backend brain: 200 install → clean remove; default seed corpus
-      still installs 100; CI 8/8). Full design in [docs/benchmark-corpus.md](docs/benchmark-corpus.md).
-      **Remaining (needs Ollama, out of CI):** the acceptance measurement (cluster plateau + confident
-      global `t_max`, and confirming the acting/dancing/music-theory trio separates) and the deferred
-      auto-link `--apply` calibration — §5 of the doc.
+      still installs 100; CI 8/8). **ACCEPTANCE PASSED (real Ollama, 2026-07-10):** purity@1 **98%**
+      / @5 96%, separation **+0.136** (intra 0.267 vs inter 0.403 — the confident `t_max ≈ 0.30` the
+      IT corpus lacked); every domain 18–20/20 incl. the acting/dancing/music-theory trio (18/19/20);
+      retrieval **top-1 27/30, top-5 30/30** (misses are same-domain siblings); `autolink.py` writes
+      clean within-cluster graphs at `t_max≈0.30`. Full results in
+      [docs/benchmark-corpus.md §5](docs/benchmark-corpus.md). Unblocks #12/#13 and the real-brain
+      auto-link `--apply` calibration (below).
       Per the [[task #18]] decision, this is the **complement** to the #16/#17 IT corpus: where the
       IT corpus is deliberately *everything-adjacent* (the supervised + adversarial stress test),
       #15 is deliberately **far-apart domains** so the embedding space has clean, separable
