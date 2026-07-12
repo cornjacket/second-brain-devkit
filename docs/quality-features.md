@@ -24,7 +24,7 @@ Every feature is one of two kinds, and the distinction drives how the ablation r
 | Nomic task prefixes | Use the model as trained (`search_document:` / `search_query:`) | index-time | `task_prefixes` | **built** (#3) |
 | `content_hash` no-op gate | Skip re-embed of unchanged substance (kills neural-noise churn) | index-time (efficiency) | `content_hash_skip` | **built** (#8) |
 | Embedder model / backend | The model decides how far topics land; swap for separation | index-time | `backend` (`config/embedder.toml`) | **built** abstraction; model comparison via #12 |
-| Hybrid lexical + vector | FTS5/BM25 + Reciprocal Rank Fusion — exact-token recall | query-time | `hybrid_search` (+ `rrf_k`) | **planned** (#3) |
+| Hybrid lexical + vector | FTS5/BM25 + Reciprocal Rank Fusion — exact-token recall | query-time | `hybrid_search` (+ `rrf_k`) | **built** (#3) — situational (see §4 below / [benchmark §6d](benchmark-corpus.md)) |
 | Auto-link `related_auto:` | Materialize vector neighbourhoods as Obsidian graph edges | offline pass (free) | `t_max`, `top_n`, `mutual`, `hysteresis` | **in progress** (#8) |
 | Vector post-processing | Whitening / isotropy to sharpen closely-related topics | index-time (post) | `whiten` | candidate ([embedding-separation §3](embedding-separation.md)) |
 | Chunking + multi-vector | Long notes / PDFs → many vectors per source | index-time | `chunking` | planned (#7) |
@@ -71,13 +71,19 @@ set is a **tie** (recall@1 0.675 = 0.675). So the embedder delta is within query
 this scale; ranking embedders robustly needs a larger/held-out set or the real brain. Evaluating a
 stronger/code-aware embedder there stays a reasonable experiment, but is **not** settled by this bench.
 
-### 5. Hybrid lexical + vector search — *planned (#3), query-time*
+### 5. Hybrid lexical + vector search — *built (#3), query-time — situational*
 **Mechanism:** an **FTS5** (BM25) virtual table in the *same* `data/brain.db`, fused with the
 vector ranking via **Reciprocal Rank Fusion** inside `search_vault.search()` — so the CLI, the
-skill, and the MCP server all benefit. **Why:** dense vectors have a lexical blind spot (error
-codes, identifiers, API/config names, rare acronyms). **Before/after:** a query for an exact
-token like `goroutine` or a specific error code, which dense search buries, ranks #1 once BM25
-is fused in. Highest-ROI lever for an IT-heavy brain.
+skill, and the MCP server all benefit. Flipped per-brain via `config/features.toml`
+(`hybrid_search`, `rrf_k`) with `embedder.py`'s env > config > default precedence (`scripts/features.py`).
+**Why:** dense vectors have a lexical blind spot (error codes, identifiers, API/config names, rare
+acronyms). **Before/after (live, real Ollama):** a query for the exact token `sqlite-vec`, which
+dense search buries at #2, ranks **#1** once BM25 is fused in. **Ablation ([benchmark §6d](benchmark-corpus.md),
+`ablation.py` §4):** on the hardened IT set (adjacent topics) hybrid lifts every metric — recall@1
++5pp, recall@5 to a perfect **1.0**; on far-apart bench domains it slightly *hurts* (dense already
+wins; the lexical leg adds cross-domain noise). So it's the first genuinely **situational** feature
+— net win for an IT-heavy brain, a drag on cleanly-separable domains — which is precisely why it
+ships as a **toggle** (default on) rather than hardcoded, and what reopened #12 Half B (§ below).
 
 ### 6. Auto-linking `related_auto:` + stability rules — *in progress (#8), offline pass*
 **Mechanism:** `autolink.py` computes each note's KNN over the existing vectors (no re-embed) and
@@ -125,3 +131,10 @@ graph), and the model swap shows no winner on far-apart domains. So shipping a p
 `config/features.toml` toggle for them would be **dead config**; it is **deferred** until a
 genuinely optional feature exists to toggle — a query-time **`hybrid_search`** on/off (#3) or
 **`chunking`** (#7) — which is where the config surface first earns its place.
+
+**Update (#3 increments 2 & 3, 2026-07-12) — config surface SHIPPED:** `hybrid_search` turned out
+genuinely situational (§4 above; [benchmark §6d](benchmark-corpus.md)), so `config/features.toml` +
+`scripts/features.py` shipped with it as the first two keys (`hybrid_search`, `rrf_k`), env > config
+> default, emitted verbatim. The ablation quantified the payoff (IT set: recall@5 → 1.0; far-apart:
+a slight drag), proving the toggle earns its keep. #12 Half B is now **built**, not deferred; the
+index-time keys remain candidates for the same block if a future ablation makes one situational.

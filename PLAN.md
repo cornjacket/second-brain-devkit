@@ -540,7 +540,7 @@ populated brain**, not a single example. (The prompting example that raised this
 "magic number" — was a **false alarm**: the actual brain ranks `magic-number.md` #1 at
 0.26; Claude Desktop's "not in top 5" analysis was hallucinated. Verify claims against
 `search_vault.py` before acting.)
-- [~] **Hybrid lexical + vector search (SQLite FTS5) — task #3. INCREMENTS 1 & 2 BUILT (2026-07-11/12).**
+- [x] **Hybrid lexical + vector search (SQLite FTS5) — task #3. COMPLETE — increments 1, 2, 3 (2026-07-11/12).**
       A `notes_fts` **FTS5** virtual table now lives beside the vec0 `notes` table in the *same*
       `data/brain.db` (built-in to SQLite, no new dep, no separate index file), hydrated by the
       **same** flow — `hydrate_cache.py` rebuilds both in its one atomic transaction; the
@@ -566,8 +566,19 @@ populated brain**, not a single example. (The prompting example that raised this
       and brain — unlike `embedder.toml`) → manifest/vendor/template/CI. **Verified** live on real
       Ollama: default hybrid ranks `sqlite-vec.md` #1, `SECOND_BRAIN_HYBRID_SEARCH=0` reproduces the
       pre-hybrid blind spot (buries it at #2), `rrf_k` reshapes scores; features precedence unit-checked;
-      CI 8/8, semantic tier 5/5, MCP tier green. **Follow-on:** increment 3 = ablate hybrid vs
-      vector-only on the hardened IT query set (`tools/ablation.py`). Fold-`tags` done; **no** manual
+      CI 8/8, semantic tier 5/5, MCP tier green.
+      **INCREMENT 3 BUILT 2026-07-12 — the payoff, and a situational finding.** `tools/ablation.py`
+      §4 reproduces the shipped `search_vault.search()` path (vector leg + BM25 lexical leg over an
+      in-memory `notes_fts` — same body+tags the brain indexes, reusing `_fts_match_query` — RRF-fused
+      K=60, pool=20) and measures `hybrid_search` on/off on both corpora. **IT (hardened, adjacent):**
+      hybrid lifts every metric — recall@1 0.675→0.725, recall@5 0.975→**1.0**, MRR/nDCG +0.04.
+      **bench (far-apart):** hybrid slightly *hurts* (recall@1 0.90→0.83) — dense already wins, the
+      lexical leg adds cross-domain noise. So hybrid is genuinely **situational** (net win for an
+      IT-heavy brain, a drag on cleanly-separable domains) — the textbook justification for the #12
+      Half-B **toggle** (default on) over hardcoding. Sanity: §4 vector-only reproduces §1/§2/§3's
+      nomic baseline exactly. Recorded in [benchmark-corpus §6d](docs/benchmark-corpus.md) +
+      quality-features §4/§5. Devkit-side only (ablation.py not emitted), Ollama-gated, out of the
+      hermetic gate; CI 8/8 green, nothing emitted. Fold-`tags` done; **no** manual
       `keywords:` section (declined — real authoring cost, marginal gain). Highest-ROI lever for
       exact-token IT queries — see [docs/retrieval-quality.md §2](docs/retrieval-quality.md).
 - [x] **Use nomic task prefixes — PREREQUISITE for #8, DONE 2026-07-08.** Threaded a

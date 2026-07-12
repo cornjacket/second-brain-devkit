@@ -210,3 +210,27 @@ choice is a `config/embedder.toml` decision (and not even a robust one here), no
 user flips per query. So a `config/features.toml` for them stays **dead config**, deferred until a
 genuinely optional feature exists (#3 hybrid FTS5 on/off, #7 chunking). The hardened set is now the
 reusable bed for #3, where these lay/exact-token queries are exactly dense search's blind spot.
+
+## 6d. Hybrid vs vector-only — the #3 payoff, and why it's a *toggle* (increment 3, 2026-07-11/12)
+
+`ablation.py` §4 reproduces the shipped `search_vault.search()` path — the vector leg plus a BM25
+lexical leg over an in-memory `notes_fts` (the same body+tags the emitted brain indexes), RRF-fused
+(K=60, pool=20) — and measures `hybrid_search` on vs off on **both** corpora. This is the first
+genuinely *situational* feature, so it's also what reopened #12 Half B as a real toggle (§3 inc 2).
+
+| corpus | config | recall@1 | recall@5 | MRR | nDCG@5 |
+|---|---|---|---|---|---|
+| **IT (hardened, adjacent)** | vector-only | 0.675 | 0.975 | 0.797 | 0.838 |
+| | **hybrid** | **0.725** | **1.000** | **0.838** | **0.879** |
+| **bench (far-apart)** | vector-only | **0.900** | 1.000 | **0.926** | **0.944** |
+| | hybrid | 0.833 | 1.000 | 0.906 | 0.930 |
+
+**Hybrid is situational, and that's the headline.** On the everything-adjacent IT corpus — the hard,
+realistic case where dense search buries the right note behind a lexical sibling — the lexical leg
+lifts **every** metric (recall@1 +5pp, recall@5 to a perfect **1.0**, MRR/nDCG +0.04). On the
+far-apart bench corpus, where dense already wins cleanly (recall@1 0.90), the same lexical leg adds
+cross-domain term noise that RRF can't fully suppress and nudges a couple of easy top-1s down
+(recall@1 0.90→0.83). So hybrid is a **net win exactly where a real IT-heavy brain lives** and a
+slight drag on cleanly-separable domains — the textbook justification for shipping it as a per-brain
+**`config/features.toml` toggle** (default on) rather than hardcoding. (Sanity check: §4 vector-only
+reproduces §1/§2/§3's nomic baseline exactly — the reproduced vector leg is faithful.)

@@ -14,6 +14,10 @@ Two cost classes of feature, and the harness treats them differently:
   vectors, so each config re-embeds the notes. A process-wide memo (keyed ``(model, text)``)
   dedupes passes that happen to coincide (e.g. the nomic/canonical/``search_document:`` note
   pass is shared by §1, §2-ON and §3-nomic — embedded once).
+- **§4 Hybrid lexical+vector vs vector-only — query-time.** Reproduces the shipped
+  ``search_vault.search()`` path: the shared vector leg plus a BM25 lexical leg over an
+  in-memory ``notes_fts`` (same body+tags the emitted brain indexes), RRF-fused (K=60). This
+  is the payoff measurement for the ``config/features.toml`` ``hybrid_search`` toggle (#3).
 
 **Opt-in / local:** needs Ollama + the models below; prints SKIP and exits 0 when Ollama is
 absent (like ``check_semantic_retrieval.py``), and SKIPs an individual §3 model that isn't
@@ -45,11 +49,15 @@ CORPORA = {
 }
 sys.dont_write_bytecode = True  # never drop a __pycache__ into the tracked template/ tree
 sys.path.insert(0, str(REPO_ROOT / "template" / "scripts"))
-from note_view import canonical_body  # noqa: E402  (emitted brain module, reused for fidelity)
+# Emitted brain modules, reused so §4's lexical leg is byte-identical to what ships.
+from note_view import canonical_body, frontmatter_tags  # noqa: E402
+from search_vault import _fts_match_query  # noqa: E402  (same query→MATCH sanitization)
 
 OLLAMA = "http://localhost:11434"
 NOMIC = "nomic-embed-text"
 COLS = ["recall@1", "recall@5", "MRR", "nDCG@5", "mean top-1 dist", "mean margin"]
+RANK_COLS = ["recall@1", "recall@5", "MRR", "nDCG@5"]  # §4: RRF fuses ranks, so no dist/margin
+K_RRF = 60  # search_vault's shipped RRF damping default (config/features.toml rrf_k)
 
 # Per-model retrieval scheme for §3 — each embedder gets the (doc_prefix, query_prefix) it was
 # trained with, so the comparison is model-vs-model at each model's best, not a prefix artefact.
@@ -165,6 +173,66 @@ def print_table(title: str, rows: list[tuple[str, dict]]) -> None:
         print("  " + label.ljust(32) + "".join(f"{m[c]:16.3f}" for c in COLS))
 
 
+# --- §4 helpers: reproduce search_vault's hybrid retrieval (vector + FTS5/BM25, RRF) ----------
+
+def vector_ranking(qvec, doc_index) -> list[str]:
+    """The whole corpus ranked by cosine to ``qvec``, nearest first (the vector leg)."""
+    return [name for _, name in sorted((1.0 - dot(qvec, dv), name)
+                                       for name, dv in doc_index.items())]
+
+
+def _fts_row(p: Path) -> tuple[str, str, str]:
+    """(source_file, body, tags) for one note — exactly what hydrate_cache indexes."""
+    text = p.read_text()
+    return (p.name, canonical_body(text), " ".join(frontmatter_tags(text)))
+
+
+def build_fts(notes):
+    """In-memory ``notes_fts`` mirroring the emitted brain (same DDL, body + folded tags)."""
+    import sqlite3
+    db = sqlite3.connect(":memory:")
+    db.execute("CREATE VIRTUAL TABLE notes_fts USING fts5(source_file UNINDEXED, body, tags)")
+    db.executemany("INSERT INTO notes_fts(source_file, body, tags) VALUES (?, ?, ?)",
+                   [_fts_row(p) for p in notes])
+    return db
+
+
+def lexical_ranking(db, query: str, n: int) -> list[str]:
+    """Top-``n`` BM25 hits for ``query``, best first — the lexical leg (search_vault's SQL)."""
+    match = _fts_match_query(query)
+    if not match:
+        return []
+    return [row[0] for row in db.execute(
+        "SELECT source_file FROM notes_fts WHERE notes_fts MATCH ? ORDER BY rank LIMIT ?",
+        (match, n))]
+
+
+def rrf_fuse(rankings, k_rrf: int) -> list[str]:
+    """Reciprocal Rank Fusion of per-leg rankings, best first — search_vault's fusion loop."""
+    scores: dict[str, float] = {}
+    for ranked in rankings:
+        for rank, name in enumerate(ranked, 1):
+            scores[name] = scores.get(name, 0.0) + 1.0 / (k_rrf + rank)
+    return [name for name, _ in sorted(scores.items(), key=lambda kv: kv[1], reverse=True)]
+
+
+def rank_metrics(ranks) -> dict:
+    """Rank-only IR metrics — RRF fuses ranks not distances, so no top-1 dist / margin."""
+    n = len(ranks)
+    dcg = [1.0 / math.log2(r + 1) if r <= 5 else 0.0 for r in ranks]
+    return {"recall@1": sum(r == 1 for r in ranks) / n,
+            "recall@5": sum(r <= 5 for r in ranks) / n,
+            "MRR": sum(1.0 / r for r in ranks) / n,
+            "nDCG@5": sum(dcg) / n}
+
+
+def print_rank_table(title: str, rows: list[tuple[str, dict]]) -> None:
+    print(f"\n{title}\n")
+    print("  " + "config".ljust(32) + "".join(c.rjust(16) for c in RANK_COLS))
+    for label, m in rows:
+        print("  " + label.ljust(32) + "".join(f"{m[c]:16.3f}" for c in RANK_COLS))
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Ablation harness — quantify a feature's contribution "
                                              "(task #12).")
@@ -224,6 +292,30 @@ def main(argv=None) -> int:
               "margin are model-relative.)")
     for label, model in skipped:
         print(f"\n§3  SKIP {label} — not pulled (`ollama pull {model}`).")
+
+    # --- §4  Hybrid vs vector-only (query-time): reproduce the shipped search_vault path. ---
+    # Reuse the §1 nomic/canonical doc vectors (memoized — no re-embed); rank the vector leg,
+    # add the BM25 lexical leg over the SAME body+tags the emitted notes_fts indexes, and
+    # RRF-fuse exactly as search_vault.search() (K=60, pool = max(k, 20)). Vector-only is one
+    # leg through RRF — the fused order is the vector order, i.e. hybrid_search=false.
+    pool = max(5, 20)
+    miss = len(notes) + 1  # sentinel rank when the expected note escapes the fused pool
+    fts = build_fts(notes)
+    rows4 = []
+    for label, hybrid in (("vector-only (hybrid off)", False),
+                          ("hybrid (vector + lexical)", True)):
+        ranks = []
+        for q in queries:
+            qv = embed(NOMIC, "search_query: " + q["query"])  # memoized from §1
+            legs = [vector_ranking(qv, doc_nomic)[:pool]]
+            if hybrid:
+                legs.append(lexical_ranking(fts, q["query"], pool))
+            fused = rrf_fuse(legs, K_RRF)
+            ranks.append(next((i for i, name in enumerate(fused, 1)
+                               if name in set(q["expected"])), miss))
+        rows4.append((label, rank_metrics(ranks)))
+    print_rank_table("§4  hybrid lexical+vector vs vector-only — query-time "
+                     f"(search_vault path: RRF K={K_RRF}, pool={pool})", rows4)
 
     print("\n(higher recall/MRR/nDCG/margin = better; lower top-1 dist = tighter.)")
     return 0
