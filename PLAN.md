@@ -16,10 +16,13 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   a query-time `hybrid_search` on/off toggle the harness can ablate — **and** the top IT-separation
   lever. Building #3 is what re-opens the `config/features.toml` half of #12 with a real toggle.
 - **Also unblocked:** the real-brain auto-link `--apply` calibration (task #8 — the bench corpus
-  proved a confident `t_max ≈ 0.30`). And a #12 follow-on: author a `queries.jsonl` for the
-  adversarial IT corpus (#16/#17) and re-run the ablation there — the far-apart #15 corpus
-  *saturates* the metrics (recall@5 ≈ 1.0), so the levers need the everything-adjacent corpus to
-  show separation deltas.
+  proved a confident `t_max ≈ 0.30`).
+- **Done 2026-07-11 — #22 IT-corpus ablation bed.** Authored `tests/seed-corpus/queries.jsonl` + a
+  `--corpus {bench,it}` flag on `tools/ablation.py`, re-ran §1–§3 on the adversarial IT corpus. **The
+  model swap reverses:** `mxbai-embed-large` beats `nomic-embed-text` **recall@1 0.833 → 0.967** on
+  blurry IT topics (a wash on far-apart #15) — the embedder is the biggest separation lever, visible
+  only where topics are close. Follow-on flagged: evaluate a stronger embedder for the IT-heavy real
+  brain. The IT query set is now the bed for measuring #3.
 - **New — #20 glossary over MCP.** Expose `vault/glossary/` through two exact-match, no-embedding
   MCP tools (`list_glossary_terms` / `lookup_glossary_term`) so an assistant can *discover and use*
   the glossary — the definitions stay out of `search_second_brain` on purpose (hub avoidance). A G6
@@ -41,7 +44,8 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
   controlled-vocabulary layer — local-first brain feature, alongside #3/#8), #20 (glossary over MCP
   — exact-match lookup/list tools, depends on #19), #21 (MCP negative/security tests — path-traversal
-  now, glossary-isolation with #20).
+  now, glossary-isolation with #20), #22 (IT-corpus query set + `--corpus` flag — the hard-topic
+  ablation bed, DONE — mxbai beats nomic 0.833→0.967 recall@1 on blurry topics).
 - **Done recently:** #9 README managed block (2026-07-09: markers around the golden/template README
   body + `update_brain.py` splices the devkit block into a brain's existing markers, preserving the
   user's preamble/appendix; hermetic CI gate 8/8 — closes the #10→#8→#9 thread);
@@ -742,7 +746,8 @@ requirement**); they also produce the material for a future GitHub tutorial.
       **Results ([benchmark-corpus §6](docs/benchmark-corpus.md)):** canonical view is
       retrieval-**flat** (Δ negligible — its payoff is graph legibility, not search); the model
       swap is a **wash** on far-apart domains (recall@1 tie; the model lever needs *closely-related*
-      topics); the symmetric prefix measurably hurts (recall@1 0.867). **Meta-finding:** #15
+      topics — **later confirmed a decisive win on the IT corpus, see #22 below**); the symmetric
+      prefix measurably hurts (recall@1 0.867). **Meta-finding:** #15
       *saturates* the metrics (recall@5 ≈ 1.0) — feature-separation ablations want the adversarial
       IT corpus (#16/#17) or the real brain, so a follow-on is to author a `queries.jsonl` for the
       IT corpus and re-run. **DECISION — Half B deferred:** no built index-time feature is
@@ -787,6 +792,20 @@ requirement**); they also produce the material for a future GitHub tutorial.
       hermetic CI gate; emits nothing that perturbs the byte-exact `test`-backend diff.
       Depends on #13 (the catalog) and benefits from #3/#8 being built so there are real
       toggles to compare.
+- [x] **IT-corpus query set + `--corpus` flag — the hard-topic ablation bed (task #22; DONE
+      2026-07-11).** Built `tests/seed-corpus/queries.jsonl` (30 labeled queries, 3/topic, each a
+      single defensible expected note) + a `--corpus {bench,it}` flag on `tools/ablation.py`, and
+      re-ran §1–§3 on the IT corpus. **Result — the model swap reverses:** where #15 (far-apart) was
+      a wash, on the everything-adjacent IT corpus **`mxbai-embed-large` decisively beats
+      `nomic-embed-text`** (recall@1 **0.833 → 0.967**, MRR 0.901 → 0.983) — settling the open #12
+      question: the embedder choice is the single biggest separation lever, visible only where topics
+      are *closely-related*. Baseline recall@1 0.833 / recall@5 1.000 confirms the query set is
+      hard-but-fair. Prefix (symmetric still hurts) + canonical view (still ~flat) unchanged. Full
+      table in [benchmark-corpus §6b](docs/benchmark-corpus.md). **Follow-on flagged:** evaluate a
+      stronger/code-aware embedder for the IT-heavy real brain (evidence-backed now). Devkit-side
+      only, nothing emitted, CI 8/8 green. Completes the #12 follow-on; the IT query set is now the
+      reusable bed for measuring **#3 hybrid FTS5** (exact IT tokens like `goroutine`/`borrow checker`
+      are exactly dense search's blind spot).
 
 ## Outreach (backlog): a Medium post on creating a second-brain
 - [ ] **Write a Medium post: "How to create your own second-brain."** (task #14) A public,

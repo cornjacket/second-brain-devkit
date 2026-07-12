@@ -144,20 +144,43 @@ view earns its keep in **graph legibility** (breaking the auto-link feedback loo
 | `nomic-embed-text` (768d) | 0.900 | **1.000** | 0.926 | 0.944 | 0.238 | 0.067 |
 | `mxbai-embed-large` (1024d) | 0.900 | 0.967 | **0.939** | 0.942 | 0.257 | **0.089** |
 
-A **wash**: tie on recall@1, nomic holds recall@5=perfect, mxbai edges MRR + a wider margin. The
-heavier 1024-dim model does **not** clearly separate better here — because this corpus is
-deliberately *far-apart* domains, the model lever (which matters for *closely-related* topics) has
-nothing to pull apart. (recall/MRR/nDCG are rank-based → comparable across models; top-1 dist /
-margin are model-relative and not.)
+A **wash** on far-apart domains: tie on recall@1, nomic holds recall@5=perfect, mxbai edges MRR + a
+wider margin. The heavier 1024-dim model does **not** clearly separate better here — because this
+corpus is deliberately *far-apart* domains, the model lever (which matters for *closely-related*
+topics) has nothing to pull apart. *(But see the IT-corpus re-run below — the picture reverses.)*
+(recall/MRR/nDCG are rank-based → comparable across models; top-1 dist / margin are model-relative
+and not.)
 
-**Meta-finding — the diverse corpus saturates the metrics.** recall@5 ≈ 1.0 across nearly every
-config: #15 was built as the clean/separable case, so it has little headroom to *differentiate*
-features. Feature ablations that need to show separation deltas want the **adversarial IT corpus**
-(#16/#17, everything-adjacent) or the **real brain** — a follow-on for #12 is to author a
-`queries.jsonl` for the IT corpus and re-run §1–§3 there, where the levers have room to move.
+## 6b. The adversarial IT corpus (task #22, `--corpus it` — real Ollama, 2026-07-11)
 
-**Decision (gates task-#12 Half B).** None of the three index-time features is *situational*: the
-prefix and canonical view are always-on wins (symmetric hurts; canonical is for the graph), and the
-model swap shows no winner on this corpus. So a per-brain **`config/features.toml`** runtime toggle
-for them would be **dead config** — deferred until a genuinely optional feature exists to toggle
-(#3 hybrid FTS5 on/off, #7 chunking).
+The §6 read was limited by the corpus: #15's far-apart domains **saturate** the metrics (recall@5 ≈
+1.0), leaving no headroom to differentiate features. So §1–§3 were re-run on the **everything-adjacent
+IT corpus** (#16/#17, `tests/seed-corpus/` — 100 notes, 10 blurry topics incl. rust↔golang and the two
+AI topics) via a new labeled `tests/seed-corpus/queries.jsonl` (30 queries, 3/topic) and the
+`ablation.py --corpus it` flag. Here a lever has something to pull apart — and the baseline is
+non-degenerate (recall@1 0.833, recall@5 1.000), so the query set is hard-but-fair.
+
+| ablation (IT corpus) | config | recall@1 | recall@5 | MRR | nDCG@5 |
+|---|---|---|---|---|---|
+| §1 prefix | correct `search_query:` | 0.833 | 1.000 | 0.901 | 0.926 |
+| §1 prefix | symmetric `search_document:` | **0.800** | 0.967 | 0.878 | 0.896 |
+| §2 canonical | ON (body only) | 0.833 | **1.000** | **0.901** | **0.926** |
+| §2 canonical | OFF (full text) | 0.833 | 0.967 | 0.894 | 0.909 |
+| §3 model | `nomic-embed-text` (768d) | 0.833 | 1.000 | 0.901 | 0.926 |
+| §3 model | **`mxbai-embed-large`** (1024d) | **0.967** | 1.000 | **0.983** | **0.988** |
+
+**Headline — the model swap is a real separation lever.** On the hard corpus **mxbai decisively beats
+nomic**: recall@1 **0.833 → 0.967** (+13pp), MRR 0.901 → 0.983. This is the *reverse* of the §6 wash,
+and it settles the open #12 question: the embedder choice is the single most effective lever
+measured — it just needs *closely-related* topics to show, which the far-apart #15 corpus lacked. The
+prefix (symmetric still hurts) and canonical view (still ~flat, a hair better at recall@5) behave as
+before. **Practical implication:** the user's real brain is IT-heavy, so evaluating a stronger /
+code-aware embedder there is now evidence-backed — a candidate follow-on (a full re-embed + a
+`config/embedder.toml` model change), not done here.
+
+**Decision (gates task-#12 Half B).** Still holds: none of the three *built* index-time features is a
+*situational* toggle — the prefix and canonical view are always-on wins, and the model swap is a
+**model choice** (`config/embedder.toml`, pick-the-winner), not an on/off toggle a user flips per
+query. So a per-brain **`config/features.toml`** for them would be **dead config** — deferred until a
+genuinely optional feature exists (#3 hybrid FTS5 on/off, #7 chunking). The IT query set is now the
+reusable bed for measuring #3 there, where exact-token queries are exactly dense search's blind spot.

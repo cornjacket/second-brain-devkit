@@ -19,7 +19,8 @@ Two cost classes of feature, and the harness treats them differently:
 absent (like ``check_semantic_retrieval.py``), and SKIPs an individual §3 model that isn't
 pulled. Run on demand::
 
-    python3 tools/ablation.py
+    python3 tools/ablation.py                # far-apart domains (#15 bench corpus)
+    python3 tools/ablation.py --corpus it    # everything-adjacent IT topics (#16/#17 — the hard case)
 
 §3 compares embedders (the [embedding-separation §6](../docs/embedding-separation.md) lever) —
 each model uses **its own trained retrieval scheme** so it performs as it would if shipped.
@@ -27,6 +28,7 @@ Pull a second embedder first, e.g. ``ollama pull mxbai-embed-large``.
 """
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import sys
@@ -35,8 +37,12 @@ import urllib.request
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-CORPUS = REPO_ROOT / "tests" / "bench-corpus"
-QUERIES = CORPUS / "queries.jsonl"
+# Selectable benchmark corpora → (subdir under tests/, note-file glob). Both are devkit-side and
+# never emitted; each ships its own labeled queries.jsonl.
+CORPORA = {
+    "bench": ("bench-corpus", "bench_*.md"),  # #15 — far-apart domains (clean/separable)
+    "it":    ("seed-corpus",  "seed_*.md"),   # #16/#17 — everything-adjacent IT topics (the hard case)
+}
 sys.dont_write_bytecode = True  # never drop a __pycache__ into the tracked template/ tree
 sys.path.insert(0, str(REPO_ROOT / "template" / "scripts"))
 from note_view import canonical_body  # noqa: E402  (emitted brain module, reused for fidelity)
@@ -159,20 +165,30 @@ def print_table(title: str, rows: list[tuple[str, dict]]) -> None:
         print("  " + label.ljust(32) + "".join(f"{m[c]:16.3f}" for c in COLS))
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Ablation harness — quantify a feature's contribution "
+                                             "(task #12).")
+    ap.add_argument("--corpus", choices=sorted(CORPORA), default="bench",
+                    help="which benchmark corpus to ablate: 'bench' (far-apart domains, #15) or "
+                         "'it' (everything-adjacent IT topics, #16/#17). Default: bench.")
+    args = ap.parse_args(argv)
+    subdir, note_glob = CORPORA[args.corpus]
+    corpus = REPO_ROOT / "tests" / subdir
+    queries_path = corpus / "queries.jsonl"
+
     if not ollama_up():
         print("ablation: SKIP — Ollama not reachable at "
               f"{OLLAMA} (run `ollama serve` + `ollama pull {NOMIC}`).")
         return 0
-    if not QUERIES.exists():
-        print(f"ablation: no query set at {QUERIES}", file=sys.stderr)
+    if not queries_path.exists():
+        print(f"ablation: no query set at {queries_path}", file=sys.stderr)
         return 1
 
-    notes = sorted(CORPUS.rglob("bench_*.md"))
-    queries = [json.loads(l) for l in QUERIES.read_text().splitlines() if l.strip()]
+    notes = sorted(corpus.rglob(note_glob))
+    queries = [json.loads(l) for l in queries_path.read_text().splitlines() if l.strip()]
     have = models_available()
     print(f"ablation: {len(notes)} notes / {len(queries)} queries "
-          f"(bench corpus), embedding on demand …")
+          f"({args.corpus} corpus), embedding on demand …")
 
     # --- §1  Task prefix (query-time): one nomic/canonical note pass, sweep the query prefix. ---
     doc_nomic, _ = embed_corpus(notes, queries, NOMIC, "search_document: ", "search_query: ",

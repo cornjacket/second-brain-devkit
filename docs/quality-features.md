@@ -64,10 +64,12 @@ edit (or an unchanged commit) no longer calls the model or rewrites the sidecar.
 closely-related topics apart ([embedding-separation §2](embedding-separation.md)). **Before/after:**
 a stronger or code-aware embedder would separate `rust` vs `golang` notes that a general model
 blends — measured on the #15 corpus via the ablation.
-**Measured (#12 ablation, [benchmark-corpus §6](benchmark-corpus.md)):** `nomic-embed-text` vs
-`mxbai-embed-large` (1024d) is a **wash** on the diverse corpus (recall@1 tie; nomic holds
-recall@5 1.000, mxbai edges MRR) — the model lever needs *closely-related* topics to show its
-value, so this belongs re-run on the adversarial IT corpus / real brain, not the far-apart #15.
+**Measured (#12 ablation, [benchmark-corpus §6/§6b](benchmark-corpus.md)):** a **wash** on the
+far-apart #15 corpus (recall@1 tie) but a **decisive win** on the adversarial IT corpus (#22):
+`mxbai-embed-large` (1024d) beats `nomic-embed-text` **recall@1 0.833 → 0.967, MRR 0.901 → 0.983**.
+So the model choice is confirmed the **single biggest separation lever** — but only visible on
+*closely-related* topics; the far-apart #15 had nothing to pull apart. Points at evaluating a
+stronger/code-aware embedder for the IT-heavy real brain.
 
 ### 5. Hybrid lexical + vector search — *planned (#3), query-time*
 **Mechanism:** an **FTS5** (BM25) virtual table in the *same* `data/brain.db`, fused with the
