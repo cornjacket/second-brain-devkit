@@ -1,28 +1,23 @@
-# Daily plan — 2026-07-13
+# Daily plan — 2026-07-12
 
-**Focus:** Fri 07-10 landed **#15** — the 200-note topically-diverse benchmark corpus + a
-30-query labeled eval set + corpus-driven tooling, with acceptance **passed on real Ollama**
-(purity@1 98%, separation +0.136, a confident `t_max ≈ 0.30`, retrieval top-5 30/30). With the
-dataset **and** the method now in hand, Monday opens the benchmarking thread and the top
-IT-separation lever.
+**Focus:** Sat landed **#3 increment 1** — hybrid FTS5 + RRF fusion in the one shared
+`search_vault.search()` (CI 8/8, semantic tier 5/5 incl. an exact-token case). Today wires the
+**config surface** and **measures the payoff**, finishing the #3 arc.
 
-- **▶▶ Start #13 — catalog the quality-enhancement features** (docs-only; the input to #12 and
-  the tutorial outline): each retrieval/graph feature with its mechanism, index- vs query-time,
-  config toggle, and status.
-- **Then #12 — the ablation harness** scaffold: run `queries.jsonl` against the #15 corpus under
-  each toggle, reporting recall@k / MRR / separation. Also the vehicle to **compare embedders**.
-- **Parallel lever — #3 hybrid FTS5/BM25:** highest-ROI for the IT-heavy real brain (exact tokens
-  dense vectors blur). See `docs/embedding-separation.md §1`.
-- **Optional:** run the now-unblocked auto-link `--apply` calibration on the real brain (derive
-  its own `t_max` — IT-heavy, so expect a looser cut than the diverse corpus).
-- Guards stay green via `tools/ci.py` (8 gates).
+- **▶▶ #3 increment 2 — `config/features.toml` toggle** (`hybrid_search`, `rrf_k`) + `scripts/features.py`,
+  env > config > default like `embedder.py`. Emitted → manifest/vendor/template/CI. This is the
+  **deferred #12 Half-B config surface**, now justified by a genuinely *situational* query-time toggle.
+- **#3 increment 3 — ablate hybrid vs vector-only** on the **hardened IT query set** (`tools/ablation.py` §4),
+  where exact-token queries are dense search's blind spot — the payoff measurement.
+- **Loop:** prototype in `../second-brain-test/` → `vendor_golden.py` → `build_template.py` → `tools/ci.py` (8 gates).
+- **Stretch / parallel:** start **#19 glossary namespace** (unblocks #20/#21 glossary-over-MCP), or run
+  the calibrated **#8 auto-link `--apply`** on the real brain (`t_max ≈ 0.30`).
 
 ```
- fri 07-10 ✅ #15 corpus + eval set + tooling · acceptance PASS (98% purity, t_max≈0.30)
-                              │
-                              ▼
- mon 07-13  ▶▶ #13 feature catalog ──► #12 ablation harness  (consumes #15 corpus + queries)
-            ‖ parallel: #3 hybrid FTS5/BM25 (IT-separation lever)
-            → optional: real-brain auto-link --apply calibration
- guards: tools/ci.py (8) green
+ sat 07-11 ✅ #3 inc1  hybrid FTS5 + RRF  (CI 8/8 · semantic 5/5)
+                 │
+                 ▼
+ sun 07-12  ▶▶ #3 inc2 features.toml toggle ──► #3 inc3 ablate hybrid vs vector-only (IT set)
+            ‖ stretch: #19 glossary namespace  ·  #8 auto-link --apply (real brain)
+ guards: tools/ci.py (8) green · prototype-first in second-brain-test/
 ```
