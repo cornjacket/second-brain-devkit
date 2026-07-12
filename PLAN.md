@@ -36,6 +36,9 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   **wash** on far-apart domains (the lever needs closely-related topics); the symmetric task prefix
   measurably hurts. **Decision:** defer `config/features.toml` (Half B) — no built feature is
   situational; the config surface waits for #3/#7. Devkit-side only, CI 8/8 green, nothing emitted.
+  **Half B now BUILT 2026-07-12** as **#3 increment 2** — `config/features.toml` shipped with the
+  first genuinely situational toggle (`hybrid_search` on/off + `rrf_k`), the query-time lever the
+  index-time features never gave it. See #3 in [Retrieval quality](#retrieval-quality-backlog-surfaced-2026-07-04).
 - **Done 2026-07-10:** **#15 COMPLETE** — 200-note diverse corpus + 30-query eval set + corpus-driven
   tooling; **acceptance passed on real Ollama** (purity@1 98%, separation +0.136, retrieval top-5
   30/30, the performing-arts trio separates). #18 (corpus-separation decision — grade the #16/#17
@@ -537,7 +540,7 @@ populated brain**, not a single example. (The prompting example that raised this
 "magic number" — was a **false alarm**: the actual brain ranks `magic-number.md` #1 at
 0.26; Claude Desktop's "not in top 5" analysis was hallucinated. Verify claims against
 `search_vault.py` before acting.)
-- [~] **Hybrid lexical + vector search (SQLite FTS5) — task #3. INCREMENT 1 BUILT 2026-07-11.**
+- [~] **Hybrid lexical + vector search (SQLite FTS5) — task #3. INCREMENTS 1 & 2 BUILT (2026-07-11/12).**
       A `notes_fts` **FTS5** virtual table now lives beside the vec0 `notes` table in the *same*
       `data/brain.db` (built-in to SQLite, no new dep, no separate index file), hydrated by the
       **same** flow — `hydrate_cache.py` rebuilds both in its one atomic transaction; the
@@ -552,11 +555,21 @@ populated brain**, not a single example. (The prompting example that raised this
       vector-only on a stale/absent `notes_fts`. **Verified** in the golden (real Ollama: paraphrase
       + exact-token both rank #1; incremental upsert/delete; graceful fallback); CI 8/8; opt-in
       semantic tier 5/5 (rank-based, incl. an exact-token case) + MCP tier green.
-      **Follow-ons:** increment 2 = the `config/features.toml` `hybrid_search`/`rrf_k` toggle (the
-      deferred #12 Half-B config surface); increment 3 = ablate hybrid vs vector-only on the
-      hardened IT query set (`tools/ablation.py`). Fold-`tags` done; **no** manual `keywords:`
-      section (declined — real authoring cost, marginal gain). Highest-ROI lever for exact-token
-      IT queries — see [docs/retrieval-quality.md §2](docs/retrieval-quality.md).
+      **INCREMENT 2 BUILT 2026-07-12** — the deferred **#12 Half-B config surface**, now justified by
+      a genuinely *situational* query-time toggle. New `config/features.toml` (`hybrid_search = true`,
+      `rrf_k = 60`) read by new `scripts/features.py` with `embedder.py`'s precedence — env
+      (`SECOND_BRAIN_HYBRID_SEARCH=1|0`, `SECOND_BRAIN_RRF_K=<int>`) > config > default, so a
+      pre-config brain still searches (hybrid on, K=60). `search_vault.search()` now runs the vector
+      leg always and adds the lexical leg only when `hybrid_search()` (vector-only still flows through
+      RRF → same order, comparable score); `K_RRF` module constant removed in favour of `rrf_k()`.
+      `doctor.py` surfaces the active mode + K. Emitted **verbatim** (default is identical for golden
+      and brain — unlike `embedder.toml`) → manifest/vendor/template/CI. **Verified** live on real
+      Ollama: default hybrid ranks `sqlite-vec.md` #1, `SECOND_BRAIN_HYBRID_SEARCH=0` reproduces the
+      pre-hybrid blind spot (buries it at #2), `rrf_k` reshapes scores; features precedence unit-checked;
+      CI 8/8, semantic tier 5/5, MCP tier green. **Follow-on:** increment 3 = ablate hybrid vs
+      vector-only on the hardened IT query set (`tools/ablation.py`). Fold-`tags` done; **no** manual
+      `keywords:` section (declined — real authoring cost, marginal gain). Highest-ROI lever for
+      exact-token IT queries — see [docs/retrieval-quality.md §2](docs/retrieval-quality.md).
 - [x] **Use nomic task prefixes — PREREQUISITE for #8, DONE 2026-07-08.** Threaded a
       `task` arg through `embed(text, task="document"|"query")`, mapped to
       `search_document:`/`search_query:` **only in the Ollama backend** (`test` backend

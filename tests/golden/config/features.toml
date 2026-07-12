@@ -1,0 +1,15 @@
+# Retrieval feature toggles for THIS brain.
+#
+# Read by scripts/features.py at search time (scripts/search_vault.py). The usual
+# precedence applies — an env var overrides this file for a single command, and a
+# missing key falls back to the built-in default, so an old brain without this
+# file still searches.
+#
+#   hybrid_search — fuse lexical FTS5/BM25 with vector KNN via Reciprocal Rank
+#                   Fusion (true). Set false for vector-only (pre-hybrid) search:
+#                   the ablation baseline, or a fallback when FTS is unavailable.
+#                   Env: SECOND_BRAIN_HYBRID_SEARCH=0|1
+#   rrf_k         — RRF damping constant (60, the standard default); larger
+#                   flattens the rank weighting. Env: SECOND_BRAIN_RRF_K=<int>
+hybrid_search = true
+rrf_k = 60

@@ -1,8 +1,10 @@
 # Retrieval quality — hybrid search & embedding prefixes (design)
 
-**Status:** §1 prefixes **built** (#3, 2026-07-08); §2 hybrid FTS5 **built — increment 1**
+**Status:** §1 prefixes **built** (#3, 2026-07-08); §2 hybrid FTS5 **built — increments 1 & 2**
 (2026-07-11: the `notes_fts` table, dual hydration, and RRF fusion in `search_vault.search()`;
-remaining: the `config/features.toml` toggle + the on/off ablation). Tracked in
+2026-07-12: the `config/features.toml` `hybrid_search`/`rrf_k` toggle via `scripts/features.py`,
+env > config > default, surfaced in `doctor.py` — the deferred #12 Half-B config surface;
+remaining: increment 3, the hybrid-vs-vector-only ablation on the hardened IT query set). Tracked in
 [PLAN.md → Retrieval quality](../PLAN.md#retrieval-quality-backlog-surfaced-2026-07-04).
 This document explains two independent improvements to how a brain retrieves notes.
 
