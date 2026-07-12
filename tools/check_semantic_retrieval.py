@@ -6,13 +6,17 @@ right *bytes* using the deterministic `test` embedder. It can never prove the on
 thing that matters to a user: that a natural-language query actually finds the
 right note. That needs the **real** embedder (`nomic-embed-text` via Ollama), whose
 vectors are semantic but *not* byte-reproducible across machines — so this tier
-asserts **behavior** (top-k ranking + a cosine-distance threshold), never exact
-floats.
+asserts **behavior** (the expected note ranks #1), never exact floats.
+
+Search is now **hybrid** (dense vectors fused with lexical FTS5 via RRF), so the CLI
+prints an RRF relevance *score* (higher = better), not a cosine distance. The check is
+therefore **rank-based** — it asserts the expected note comes back #1 — which is robust
+to the fusion and to the score scale. It covers both paraphrase (vector-strength) and
+exact-token (lexical-strength) queries.
 
 What it does, end-to-end against a freshly generated brain (in a temp dir):
   generate → `SECOND_BRAIN_EMBEDDER=ollama embed_vault.py` → `hydrate_cache.py`
-  → for each known query, `search_vault.py` and assert the expected note ranks #1
-    within a distance threshold.
+  → for each known query, `search_vault.py` and assert the expected note ranks #1.
 
 This exercises the real production path the `test` backend never touches: the
 Ollama call, the 768-dim check, L2-normalize, sqlite-vec KNN.
@@ -43,19 +47,20 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://localhost:11434")
 MODEL = os.environ.get("SECOND_BRAIN_EMBED_MODEL", "nomic-embed-text")
 
-# Known query → the note that should rank #1, with a max acceptable cosine
-# distance. Thresholds are loose (well above observed ~0.25–0.40 top-1 distances)
-# so the check asserts *relevance*, not a brittle float. Distinct-phrasing queries
-# that share no keyword with the note's title, to test semantics not lexical match.
+# Known query → the note that should rank #1. Rank-based (no distance threshold): hybrid
+# search returns an RRF score, not a cosine distance, so we assert *ranking*. The first
+# three are distinct-phrasing paraphrases sharing no title keyword (vector strength); the
+# last is a bare identifier (`sqlite-vec`) the lexical FTS5 leg nails (exact-token strength).
 CASES = [
     ("how are text representations compared by geometric closeness",
-     "vault/resources/embeddings.md", 0.45),
+     "vault/resources/embeddings.md"),
     ("vector search inside a local sqlite database file",
-     "vault/resources/sqlite-vec.md", 0.45),
+     "vault/resources/sqlite-vec.md"),
     ("organizing notes by how actionable they are",
-     "vault/areas/knowledge-management.md", 0.50),
+     "vault/areas/knowledge-management.md"),
     ("a single source of truth humans and an AI both read",
-     "vault/projects/second-brain.md", 0.50),
+     "vault/projects/second-brain.md"),
+    ("sqlite-vec", "vault/resources/sqlite-vec.md"),
 ]
 
 
@@ -77,7 +82,7 @@ def _run(cmd: list[str], cwd: Path, env: dict) -> subprocess.CompletedProcess:
 
 
 def top_hit(brain: Path, env: dict, query: str) -> tuple[str, float] | None:
-    """Return (source_file, distance) of the #1 search result, or None."""
+    """Return (source_file, score) of the #1 search result, or None (score: higher=better)."""
     r = _run([sys.executable, "scripts/search_vault.py", query, "-k", "3"], brain, env)
     if r.returncode != 0:
         sys.stderr.write(r.stdout + r.stderr)
@@ -85,8 +90,8 @@ def top_hit(brain: Path, env: dict, query: str) -> tuple[str, float] | None:
     lines = [ln for ln in r.stdout.splitlines() if ln.strip()]
     if not lines:
         return None
-    dist_str, _, source = lines[0].partition("  ")
-    return source.strip(), float(dist_str)
+    score_str, _, source = lines[0].partition("  ")
+    return source.strip(), float(score_str)
 
 
 def main() -> int:
@@ -110,22 +115,18 @@ def main() -> int:
         print(f"embedded + hydrated with {MODEL}\n")
 
         failures = 0
-        for query, expected, threshold in CASES:
+        for query, expected in CASES:
             hit = top_hit(brain, env, query)
             if hit is None:
                 print(f"  FAIL  no results — {query!r}")
                 failures += 1
                 continue
-            source, dist = hit
-            ok_rank = source == expected
-            ok_dist = dist <= threshold
-            if ok_rank and ok_dist:
-                print(f"  ok    {dist:.4f} ≤ {threshold}  {source}")
+            source, score = hit
+            if source == expected:
+                print(f"  ok    #1 @ score {score:.4f}  {source}")
                 print(f"          ← {query!r}")
             else:
-                reason = ("wrong note" if not ok_rank
-                          else f"distance {dist:.4f} > {threshold}")
-                print(f"  FAIL  {reason} — got {source} @ {dist:.4f}, expected {expected}")
+                print(f"  FAIL  wrong note — got {source} @ {score:.4f}, expected {expected}")
                 print(f"          ← {query!r}")
                 failures += 1
 

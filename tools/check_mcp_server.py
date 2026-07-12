@@ -95,6 +95,9 @@ async def drive(brain: Path, env: dict) -> list[str]:
                         sf = h.get("source_file", "")
                         if not (os.path.isabs(sf) and sf.startswith(vault)):
                             fails.append(f"hit is not an absolute vault path: {sf!r}")
+                        # hybrid search returns an RRF relevance score (higher = better)
+                        if not isinstance(h.get("score"), (int, float)):
+                            fails.append(f"hit missing numeric score: {h!r}")
                     if "get_note" in tools and hits:
                         note = await s.call_tool(
                             "get_note", {"source_file": hits[0]["source_file"]})

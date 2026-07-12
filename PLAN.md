@@ -537,16 +537,26 @@ populated brain**, not a single example. (The prompting example that raised this
 "magic number" — was a **false alarm**: the actual brain ranks `magic-number.md` #1 at
 0.26; Claude Desktop's "not in top 5" analysis was hallucinated. Verify claims against
 `search_vault.py` before acting.)
-- [ ] **Hybrid lexical + vector search (SQLite FTS5).** Add an **FTS5** virtual table
-      in the *same* `data/brain.db` (built-in to SQLite — verified available; no new
-      dependency, no separate index file), hydrated by the same sidecar/hook flow as
-      the vec0 table. Fuse the lexical (BM25) and vector rankings with **Reciprocal
-      Rank Fusion** in `search_vault.search()` so both the CLI, the skill, and the MCP
-      server benefit at once. Fold `tags:` into the lexical text. **Do NOT** add a
-      manual `keywords:` note section — FTS5 over the body + tags already covers literal
-      terms, at real authoring cost for marginal gain. **Highest-ROI lever for pulling
-      closely-related IT topics apart** (they differ by exact tokens dense vectors blur) —
-      see [docs/embedding-separation.md §1](docs/embedding-separation.md).
+- [~] **Hybrid lexical + vector search (SQLite FTS5) — task #3. INCREMENT 1 BUILT 2026-07-11.**
+      A `notes_fts` **FTS5** virtual table now lives beside the vec0 `notes` table in the *same*
+      `data/brain.db` (built-in to SQLite, no new dep, no separate index file), hydrated by the
+      **same** flow — `hydrate_cache.py` rebuilds both in its one atomic transaction; the
+      incremental `update_cache.py --upsert/--delete` maintains both; FTS text (body + folded
+      `tags:`) is read from the vault note at hydrate/upsert time via `note_view.canonical_body` +
+      the new `note_view.frontmatter_tags` (**sidecar schema unchanged** — it stays a pure
+      derived-embedding artifact). `search_vault.search()` fuses the vector KNN and the BM25
+      (`ORDER BY rank`) leg with **Reciprocal Rank Fusion** (`K_RRF=60`) and returns
+      `(source_file, score)` (higher = better) — so the CLI, the skill (`query.py`, print-shape
+      preserved), and the MCP server (`score` key) all get hybrid for free. The FTS query is
+      sanitized (tokenize → quote → OR-join) and the lexical leg degrades gracefully to
+      vector-only on a stale/absent `notes_fts`. **Verified** in the golden (real Ollama: paraphrase
+      + exact-token both rank #1; incremental upsert/delete; graceful fallback); CI 8/8; opt-in
+      semantic tier 5/5 (rank-based, incl. an exact-token case) + MCP tier green.
+      **Follow-ons:** increment 2 = the `config/features.toml` `hybrid_search`/`rrf_k` toggle (the
+      deferred #12 Half-B config surface); increment 3 = ablate hybrid vs vector-only on the
+      hardened IT query set (`tools/ablation.py`). Fold-`tags` done; **no** manual `keywords:`
+      section (declined — real authoring cost, marginal gain). Highest-ROI lever for exact-token
+      IT queries — see [docs/retrieval-quality.md §2](docs/retrieval-quality.md).
 - [x] **Use nomic task prefixes — PREREQUISITE for #8, DONE 2026-07-08.** Threaded a
       `task` arg through `embed(text, task="document"|"query")`, mapped to
       `search_document:`/`search_query:` **only in the Ollama backend** (`test` backend

@@ -1,6 +1,8 @@
 # Retrieval quality — hybrid search & embedding prefixes (design)
 
-**Status:** design / backlog (not built). Tracked in
+**Status:** §1 prefixes **built** (#3, 2026-07-08); §2 hybrid FTS5 **built — increment 1**
+(2026-07-11: the `notes_fts` table, dual hydration, and RRF fusion in `search_vault.search()`;
+remaining: the `config/features.toml` toggle + the on/off ablation). Tracked in
 [PLAN.md → Retrieval quality](../PLAN.md#retrieval-quality-backlog-surfaced-2026-07-04).
 This document explains two independent improvements to how a brain retrieves notes.
 
