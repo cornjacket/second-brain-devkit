@@ -1,30 +1,40 @@
-{"query": "a standard protocol for connecting an assistant to external tools and data sources", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_mcp.md"]}
-{"query": "delegating a sub-task to a separate spawned agent with its own isolated context", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_subagents.md"]}
-{"query": "constraining an agent's outputs and actions to stay within safe allowed bounds", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_guardrails.md"]}
-{"query": "grounding an answer by retrieving documents and injecting them into the prompt", "domain": "ai-llm", "expected": ["seed_ai-llm_rag.md"]}
-{"query": "splitting text into subword units before a language model processes it", "domain": "ai-llm", "expected": ["seed_ai-llm_tokenization.md"]}
-{"query": "when a model states false information confidently and fluently", "domain": "ai-llm", "expected": ["seed_ai-llm_hallucination.md"]}
-{"query": "a test that passes and fails intermittently without any code change", "domain": "ci-testing", "expected": ["seed_ci-testing_flaky-tests.md"]}
-{"query": "asserting program output matches a committed reference snapshot", "domain": "ci-testing", "expected": ["seed_ci-testing_golden-files.md"]}
-{"query": "writing a failing test first, then the code to make it pass", "domain": "ci-testing", "expected": ["seed_ci-testing_tdd.md"]}
-{"query": "binary-searching commit history to find which commit introduced a regression", "domain": "git-automation", "expected": ["seed_git-automation_bisect.md"]}
-{"query": "recovering a commit that seems lost after a bad reset", "domain": "git-automation", "expected": ["seed_git-automation_reflog.md"]}
-{"query": "checking out several branches into separate directories from one repository", "domain": "git-automation", "expected": ["seed_git-automation_worktrees.md"]}
-{"query": "a lightweight thread scheduled by the runtime, started with the go keyword", "domain": "golang", "expected": ["seed_golang_goroutines.md"]}
-{"query": "a typed conduit for passing values between concurrent tasks", "domain": "golang", "expected": ["seed_golang_channels.md"]}
-{"query": "scheduling a cleanup call to run when the surrounding function returns", "domain": "golang", "expected": ["seed_golang_defer.md"]}
-{"query": "organizing notes into projects, areas, resources, and archive", "domain": "knowledge-management", "expected": ["seed_knowledge-management_para.md"]}
-{"query": "a slip-box method of atomic, densely interlinked notes", "domain": "knowledge-management", "expected": ["seed_knowledge-management_zettelkasten.md"]}
-{"query": "reviewing flashcards at expanding intervals to strengthen recall", "domain": "knowledge-management", "expected": ["seed_knowledge-management_spaced-repetition.md"]}
-{"query": "the rule that each value has exactly one owner and is dropped when the owner leaves scope", "domain": "rust", "expected": ["seed_rust_ownership.md"]}
-{"query": "the compiler rule allowing many shared references or one mutable reference at a time", "domain": "rust", "expected": ["seed_rust_borrowing.md"]}
-{"query": "named annotations like 'a that prove a reference outlives the data it points to", "domain": "rust", "expected": ["seed_rust_lifetimes.md"]}
-{"query": "built-in full-text search with BM25 relevance ranking", "domain": "sqlite", "expected": ["seed_sqlite_fts5.md"]}
-{"query": "write-ahead logging so readers do not block a concurrent writer", "domain": "sqlite", "expected": ["seed_sqlite_wal.md"]}
-{"query": "storing embedding vectors and doing nearest-neighbor search inside sqlite", "domain": "sqlite", "expected": ["seed_sqlite_sqlite-vec.md"]}
-{"query": "refining a union type inside a conditional using typeof or in checks", "domain": "typescript", "expected": ["seed_typescript_narrowing.md"]}
-{"query": "built-in helpers like Partial, Pick, and Omit that transform an existing type", "domain": "typescript", "expected": ["seed_typescript_utility-types.md"]}
-{"query": "a type whose value may be one of several alternative types", "domain": "typescript", "expected": ["seed_typescript_unions.md"]}
-{"query": "distributing incoming requests across a pool of backend servers", "domain": "web-architecture", "expected": ["seed_web-architecture_load-balancing.md"]}
-{"query": "capping how many requests a client may make within a time window", "domain": "web-architecture", "expected": ["seed_web-architecture_rate-limiting.md"]}
-{"query": "a persistent bidirectional connection for pushing real-time updates", "domain": "web-architecture", "expected": ["seed_web-architecture_websockets.md"]}
+{"query": "the repeating cycle where the model proposes a call, something else runs it, and the result comes back for the next turn", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_tool-use-loop.md"]}
+{"query": "getting a model to write out its thinking before each step instead of deciding silently, so it can course-correct", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_react.md"]}
+{"query": "spinning off a helper that works in its own separate context and reports back only a short summary", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_subagents.md"]}
+{"query": "coordinating several specialist agents, splitting the work across them and combining their answers", "domain": "ai-agent-harness", "expected": ["seed_ai-agent-harness_orchestration.md"]}
+{"query": "the knob that makes generated text more random and surprising or more predictable", "domain": "ai-llm", "expected": ["seed_ai-llm_sampling.md"]}
+{"query": "how a transformer lets every word look at every other word to build a context-aware representation", "domain": "ai-llm", "expected": ["seed_ai-llm_attention.md"]}
+{"query": "why a long conversation eventually forces dropping or summarizing the earliest messages", "domain": "ai-llm", "expected": ["seed_ai-llm_context-window.md"]}
+{"query": "why an uncommon word gets broken into several pieces before the model ever sees it", "domain": "ai-llm", "expected": ["seed_ai-llm_tokenization.md"]}
+{"query": "making a test give the exact same result on any machine by cutting it off from the clock, network, and environment", "domain": "ci-testing", "expected": ["seed_ci-testing_hermetic-tests.md"]}
+{"query": "swapping a real dependency for a fake stand-in so a single unit runs in isolation", "domain": "ci-testing", "expected": ["seed_ci-testing_mocking.md"]}
+{"query": "my test passes locally but randomly fails in CI with no code change", "domain": "ci-testing", "expected": ["seed_ci-testing_flaky-tests.md"]}
+{"query": "writing the test before the code and letting it drive the design in tight cycles", "domain": "ci-testing", "expected": ["seed_ci-testing_tdd.md"]}
+{"query": "I did a hard reset and my commits seem gone — how do I get them back", "domain": "git-automation", "expected": ["seed_git-automation_reflog.md"]}
+{"query": "finding which change introduced a bug by automatically checking out midpoints between a good and a bad version", "domain": "git-automation", "expected": ["seed_git-automation_bisect.md"]}
+{"query": "copying just one fix from the main branch onto a release branch without bringing the rest of the history", "domain": "git-automation", "expected": ["seed_git-automation_cherry-pick.md"]}
+{"query": "cleaning up a messy branch into a straight line of commits before opening a pull request", "domain": "git-automation", "expected": ["seed_git-automation_rebase.md"]}
+{"query": "passing a cancellation signal and a deadline down through a chain of calls and concurrent workers", "domain": "golang", "expected": ["seed_golang_context.md"]}
+{"query": "making sure a file or lock is released whenever a function exits, even on an early return", "domain": "golang", "expected": ["seed_golang_defer.md"]}
+{"query": "why appending to one of these can silently change another that shares the same underlying array", "domain": "golang", "expected": ["seed_golang_slices.md"]}
+{"query": "this language has no exceptions — you return failures and check them by hand after each call", "domain": "golang", "expected": ["seed_golang_error-handling.md"]}
+{"query": "a note method built from tiny single-idea cards densely cross-linked rather than sorted into folders", "domain": "knowledge-management", "expected": ["seed_knowledge-management_zettelkasten.md"]}
+{"query": "an organizing system that files notes by how actionable they are rather than by subject", "domain": "knowledge-management", "expected": ["seed_knowledge-management_para.md"]}
+{"query": "seeing which other notes point at the one I'm reading, without keeping a list by hand", "domain": "knowledge-management", "expected": ["seed_knowledge-management_backlinks.md"]}
+{"query": "notes you keep revising and reusing over time, each holding one idea, never really finished", "domain": "knowledge-management", "expected": ["seed_knowledge-management_evergreen-notes.md"]}
+{"query": "why the compiler says my value was moved and won't let me use the original variable after I passed it along", "domain": "rust", "expected": ["seed_rust_ownership.md"]}
+{"query": "the rule that stops me from holding a mutable reference at the same time as any other reference", "domain": "rust", "expected": ["seed_rust_borrowing.md"]}
+{"query": "the annotations that reassure the compiler a reference will not outlive the data it points to", "domain": "rust", "expected": ["seed_rust_lifetimes.md"]}
+{"query": "bubbling a failure up out of a function with a single punctuation mark, and only crashing for truly unrecoverable bugs", "domain": "rust", "expected": ["seed_rust_result-error.md"]}
+{"query": "letting readers keep querying a database while a write is happening, without blocking each other", "domain": "sqlite", "expected": ["seed_sqlite_wal.md"]}
+{"query": "adding keyword search with relevance ranking directly inside sqlite", "domain": "sqlite", "expected": ["seed_sqlite_fts5.md"]}
+{"query": "storing embedding vectors in sqlite and finding the nearest ones to a query", "domain": "sqlite", "expected": ["seed_sqlite_sqlite-vec.md"]}
+{"query": "figuring out why a query is slow by seeing whether it scans the whole table or uses an index", "domain": "sqlite", "expected": ["seed_sqlite_query-planner.md"]}
+{"query": "how the compiler figures out a more specific type inside an if-branch after a typeof check", "domain": "typescript", "expected": ["seed_typescript_narrowing.md"]}
+{"query": "deriving a type where every field is optional, or one with just a few keys picked, from an existing type", "domain": "typescript", "expected": ["seed_typescript_utility-types.md"]}
+{"query": "the object-shape declaration that can be reopened and merged and extended from several at once", "domain": "typescript", "expected": ["seed_typescript_interfaces.md"]}
+{"query": "a value that could be one of a few shapes, told apart by a shared tag field in a switch", "domain": "typescript", "expected": ["seed_typescript_unions.md"]}
+{"query": "spreading incoming requests across a pool of servers and pulling out any that fail a health check", "domain": "web-architecture", "expected": ["seed_web-architecture_load-balancing.md"]}
+{"query": "capping how many requests a client can make so it cannot hammer or scrape an endpoint", "domain": "web-architecture", "expected": ["seed_web-architecture_rate-limiting.md"]}
+{"query": "keeping a connection open in both directions so the server can push updates to a live chat or dashboard", "domain": "web-architecture", "expected": ["seed_web-architecture_websockets.md"]}
+{"query": "the tricky part of storing responses for speed is knowing when to invalidate them", "domain": "web-architecture", "expected": ["seed_web-architecture_caching.md"]}

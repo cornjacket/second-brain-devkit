@@ -156,9 +156,9 @@ and not.)
 The §6 read was limited by the corpus: #15's far-apart domains **saturate** the metrics (recall@5 ≈
 1.0), leaving no headroom to differentiate features. So §1–§3 were re-run on the **everything-adjacent
 IT corpus** (#16/#17, `tests/seed-corpus/` — 100 notes, 10 blurry topics incl. rust↔golang and the two
-AI topics) via a new labeled `tests/seed-corpus/queries.jsonl` (30 queries, 3/topic) and the
-`ablation.py --corpus it` flag. Here a lever has something to pull apart — and the baseline is
-non-degenerate (recall@1 0.833, recall@5 1.000), so the query set is hard-but-fair.
+AI topics) via a labeled `tests/seed-corpus/queries.jsonl` and the `ablation.py --corpus it` flag.
+*(This first pass used a 30-query concept-named set; the shipped set is now the harder 40-query v2
+below — §6c.)* Here a lever has something to pull apart, and the baseline is non-degenerate.
 
 | ablation (IT corpus) | config | recall@1 | recall@5 | MRR | nDCG@5 |
 |---|---|---|---|---|---|
@@ -169,18 +169,44 @@ non-degenerate (recall@1 0.833, recall@5 1.000), so the query set is hard-but-fa
 | §3 model | `nomic-embed-text` (768d) | 0.833 | 1.000 | 0.901 | 0.926 |
 | §3 model | **`mxbai-embed-large`** (1024d) | **0.967** | 1.000 | **0.983** | **0.988** |
 
-**Headline — the model swap is a real separation lever.** On the hard corpus **mxbai decisively beats
-nomic**: recall@1 **0.833 → 0.967** (+13pp), MRR 0.901 → 0.983. This is the *reverse* of the §6 wash,
-and it settles the open #12 question: the embedder choice is the single most effective lever
-measured — it just needs *closely-related* topics to show, which the far-apart #15 corpus lacked. The
-prefix (symmetric still hurts) and canonical view (still ~flat, a hair better at recall@5) behave as
-before. **Practical implication:** the user's real brain is IT-heavy, so evaluating a stronger /
-code-aware embedder there is now evidence-backed — a candidate follow-on (a full re-embed + a
-`config/embedder.toml` model change), not done here.
+On this **original** (concept-named) query set, mxbai beat nomic recall@1 0.833 → 0.967 — which
+looked like "the model swap is the big separation lever." **That conclusion did not survive
+hardening (§6c) — treat it as provisional.**
 
-**Decision (gates task-#12 Half B).** Still holds: none of the three *built* index-time features is a
-*situational* toggle — the prefix and canonical view are always-on wins, and the model swap is a
-**model choice** (`config/embedder.toml`, pick-the-winner), not an on/off toggle a user flips per
-query. So a per-brain **`config/features.toml`** for them would be **dead config** — deferred until a
-genuinely optional feature exists (#3 hybrid FTS5 on/off, #7 chunking). The IT query set is now the
-reusable bed for measuring #3 there, where exact-token queries are exactly dense search's blind spot.
+## 6c. Hardened query set + the phrasing-dependence correction (task #22 follow-up, 2026-07-11)
+
+The original IT set still left recall@5 at 1.0 and recall@1 at 0.833 — not much headroom. Two
+rewrites of the 40-query set (now 4/topic) probed how *robust* the §6b model result was, and the
+answer is sobering:
+
+| query set (same 100-note IT corpus) | style | nomic recall@1 | mxbai recall@1 | "winner" |
+|---|---|---|---|---|
+| original | concept-named paraphrase | 0.833 | **0.967** | mxbai +13pp |
+| v1 hardening | hyper-detailed, note's own vocab | **0.975** | 0.900 | nomic +7pp |
+| **v2 hardening (shipped)** | plain-language symptom/goal, low overlap | **0.675** | **0.675** | **tie** |
+
+**The embedder ranking flips with query phrasing.** v1 backfired — packing each query with the target
+note's signature vocabulary made it a *fingerprint* of one note, raising the ceiling to 0.975 and
+handing the win to nomic. v2 (the shipped set) uses lay symptom phrasing with minimal signature
+tokens, which finally creates headroom (**recall@1 0.675**, recall@5 still 0.975 — the answer stays
+retrievable, the difficulty is now ranking it *first*). At that honest difficulty nomic and mxbai
+**tie** (0.675 = 0.675; nomic edges recall@5/MRR).
+
+**Correction to §6b:** mxbai's "decisive win" **did not replicate** under either rewrite (nomic won
+one, tie the other). So the nomic-vs-mxbai delta is **within the variance introduced by query
+phrasing** at this corpus/scale — *not* a robust embedder win. Robustly ranking embedders would need
+a larger/held-out labeled set than is worth hand-authoring here (or the real brain at scale). The
+findings that **are** stable across all three sets: the **symmetric prefix consistently hurts**, and
+**canonical view is consistently ~flat** on retrieval.
+
+**The shipped v2 set is a genuinely hard, honest bed.** Per-query diagnosis: 12 of the 13 rank-1
+misses keep the expected note in top-5, and they cluster exactly on the *designed* adjacencies — the
+knowledge-management / git / sqlite intra-clusters and the deliberate golang↔rust cross-topic bleeds
+(`slices→borrowing`, `result-error→defer`) — i.e. hard-but-fair, not mislabeled.
+
+**Decision (gates task-#12 Half B).** Unchanged: none of the three *built* index-time features is a
+*situational* per-brain toggle — the prefix and canonical view are always-on wins, and the model
+choice is a `config/embedder.toml` decision (and not even a robust one here), not an on/off toggle a
+user flips per query. So a `config/features.toml` for them stays **dead config**, deferred until a
+genuinely optional feature exists (#3 hybrid FTS5 on/off, #7 chunking). The hardened set is now the
+reusable bed for #3, where these lay/exact-token queries are exactly dense search's blind spot.
