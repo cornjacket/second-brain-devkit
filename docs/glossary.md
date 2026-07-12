@@ -64,6 +64,13 @@ explicit (it is itself a candidate glossary term — [[retrieval-substrates]]):
 **Glossary terms are pure symbolic-layer objects.** All three of their use cases — link,
 flashcard, graph-highlight — live entirely in the symbolic layer and never touch a vector.
 
+> **MCP exposure (task #20 — [PLAN G6](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project)).**
+> An assistant reaches the symbolic layer through two exact-match, no-embedding MCP tools —
+> `list_glossary_terms()` and `lookup_glossary_term(term)` — beside the vector-layer
+> `search_second_brain`. They enforce the split at the tool boundary: the glossary is
+> *intentionally absent* from semantic search, and lookup is for **explicit "what is X" intent
+> only** (looking up every concept in sight just recreates the hub problem one layer up).
+
 ## 3. Embedding-exclusion — glossary notes stay out of the vector index
 
 **Decision: glossary notes are excluded from embedding.** The indexer/embedder skips them,

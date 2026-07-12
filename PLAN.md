@@ -20,6 +20,11 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   adversarial IT corpus (#16/#17) and re-run the ablation there — the far-apart #15 corpus
   *saturates* the metrics (recall@5 ≈ 1.0), so the levers need the everything-adjacent corpus to
   show separation deltas.
+- **New — #20 glossary over MCP.** Expose `vault/glossary/` through two exact-match, no-embedding
+  MCP tools (`list_glossary_terms` / `lookup_glossary_term`) so an assistant can *discover and use*
+  the glossary — the definitions stay out of `search_second_brain` on purpose (hub avoidance). A G6
+  MCP read-tool sibling of the deferred #5 write path; **depends on #19** emitting the glossary
+  namespace. Full spec under [G6](#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
 - **Done 2026-07-11:** **#12 increment 2** — extended `tools/ablation.py` with the two index-time
   ablations (canonical view ON/OFF, embedder model swap nomic vs mxbai-embed-large) + a memoized,
   model-parametrized embedder. Results ([benchmark-corpus §6](docs/benchmark-corpus.md)): canonical
@@ -34,7 +39,8 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   layer) + seeded a PARA(G) glossary in the real brain.
 - **Then queued:** #12/#13 (feature
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
-  controlled-vocabulary layer — local-first brain feature, alongside #3/#8).
+  controlled-vocabulary layer — local-first brain feature, alongside #3/#8), #20 (glossary over MCP
+  — exact-match lookup/list tools, depends on #19).
 - **Done recently:** #9 README managed block (2026-07-09: markers around the golden/template README
   body + `update_brain.py` splices the devkit block into a brain's existing markers, preserving the
   user's preamble/appendix; hermetic CI gate 8/8 — closes the #10→#8→#9 thread);
@@ -430,6 +436,58 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         the multi-statement critical sections SQLite transactions can't span, while
         WAL handles reader-vs-writer. Only if overlapping writes prove real once the
         server lands.
+  - [ ] **Expose the glossary via dedicated MCP tools — exact-match, no embeddings (task #20).**
+        The vault's `glossary/` (a non-PARA sibling; [docs/glossary.md](docs/glossary.md)) holds
+        short definitions of terms that recur across the whole vault. They are **deliberately kept
+        out of semantic search**: a definition sits adjacent to *every* note that mentions the term,
+        so its vector becomes a **hub** — it out-ranks the notes that actually reason about the topic
+        (retrieval pollution) and bridges unrelated clusters in the mutual-kNN graph (graph
+        pollution; see [glossary §3](docs/glossary.md), `resources/mutual-knn.md`,
+        [embedding-separation](docs/embedding-separation.md)) — for ~zero payoff, because **semantic
+        search is for when you can't name the thing and glossary lookup is the opposite** (the key is
+        known — a dictionary op, not nearest-neighbour). Today a glossary note is reachable only via
+        `get_note` with a full absolute path — i.e. undiscoverable. Add **two read-only tools** to
+        the emitted `mcp_server.py`, beside `search_second_brain`/`get_note`:
+        - **`list_glossary_terms()`** — every defined term name **+ declared aliases**, no
+          definitions; cheap. **Load-bearing, not a nicety:** an exact-match tool is useless if the
+          caller must guess the key — without a listing an assistant blind-guesses a filename, misses,
+          and wrongly concludes the term is undefined. Description: call it **first** whenever unsure
+          a term exists or of its exact name.
+        - **`lookup_glossary_term(term)`** — exact match on the term's slug **and** its frontmatter
+          `aliases:`, then return the **whole** (short) note — no snippeting. **Normalize before
+          matching**: lowercase, strip punctuation (so `what is ablation?` works), collapse
+          spaces/underscores → hyphens (`Ablation Study` ≡ `ablation_study`). **Aliases live in
+          frontmatter** (`aliases: [ablation study, ablations]`), *not* code stemming — explicit
+          beats clever. **On a miss, return near-miss suggestions** (prefix/substring hits first, then
+          `difflib` fuzzy), never a bare not-found — forgives typos without making the match itself
+          fuzzy. Description: **explicit lookup intent only** (`what is X` / `define X` / `what does X
+          mean`); must **not** be called to add background colour to a conceptual question — point
+          those at `search_second_brain`.
+        - **Both descriptions** must state the glossary is *intentionally absent from
+          `search_second_brain`* and reachable only via these tools. **This is where hub-prevention
+          actually happens:** moving the notes out of vector space is undone if a model looks up every
+          concept it meets, so the scope guard lives in the tool text.
+        **Index:** scan `glossary/*.md` at call time, cache keyed on the directory `mtime` (a new
+        term appears without a server restart); a few dozen tiny files — don't over-engineer.
+        Canonical key = normalized filename stem; display name = the `# ` H1 (fallback: stem). Alias
+        collisions: first-writer-wins, but surface them (a real collision is a vault bug worth
+        knowing). **Verified (this task's verify-first, 2026-07-11):** the indexer is **already
+        PARA-scoped on both write paths** — `embed_vault.py` (bulk) and the pre-commit
+        `embed_staged.py` share `PARA_ROOTS = (projects, areas, resources, archive)` (the hook gates
+        `parts[1] in PARA_ROOTS`), so `glossary/` is **not embedded** and the separation is structural
+        — **no exclusion step needed**. The server object is `mcp = FastMCP("second-brain")`; both new
+        tools register `@mcp.tool(structured_output=False)` (the same Claude-Desktop `outputSchema`
+        fix the existing two carry — [mcp-server.md §11](docs/mcp-server.md)). **Non-goals:** no
+        embedding / vector / BM25 of glossary notes; no change to `search_second_brain` or the
+        sqlite-vec index; no snippeting (verbatim). **Acceptance:** (1) `list_glossary_terms()`
+        includes `ablation`; (2) `lookup_glossary_term("ablation")` returns `glossary/ablation.md`;
+        (3) `"Ablation Study?"` resolves (normalize + alias) to the same note; (4) `"ablasion"`
+        returns a near-miss suggestion, not a bare fail; (5) `search_second_brain("ablation")` still
+        returns **no** glossary notes; (6) a newly-added `glossary/*.md` is listable without a
+        restart. **Emitted** into every brain (touches `mcp_server.py` → golden/template/manifest;
+        behavioral coverage extends `check_mcp_server.py`, `mcp`-gated). **Depends on #19** emitting
+        the `vault/glossary/` namespace; build defensively (missing/empty glossary → empty list /
+        near-miss). A **G6 MCP** read-tool sibling of the deferred #5 write path.
 - **Usage note:** the brain's value as a conventions oracle grows as it is
   populated with decision/convention notes — today it holds only the 4 system seed
   notes.

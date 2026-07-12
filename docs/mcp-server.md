@@ -64,6 +64,15 @@ Mirror the skill's surface — read-only, minimal:
 - **`get_note(source_file: str) -> str`** *(optional, likely yes).* Return a note's
   Markdown so the model can read the hit without a second round-trip. Path must be
   validated to live under the brain's `vault/` (no arbitrary file reads).
+- **`list_glossary_terms()` + `lookup_glossary_term(term)`** *(planned — task #20,
+  [PLAN G6](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project)).*
+  Exact-match, **no-embedding** access to `vault/glossary/` (a non-PARA sibling, kept out of the
+  vector index by design — see [glossary.md](glossary.md)). `list_` returns all term names + aliases
+  (call it first when unsure a term exists); `lookup_` normalizes + alias-matches and returns the
+  whole short note, with `difflib` near-miss suggestions on a miss. Descriptions scope them to
+  explicit "what is X" intent and state the glossary is absent from `search_second_brain` — the
+  tool-layer guard that keeps hub-avoidance intact. Both register `structured_output=False` like the
+  two above.
 
 **Read-only by default.** No note-creation/editing tool in v1 — writing goes through
 the git-committed vault flow (pre/post-commit hooks embed + hydrate), which an MCP
