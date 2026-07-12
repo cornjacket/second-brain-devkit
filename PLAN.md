@@ -40,7 +40,8 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - **Then queued:** #12/#13 (feature
   catalog + ablation harness), #3 (hybrid FTS5 retrieval), #5 (`add_note` write tool), #19 (glossary
   controlled-vocabulary layer — local-first brain feature, alongside #3/#8), #20 (glossary over MCP
-  — exact-match lookup/list tools, depends on #19).
+  — exact-match lookup/list tools, depends on #19), #21 (MCP negative/security tests — path-traversal
+  now, glossary-isolation with #20).
 - **Done recently:** #9 README managed block (2026-07-09: markers around the golden/template README
   body + `update_brain.py` splices the devkit block into a brain's existing markers, preserving the
   user's preamble/appendix; hermetic CI gate 8/8 — closes the #10→#8→#9 thread);
@@ -268,6 +269,34 @@ or a behavior regression ships green. Two layers, only the first in the hermetic
       absent (stays out of the portable gate); needs `mcp`+`sqlite-vec`, **not** Ollama.
       Verified: passes green, and a negative test (reverting `structured_output=False`)
       is caught on both tools. (task #2)
+- [ ] **Layer 2b — MCP negative / security cases (task #21).** Extend
+      `check_mcp_server.py` with the failure-mode assertions the current happy-path
+      harness doesn't cover — the security boundary and the two-substrate isolation.
+      **Buildable now (independent of #20):**
+      - **Path traversal on `get_note`.** The guard is resolve-based (`p.resolve()` then
+        `vault not in p.parents`), so `..` is collapsed *before* the check — assert that
+        explicitly: refuse an absolute path outside the vault (`/etc/passwd`), refuse a
+        `..`-escape that leaves the vault (`vault/../<file outside>`, `../../etc/passwd`,
+        and a relative hop to a real sibling like `../config/embedder.toml`), **and**
+        confirm the block is escape-detection not a naive `..`-string reject — a `..` that
+        stays *inside* (`vault/resources/../resources/<note>`) is still **allowed**. (Note
+        symlink-escape as a known gap, out of scope unless cheap.)
+      **Gated on #20 (needs the glossary tools):**
+      - **Search excludes the glossary.** `search_second_brain("ablation")` returns
+        **zero** `glossary/` paths — the embedding-exclusion holds end-to-end at the tool,
+        not just structurally (regression guard for #20 acceptance #5).
+      - **The glossary tool is embedding-free.** `list_glossary_terms` /
+        `lookup_glossary_term` never read `data/brain.db` and never return a PARA/vector
+        note — assert they still work with the **cache removed** (proving no vector
+        dependency) and that their results are drawn only from `glossary/*.md`.
+      - **Substrate disjointness.** Glossary tools return only glossary notes; search
+        returns only PARA notes — the two retrieval substrates are provably disjoint.
+      - **Tool-count update.** #20 makes the existing `tools/list ==
+        {search_second_brain, get_note}` assertion grow to the four-tool set — this task
+        owns that change so the tier stays green when #20 lands.
+      Stays `mcp`-gated (SKIP + exit 0 when `mcp` absent), `test` backend, no Ollama —
+      same envelope as Layer 2. The traversal half can land immediately; the glossary half
+      lands with #20.
 
 ## Milestone G5 — Runtime setup (Ollama + embedder)
 Make a generated brain **runnable for real semantic search**, not just structurally
@@ -487,7 +516,10 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         restart. **Emitted** into every brain (touches `mcp_server.py` → golden/template/manifest;
         behavioral coverage extends `check_mcp_server.py`, `mcp`-gated). **Depends on #19** emitting
         the `vault/glossary/` namespace; build defensively (missing/empty glossary → empty list /
-        near-miss). A **G6 MCP** read-tool sibling of the deferred #5 write path.
+        near-miss). A **G6 MCP** read-tool sibling of the deferred #5 write path. **Its
+        negative/security coverage — search-excludes-glossary, glossary-tool-is-embedding-free,
+        substrate disjointness, and the four-tool `tools/list` update — lands in task #21** (MCP
+        coverage, Layer 2b).
 - **Usage note:** the brain's value as a conventions oracle grows as it is
   populated with decision/convention notes — today it holds only the 4 system seed
   notes.
