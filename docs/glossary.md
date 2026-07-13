@@ -1,8 +1,10 @@
 # Glossary — a controlled-vocabulary layer for the brain
 
 **Status:** **increment 1 BUILT 2026-07-12** — the namespace + convention emit into every brain:
-`vault/glossary/` (non-PARA sibling) with `glossary/README.md`, the `templates/glossary-term.md`
-scaffold, `type: glossary` marker, `scripts/glossary_new.py` (dedup-checked term scaffolder),
+`vault/glossary/` (non-PARA sibling) with `glossary/README.md`,
+`type: glossary` marker, `scripts/glossary_new.py` (dedup-checked term scaffolder; the term shape
+is **embedded in the script** — the tool owns the shape it produces, so it survives the
+`update_brain.py` path, which re-emits tooling but never the vault — see §7.1),
 embedding-exclusion (verified — falls out of PARA-scoping for free), and dual-README + SPEC §2.1
 docs (PARA → PARA(G)). Unblocks #20/#21. **Increment 2 BUILT 2026-07-12** — `scripts/glossary_scan.py`,
 the on-demand body-link pass: report by default / `--apply` inserts `[[term]]` at the first unlinked
@@ -170,12 +172,18 @@ system.
 Order by value / cost; earlier items must earn the later ones:
 
 1. **Convention** — `vault/glossary/` folder + `type: glossary` marker + the "link on
-   (second) use" rule + a starter `glossary/README.md` + a **term template** (the flashcard
-   shape: `Term ? <definition>` + `#flashcards/…` deck tag).
+   (second) use" rule + a starter `glossary/README.md` + the **term shape** (the flashcard
+   form: `Term ? <definition>` + `#flashcards/…` deck tag). **Decision (2026-07-12):** the shape
+   is **embedded in `glossary_new.py`**, not a separate `templates/glossary-term.md` file. A
+   vault template would be seeded only at *create* time and stranded on the `update_brain.py`
+   path (which never writes the vault), breaking the scaffolder on an upgraded brain; and reading
+   it back from `seeds/` is semantically wrong (that's the generation baseline, not a runtime
+   resource, and it would ignore user edits). The tool owning its output shape is the single
+   source of truth; `glossary/README.md` documents the same shape for hand-authors.
 2. **New-term helper** — `glossary_new.py <term>`: slugify, **dedup-check** (refuse if the term
-   exists, printing its path), else scaffold from the template with placeholders, print the path
+   exists, printing its path), else scaffold from the **built-in** shape, print the path
    (never open/overwrite — detect-and-instruct). Guarantees every card is plugin-valid; its value
-   is for a human hand-adding terms (an AI just follows the template).
+   is for a human hand-adding terms (an AI just writes the note directly).
 3. **Embedding-exclusion** — indexer/hook/cache skip glossary notes; `doctor` treats them as
    intentionally unembedded.
 4. **Scanner** — `glossary_scan.py`, report-then-`--apply`.

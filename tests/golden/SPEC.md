@@ -62,8 +62,8 @@ so the scheme is written **PARA(G)**: Projects, Areas, Resources, Archive, plus 
   `templates/`. The inline `[[term]]` links a scan writes into *other* notes'
   bodies **are** embedded (genuine substance); only the definition note is excluded.
 - **Emitted, not pre-filled.** A generated brain ships the **empty** folder + its
-  `README.md` + the `templates/glossary-term.md` scaffold — the vocabulary is the
-  user's to curate.
+  `README.md` — the vocabulary is the user's to curate. The term shape is embedded in
+  `scripts/glossary_new.py` (the scaffolder owns it), not a separate template file.
 - **Tooling:** `scripts/glossary_new.py "<term>"` scaffolds a term note (dedup-checked,
   detect-and-instruct); `scripts/glossary_scan.py` links term occurrences in note bodies
   (report by default, `--apply` inserts) — an on-demand, idempotent pass (one link per term

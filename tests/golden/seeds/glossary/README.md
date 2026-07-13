@@ -30,14 +30,33 @@ The set of glossary terms *is* your controlled vocabulary.
 
 ## Adding a term
 
-1. Copy [`../templates/glossary-term.md`](../templates/glossary-term.md) into this folder,
-   renamed to the term in lowercase-kebab-case (e.g. `retrieval-substrates.md`).
-2. Fill in the one-line definition. Keep it atomic — one term, one meaning.
-3. Commit it. (It won't be embedded — see above — so there is no sidecar to manage.)
+Run the scaffolder — it slugifies the name, refuses to overwrite an existing term, and writes
+the shape below (fill in the definition, then commit):
 
-The term-note shape (`Term ? <definition>` + a `#flashcards/…` deck tag) is valid for the
-community **Spaced Repetition** Obsidian plugin out of the box, so your glossary doubles as a
-flashcard deck.
+```bash
+python3 scripts/glossary_new.py "retrieval substrates"   # -> glossary/retrieval-substrates.md
+```
+
+Prefer to hand-write it? Create `<term>.md` here (lowercase-kebab-case) with this shape:
+
+```markdown
+---
+type: glossary
+aliases: []          # optional surface forms the MCP lookup should also match
+tags: [glossary]
+---
+
+# retrieval substrates
+
+retrieval substrates ? A one-line, atomic definition.
+
+#flashcards/glossary
+```
+
+The `type: glossary` marker is what tools key off. The `Term ? <definition>` card + the
+`#flashcards/…` deck tag make it a valid **Spaced Repetition** plugin card out of the box, so
+your glossary doubles as a flashcard deck. Glossary notes aren't embedded, so there is no
+sidecar to manage.
 
 ## Linking terms across the vault
 
