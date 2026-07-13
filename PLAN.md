@@ -469,6 +469,40 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         on each tool (classic text-output; return still reaches the model as JSON text).
         Verified in Desktop after restart. Full write-up in
         [docs/mcp-server.md §11](docs/mcp-server.md); lesson also saved to `~/notes`.
+  - [ ] **INVESTIGATE — ship the brain as a Claude Code *plugin* (task #23).** Today a brain's
+        AI surface is installed by hand in two unrelated ways: `install_skill.py` copies the
+        `second-brain` skill into `~/.claude/skills/`, and the MCP server is **print-and-instruct**
+        (we print a config stanza and ask the user to paste it into Claude Desktop — the deferred
+        auto-insert above). Claude Code's plugin system looks like the packaging format that
+        collapses both into one installable unit, so this is worth a real look before we build more
+        install plumbing (and before #5 `add_note` adds another thing to register).
+        **What we believe (unverified — web research 2026-07-13, via a subagent, not run locally):**
+        an official Anthropic plugin marketplace is registered automatically, plus a community one;
+        users browse/install via the `/plugin` command (Discover tab) and add marketplaces with
+        `/plugin marketplace add`; a plugin can bundle **skills/slash commands, subagents, hooks,
+        MCP servers, LSP servers, `bin/` executables on PATH, and default settings**. If that holds,
+        one plugin could carry the skill *and* the MCP server *and* the pre/post-commit hooks.
+        **Investigate, in this order — each answer gates the next:**
+        - [ ] **Verify the mechanics first-hand.** Read the current plugin docs and actually install
+              a plugin; confirm the bundle list above (especially: can a plugin ship an MCP server
+              that Claude *Desktop* picks up, or only Claude Code? Desktop is the whole reason the
+              MCP server exists — if plugins are Code-only, this replaces the *skill* install, not
+              the Desktop registration, which is a much smaller win).
+        - [ ] **Settle the impedance mismatch.** A plugin is a *shared, static* artifact; a brain is
+              *per-user data at an arbitrary path*. The skill/server must be pointed at **this
+              user's brain** (`install_skill.py` bakes the path in today). Can a plugin be
+              parameterized per-user, or would we ship a plugin that reads a config/env var naming
+              the brain root? This is the crux — if it can't find the brain, it can't work.
+        - [ ] **Decide distribution.** Publish to a marketplace (a *generator* shipping one plugin
+              that works against any generated brain) vs. have `create_second_brain.py` emit a
+              **local** plugin directory the user installs from disk. The generator stance so far is
+              detect-and-instruct, never silent auto-install — a marketplace listing is a bigger
+              commitment (public artifact, versioning, support) and should not be assumed.
+        - [ ] **Then decide whether to build it at all.** Acceptable outcome: *"not worth it, the
+              two-step install is fine"* — write that down with the reason. This task is an
+              investigation, not a commitment to ship a plugin.
+        Constraint that does not bend: whatever we emit stays **local-first** and must not smuggle a
+        devkit-internal dependency into a brain (the forbidden-refs invariant).
   - [ ] **Write path — add a note to the brain from Claude Desktop (`add_note` tool).**
         (task #5) v1 is read-only, so there is **no way to create a note from Desktop**
         (asked 2026-07-04). A write tool must not just drop a file: it has to land the note in
