@@ -8,7 +8,7 @@ links rather than re-reading duplicated detail.
 **Why Desktop at all?** The `second-brain` **skill** already serves any client that can
 run a shell command (Claude Code, Gemini CLI) at near-zero cost. Claude Desktop can't
 shell out — it reaches tools only over **MCP** — so a brain ships an optional MCP server
-just for it. Read-only, local-only. See [mcp-server.md §1–2](mcp-server.md).
+just for it. Local-only; read, plus `add_note` (which commits + pushes). See [mcp-server.md §1–2](mcp-server.md).
 
 ---
 
@@ -96,9 +96,16 @@ calls `search_second_brain`, optionally `get_note` on a hit, and answers from yo
 3. **"No tools available" ≠ broken server** — a clean handshake says nothing about
    callability; check for a real `CallToolRequest`.
 
+## Adding a note from Desktop (task #5, built 2026-07-13)
+`add_note(title, para_root, body, tags)` creates a note, **commits** it — which is what
+embeds it, via the pre-commit hook, so it is searchable immediately — and **pushes** it,
+so it reaches the brain's other clients instead of living on one laptop. Ask Claude to
+save something and it will typically `list_vault` first (to see where it belongs), then
+write. It only ever commits **its own file**, so work you have in progress is never swept
+into a commit you didn't write, and it won't overwrite an existing note. See
+[mcp-server.md §3.1](mcp-server.md).
+
 ## Not covered (by design)
-Adding/editing notes from Desktop — the server is read-only; writing goes through the
-git-committed vault flow. A future `add_note` tool is tracked in
-[PLAN.md → G6](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
-Web chat (claude.ai) — a browser can't reach a local stdio server; out of scope
-([mcp-server.md §2](mcp-server.md)).
+**Editing or deleting** a note from Desktop — `add_note` is create-only; changing a note
+you wrote stays a human/Obsidian job. Web chat (claude.ai) — a browser can't reach a local
+stdio server; out of scope ([mcp-server.md §2](mcp-server.md)).

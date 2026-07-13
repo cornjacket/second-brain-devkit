@@ -9,12 +9,20 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
-- **▶▶ NEXT — the glossary tail, then a write path.** With #21 landed the **MCP arc is closed**
-  (four tools, happy path + failure modes, all negative-tested). What remains of the glossary is a
-  docs-only closeout in `glossary/README.md` (Obsidian Spaced-Repetition flashcards + a
-  `path:glossary/` graph-colour group). After that the biggest real gap is **#5 `add_note`** — there
-  is still **no way to add a note from Claude Desktop** (the server is read-only by design; a write
-  tool must run the same embed → hydrate path the hooks do, not just drop a file on disk).
+- **▶▶ NEXT — the glossary tail (needs a human at an Obsidian window).** Both remaining glossary
+  items are docs-only but **cannot be verified from CI** (it never opens Obsidian), so each now
+  carries a hand-test as its acceptance criterion: install the *Spaced Repetition* plugin and see a
+  term render as a card, and add the graph colour group — settling which query actually works
+  (`path:glossary/` vs `tag:#glossary`; the docs currently contradict each other, which is proof
+  nobody has run it). Blocked on a human, not on code.
+- **Then:** **#23** (investigate shipping the brain as a Claude Code *plugin* — one installable unit
+  instead of the skill install + print-and-instruct MCP registration), or **#8** auto-link `--apply`
+  calibration on the real brain (cheap; the threshold is already known).
+- **Done 2026-07-13 — #5 `add_note`, the write path.** You can now add a note to the brain **from
+  Claude Desktop**: it creates the note, commits it (which is what *embeds* it — so it is searchable
+  immediately) and pushes it, so the note reaches the brain's other clients rather than living on
+  one laptop. The MCP arc is closed: seven tools, happy path + failure modes, every assertion
+  negative-tested. See #5 below.
 - **Also unblocked:** the real-brain auto-link `--apply` calibration (task #8 — the bench corpus
   proved a confident `t_max ≈ 0.30`).
 - **Done 2026-07-13 — #21 MCP negative / security suite.** The MCP tier now tests what the server
@@ -503,15 +511,33 @@ each session. MCP is reserved for the one case a skill can't serve (below).
               investigation, not a commitment to ship a plugin.
         Constraint that does not bend: whatever we emit stays **local-first** and must not smuggle a
         devkit-internal dependency into a brain (the forbidden-refs invariant).
-  - [ ] **Write path — add a note to the brain from Claude Desktop (`add_note` tool).**
-        (task #5) v1 is read-only, so there is **no way to create a note from Desktop**
-        (asked 2026-07-04). A write tool must not just drop a file: it has to land the note in
-        a PARA root and run the same **embed → hydrate** path the git hooks do (or make
-        a real commit) so it's immediately searchable and history stays consistent —
-        otherwise the cache drifts. Design tension: read-only v1 deliberately kept the
-        git-committed vault flow the single source of truth
-        ([docs/mcp-server.md §3](docs/mcp-server.md)). Scope carefully (where does an
-        uncommitted note live? does the tool commit for the user?) before building.
+  - [x] **Write path — add a note to the brain from Claude Desktop (`add_note`).** DONE
+        (2026-07-13, task #5). The design tension dissolved once it was stated properly: the
+        alternative to committing was *writing the file and embedding it inline*, and **that**
+        would have been the real bypass — a second ingestion path forked from the hooks, to be
+        kept in step with them forever. `add_note` instead **commits**, because in this brain the
+        commit *is* the embed (pre-commit embeds, post-commit hydrates), so the note is searchable
+        at once through the one path that already exists. It also **pushes**: a note that lives
+        only on the laptop that wrote it is invisible to every other client of the brain, so
+        "searchable" would be a lie everywhere else — decisive once the brain is shared or served
+        ([big-brain.md](docs/big-brain.md)). Everything hard about it came from writing to a repo
+        a **human also uses**: it stages only its own file and commits by pathspec (an agent must
+        never author a commit containing the user's in-progress work); on a non-fast-forward
+        rejection — *expected* in the multi-client story — it rebases and retries, refuses to
+        rebase over a dirty tree, and on any push failure reports honestly rather than rolling
+        back (**the note is committed and searchable locally regardless — a failed push is not a
+        lost note**); it pushes non-interactively (`GIT_TERMINAL_PROMPT=0`, or a credential prompt
+        would hang a headless server forever instead of failing); the filename comes from a strict
+        allow-list slug so a traversal payload in the title cannot escape, backed by a
+        resolve-guard. **Create-only** — editing/deleting a note stays a human job. Shipped with
+        two supporting read tools: `list_vault(para_root)` (browse the PARA structure, so the
+        model files a note where it belongs instead of guessing) and `get_note_template()` (the
+        vault's live template, so notes follow the house style the *user* set). Seven-tool surface;
+        `check_mcp_server.py` grew a write suite (commit + push to a bare remote, searchable at
+        once, duplicate/non-PARA refusal, title-traversal, dirty-tree non-interference, and the
+        multi-client rebase via a peer clone), each assertion negative-tested. Prototype-first in
+        the golden → vendored → template; CI 8/8 + MCP tier green.
+        [docs/mcp-server.md §3.1](docs/mcp-server.md).
   - [x] **Concurrency layer 2 — in-place hydrate ([OQ-5](open-questions.md#oq-5)).**
         The MCP server is a **long-lived reader** holding a connection open while
         post-commit rebuilds fire — this is what made `hydrate`'s `unlink()`+rebuild

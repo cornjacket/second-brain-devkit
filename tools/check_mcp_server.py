@@ -119,9 +119,10 @@ async def drive(brain: Path, env: dict) -> list[str]:
             await s.initialize()
             tools = {t.name: t for t in (await s.list_tools()).tools}
 
-            # 1. exact tool surface (four tools since #20 added the glossary pair)
+            # 1. exact tool surface (seven: #20 added the glossary pair, #5 the write path)
             expected = {"search_second_brain", "get_note",
-                        "list_glossary_terms", "lookup_glossary_term"}
+                        "list_glossary_terms", "lookup_glossary_term",
+                        "add_note", "list_vault", "get_note_template"}
             if set(tools) != expected:
                 fails.append(f"tools/list = {sorted(tools)}, expected {sorted(expected)}")
 
@@ -302,6 +303,161 @@ async def drive_novectors(brain: Path, env: dict) -> list[str]:
     return fails
 
 
+def _git(brain: Path, *args: str, env: dict) -> subprocess.CompletedProcess:
+    return subprocess.run(["git", *args], cwd=brain, env=env, capture_output=True, text=True)
+
+
+def git_init_with_remote(brain: Path, bare: Path, env: dict) -> None:
+    """Turn the generated brain into a real git repo with hooks + a bare remote.
+
+    `generate()` (Mode A) emits files only — Mode B is what git-inits — but `add_note` commits
+    and pushes, so the write path cannot be tested without a repo to commit *to*. A local bare
+    repo stands in for the user's GitHub remote (same trick as `check_remote_sync.py`), which
+    keeps the tier hermetic: no network, no credentials.
+    """
+    _git(brain, "init", "-q", env=env)
+    _git(brain, "config", "user.email", "mcp-check@example.invalid", env=env)
+    _git(brain, "config", "user.name", "MCP Check", env=env)
+    _git(brain, "config", "commit.gpgsign", "false", env=env)
+    _git(brain, "config", "core.hooksPath", ".githooks", env=env)  # what embeds on commit
+    subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+    _git(brain, "remote", "add", "origin", str(bare), env=env)
+    _git(brain, "add", "-A", env=env)
+    _git(brain, "commit", "-q", "-m", "seed brain", env=env)
+    _git(brain, "push", "-q", "-u", "origin", "HEAD", env=env)
+
+
+async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
+    """The #5 write path — `add_note` creates, commits, PUSHES, and is instantly searchable.
+
+    This is the only tool that mutates the brain, so it gets the harshest tests. Two of them
+    guard the user rather than the feature: `add_note` must never sweep a user's in-progress
+    work into an agent-authored commit, and a traversal payload in the *title* must not escape
+    the vault (the title is attacker-controlled text that becomes a filename).
+    """
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    server = str(brain / "scripts" / "mcp_server.py")
+    params = StdioServerParameters(command=sys.executable, args=[server], env=env)
+    fails: list[str] = []
+
+    async with stdio_client(params) as (reader, writer):
+        async with ClientSession(reader, writer) as s:
+            await s.initialize()
+
+            # --- browse + template (how the model decides where a note belongs) -------------
+            roots = _json_blocks(await s.call_tool("list_vault", {}), fails, "list_vault()")
+            if {r.get("para_root") for r in roots} != {"projects", "areas", "resources", "archive"}:
+                fails.append(f"list_vault() did not return the four PARA roots: {roots}")
+            listed = _json_blocks(await s.call_tool("list_vault", {"para_root": "resources"}),
+                                  fails, "list_vault(resources)")
+            if not listed or not all("source_file" in n for n in listed):
+                fails.append(f"list_vault(resources) returned no usable notes: {listed}")
+            if not (await s.call_tool("list_vault", {"para_root": "glossary"})).isError:
+                fails.append("list_vault accepted a non-PARA root ('glossary')")
+            tpl = "".join(_texts(await s.call_tool("get_note_template", {})))
+            if "tags:" not in tpl:
+                fails.append(f"get_note_template did not return the vault template: {tpl[:80]!r}")
+
+            # --- the happy path: create -> commit -> push -> searchable ---------------------
+            res = await s.call_tool("add_note", {
+                "title": "Write Path Check", "para_root": "resources",
+                "body": "A note created over MCP by the harness.", "tags": ["harness"]})
+            report = " ".join(_texts(res))
+            if res.isError:
+                fails.append(f"add_note errored: {report[:160]}")
+                return fails  # nothing below is meaningful if the write itself failed
+
+            note = brain / "vault" / "resources" / "write-path-check.md"
+            if not note.is_file():
+                fails.append(f"add_note reported success but no note on disk: {note}")
+            if not (note.parent / f".{note.stem}.embed.json").exists():
+                fails.append("add_note committed but did not embed (the commit hook is what "
+                             "embeds — this is the whole reason the tool commits)")
+            if "pushed to origin" not in report:
+                fails.append(f"add_note did not push: {report!r}")
+            # the note is really in the REMOTE, not just locally committed
+            remote_ls = subprocess.run(
+                ["git", "--git-dir", str(bare), "ls-tree", "-r", "--name-only", "HEAD"],
+                capture_output=True, text=True).stdout
+            if "vault/resources/write-path-check.md" not in remote_ls:
+                fails.append("the note never reached the remote — other clients would not see it")
+            # ...and searchable immediately, which is the point of committing rather than writing
+            hits = _json_blocks(await s.call_tool(
+                "search_second_brain", {"query": "note created over MCP by the harness", "k": 5}),
+                fails, "search (after add_note)")
+            if not any("write-path-check.md" in h.get("source_file", "") for h in hits):
+                fails.append("the new note is NOT searchable — add_note's core promise is broken")
+
+            # --- refusals ------------------------------------------------------------------
+            dup = await s.call_tool("add_note", {"title": "Write Path Check",
+                                                 "para_root": "resources", "body": "again"})
+            if not dup.isError:
+                fails.append("add_note overwrote an existing note (it is create-only)")
+            bad = await s.call_tool("add_note", {"title": "Nope", "para_root": "glossary",
+                                                 "body": "x"})
+            if not bad.isError:
+                fails.append("add_note accepted a non-PARA root — a note could land anywhere")
+
+            # --- traversal in the TITLE cannot escape the vault ----------------------------
+            # The title is model/attacker-controlled text that becomes a filename. The slug is a
+            # strict allow-list, so the payload collapses to a plain stem inside the chosen root
+            # (it does not error — it sanitizes; what must never happen is a write outside).
+            trav = await s.call_tool("add_note", {"title": "../../../etc/passwd",
+                                                  "para_root": "resources", "body": "x"})
+            if not trav.isError:
+                created = " ".join(_texts(trav)).splitlines()[0].replace("created ", "").strip()
+                landed = (brain / created).resolve()
+                if (brain / "vault" / "resources").resolve() not in landed.parents:
+                    fails.append(f"add_note ESCAPED the vault via the title: {landed}")
+            if (brain.parent / "etc").exists() or (brain / "etc").exists():
+                fails.append("add_note wrote outside the vault via a traversal title")
+
+            # --- a dirty tree is never swept into the agent's commit -----------------------
+            victim = brain / "vault" / "areas" / "knowledge-management.md"
+            if victim.is_file():
+                victim.write_text(victim.read_text(encoding="utf-8") + "\nuser work in progress\n",
+                                  encoding="utf-8")
+                _git(brain, "add", "--", "vault/areas/knowledge-management.md", env=env)
+                r2 = await s.call_tool("add_note", {"title": "Dirty Tree Check",
+                                                    "para_root": "resources", "body": "y"})
+                if r2.isError:
+                    fails.append(f"add_note failed with a dirty tree: {' '.join(_texts(r2))[:120]}")
+                else:
+                    touched = _git(brain, "show", "--stat", "--name-only", "--format=", "HEAD",
+                                   env=env).stdout.split()
+                    if touched != ["vault/resources/dirty-tree-check.md"]:
+                        fails.append(f"add_note's commit swept up the user's work: {touched}")
+                    staged = _git(brain, "diff", "--cached", "--name-only", env=env).stdout
+                    if "knowledge-management.md" not in staged:
+                        fails.append("add_note consumed the user's staged edit (it must be left "
+                                     "staged and uncommitted)")
+                _git(brain, "reset", "-q", "--", ".", env=env)
+                _git(brain, "checkout", "-q", "--", "vault/areas/knowledge-management.md", env=env)
+
+            # --- the multi-client case: the remote moved ahead, so rebase and retry ---------
+            peer = brain.parent / "peer"
+            subprocess.run(["git", "clone", "-q", str(bare), str(peer)], check=True)
+            _git(peer, "config", "user.email", "peer@example.invalid", env=env)
+            _git(peer, "config", "user.name", "Peer", env=env)
+            (peer / "vault" / "resources" / "from-a-peer.md").write_text(
+                "---\ntags: [peer]\n---\n\n# From A Peer\n\nWritten by another client.\n",
+                encoding="utf-8")
+            _git(peer, "add", "-A", env=env)
+            _git(peer, "commit", "-q", "-m", "note: from a peer", env=env)
+            _git(peer, "push", "-q", "origin", "HEAD", env=env)
+
+            r3 = await s.call_tool("add_note", {"title": "After Peer Push",
+                                                "para_root": "resources", "body": "z"})
+            report3 = " ".join(_texts(r3))
+            if "pushed to origin" not in report3:
+                fails.append(f"add_note did not recover from a non-fast-forward push (the "
+                             f"multi-client case): {report3!r}")
+
+    return fails
+
+
 def check_glossary_is_db_free(brain: Path) -> list[str]:
     """Static half of the embedding-free proof (task #21): the glossary code path must not so
     much as *name* the vector substrate.
@@ -378,13 +534,26 @@ def main() -> int:
         fails += asyncio.run(drive_novectors(novec, env))
         fails += check_glossary_is_db_free(brain)
 
+        # The write path gets its OWN brain: add_note commits, pushes and mutates the vault, so
+        # running it against the shared one would leave every read-side assertion above testing a
+        # tree the writer had already changed. A third copy is cheaper than that coupling.
+        wparent = Path(tempfile.mkdtemp(prefix="mcp-write-"))
+        try:
+            wbrain = wparent / "brain"
+            shutil.copytree(brain, wbrain)
+            git_init_with_remote(wbrain, wparent / "remote.git", env)
+            print("git brain + bare remote -> write-path suite\n")
+            fails += asyncio.run(drive_write(wbrain, wparent / "remote.git", env))
+        finally:
+            shutil.rmtree(wparent, ignore_errors=True)
+
         if fails:
             for f in fails:
                 print(f"  FAIL  {f}")
             print(f"\nMCP tier FAILED: {len(fails)} assertion(s) regressed")
             return 1
-        print("  ok    tools/list = [get_note, list_glossary_terms, lookup_glossary_term, "
-              "search_second_brain]")
+        print("  ok    tools/list = the seven-tool surface (search, get_note, list_vault, "
+              "get_note_template, the glossary pair, add_note)")
         print("  ok    no outputSchema on any tool (Claude Desktop-safe)")
         print("  ok    search returns absolute vault paths; get_note reads a hit")
         print("  ok    glossary: list includes 'ablation'; lookup resolves exact/alias/normalized")
@@ -396,6 +565,14 @@ def main() -> int:
               "glossary notes")
         print("  ok    glossary answers with the vector substrate destroyed, and never names it "
               "(embedding-free: no read of brain.db, no reference to it)")
+        print("  ok    add_note creates + commits + pushes to the remote, and the note is "
+              "searchable at once (the commit is what embeds it)")
+        print("  ok    add_note refuses a duplicate/non-PARA root, cannot escape the vault via "
+              "the title, and never sweeps the user's staged work into its commit")
+        print("  ok    add_note recovers from a non-fast-forward push (rebase + retry — the "
+              "multi-client case)")
+        print("  ok    list_vault browses the PARA roots; get_note_template returns the vault "
+              "template")
         print("\nMCP tier OK: server contract holds")
         return 0
     finally:

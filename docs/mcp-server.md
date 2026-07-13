@@ -1,7 +1,7 @@
 # MCP server — design & scoping
 
 **Status:** **BUILT — v1 (2026-07-04, golden `4867eec`); glossary tools added (#20, 2026-07-12).**
-`scripts/mcp_server.py` implements this design (stdio, read-only `search_second_brain` + `get_note`,
+`scripts/mcp_server.py` implements this design (stdio: `search_second_brain` + `get_note`,
 plus the exact-match `list_glossary_terms` + `lookup_glossary_term` — §3, task #20), a thin
 wrapper over the brain's own `embedder`/`db`/`search_vault`; the MCP SDK is an
 isolated optional dep (`requirements-mcp.txt`). Registration is print-and-instruct in
@@ -56,7 +56,7 @@ project with its own security model, not this server.)
 
 ## 3. What it exposes (tools)
 
-Mirror the skill's surface — read-only, minimal:
+Mirror the skill's surface, plus one writer (§3.1):
 
 - **`search_second_brain(query: str, k: int = 5) -> [{source_file, distance, ...}]`**
   The core tool. Embeds `query` with the brain's configured backend and runs the
@@ -75,17 +75,43 @@ Mirror the skill's surface — read-only, minimal:
   appears without a restart. Descriptions scope them to explicit "what is X" intent and state the
   glossary is absent from `search_second_brain` — the tool-layer guard that keeps hub-avoidance
   intact. Both register `structured_output=False` like the two above. Behavioral coverage lives in
-  `check_mcp_server.py` (the four-tool surface + the six #20 acceptance checks); its failure modes —
+  `check_mcp_server.py` (the seven-tool surface + the six #20 acceptance checks); its failure modes —
   traversal, substrate disjointness, embedding-free — are the #21 negative suite (§11.1).
 
-**Read-only by default.** No note-creation/editing tool in v1 — writing goes through
-the git-committed vault flow (pre/post-commit hooks embed + hydrate), which an MCP
-write tool would bypass, risking drift. **There is currently no way to _add_ a note to
-the brain from Claude Desktop** — a real gap tracked as a
-[PLAN G6 task](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project):
-a future `add_note`/`create_note` tool must write into a PARA root **and** run the
-same embed → hydrate path the hooks do (or make a real commit), so the new note is
-actually searchable and history stays consistent — not just drop a file on disk.
+- **`add_note(title, para_root, body, tags)` + `list_vault(para_root)` + `get_note_template()`**
+  *(**BUILT** — task #5, 2026-07-13; §3.1 below).* The write path, and the browse/template tools
+  that let the model decide *where* a note belongs before writing it.
+
+### 3.1 The write path — `add_note` commits **and pushes** (task #5)
+
+v1 was read-only, on the reasoning that an MCP write tool would bypass the git-committed vault
+flow and let the cache drift. **The resolution inverts that:** `add_note` doesn't bypass the flow,
+it *uses* it. Writing the file and embedding it inline would have been the real bypass — a second
+ingestion path forked from the hooks, to be kept in step with them forever. Instead:
+
+- **The commit IS the embed.** `add_note` writes the note and commits it; the **pre-commit** hook
+  embeds it and the **post-commit** hook re-hydrates the cache. The note is searchable at once,
+  through the one ingestion path the brain already has. Nothing new to keep in sync.
+- **The push is what makes it real for anyone else.** A note that lives only on the laptop that
+  wrote it is invisible to every other client of the brain (a second machine, a shared or served
+  brain — see [big-brain.md](big-brain.md)). Committing without pushing would be a half-measure.
+
+Everything that follows is a consequence of writing to a repo a **human also uses**:
+
+| Hazard | What `add_note` does |
+| --- | --- |
+| The user has work in progress | Stages **only its own file** and commits with a **pathspec** — never `git add -A`/`commit -a`. Their staged work stays staged, uncommitted. An agent must not author a commit containing someone else's changes. |
+| Another client pushed first | Non-fast-forward rejection is *expected* in the multi-client story. Fetch, rebase, retry once. |
+| ...and the tree is dirty | **Refuse to rebase** and say so. Rebasing over a user's uncommitted edits from a chat tool is worse than telling them. |
+| The push fails anyway | Report it. **The note is committed and searchable locally regardless — a failed push is not a lost note.** Never roll back, never pretend. |
+| No remote configured | Commit, and say the brain is local-only. Not an error. |
+| Credentials needed, no terminal | `GIT_TERMINAL_PROMPT=0`. The server is headless under Desktop, so a credential prompt has nowhere to appear and would **hang the tool call forever**. Fail fast instead. |
+| A traversal payload in the title | The filename comes from a strict **allow-list** slug (`[a-z0-9-]` only), so `../../../etc/passwd` collapses to a plain stem. A resolve-based guard backs it up (defense in depth — and the negative suite confirms *each* layer independently blocks an escape). |
+| The note already exists | Refused. `add_note` is **create-only**; editing stays a human/Obsidian job. |
+| The hooks aren't installed | Then the commit lands but the note is **not** embedded — a silent, confusing failure. Detected via the missing sidecar and reported loudly. |
+
+**Still not offered:** editing or deleting a note. Create-only is the smallest surface that closes
+the gap, and an agent that can silently rewrite a note you authored is a different risk class.
 
 ## 4. Architecture — thin wrapper over existing scripts
 
