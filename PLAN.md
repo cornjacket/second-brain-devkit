@@ -1084,10 +1084,28 @@ requirement**); they also produce the material for a future GitHub tutorial.
         diff + partition green; the emitted-scripts-compile gate covers the scanner. Optional opt-in
         semantic check that a glossary note is absent from the index (out of the hermetic gate, like
         the Ollama checks).
-      - **Downstream (keep simple, defer).** Consistent term-title/definition-body structure makes
-        the notes drop-in for the *Spaced Repetition* Obsidian plugin (flashcards); graph
-        highlighting is native (`tag:#glossary` color group) — a per-term-coloring plugin is last, if
-        ever. Sequence: convention → embed-exclusion → scanner → flashcards → plugin. Not started.
+      - **Downstream (the remaining tail — docs-only, no code).** Both features already *work*; the
+        consistent term-title/definition-body shape is what buys them. All that is missing is telling
+        the user they exist, in `glossary/README.md`. **Each must be manually exercised in real
+        Obsidian before it is written up — neither is reachable from `tools/ci.py`, so a hand-test is
+        the only evidence there is. Do not document either as working on inspection alone.**
+        - [ ] **Flashcards.** Document that the term shape (`Term ? <definition>` + a
+              `#flashcards/…` deck tag) is drop-in for the community *Spaced Repetition* plugin.
+              - [ ] **Manual test (acceptance):** in a real vault, install the *Spaced Repetition*
+                    plugin, point it at the deck tag, and confirm a real glossary term **renders as a
+                    card and can be reviewed** (front = term, back = definition). Record the plugin
+                    version tested and any setting the user must change from the default. If the shape
+                    needs a tweak to be picked up, that tweak is part of this subtask — fix the term
+                    scaffold in `glossary_new.py`, don't paper over it in the README.
+        - [ ] **Graph colour.** Document the native Obsidian graph-view colour group that makes
+              glossary terms visually distinct from PARA notes (no plugin needed).
+              - [ ] **Manual test (acceptance):** add the colour group in Obsidian's graph view and
+                    confirm glossary notes — and *only* glossary notes — pick up the colour. **Settle
+                    the query while doing it:** `path:glossary/` (folder) vs `tag:#glossary` (tag) are
+                    both plausible and the docs currently disagree; test both, document the one that
+                    actually works, and make the other stop being mentioned.
+        A per-term-colouring plugin is last, if ever. Sequence: convention → embed-exclusion →
+        scanner → flashcards → graph colour. Not started.
 
 ## README managed block (task #9, BUILT 2026-07-09): a devkit-owned region in a user-editable README
 - [x] **Made the brain `README.md` a hybrid — devkit-owned block + user-owned space.**

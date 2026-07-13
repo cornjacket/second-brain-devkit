@@ -182,6 +182,16 @@ system.
   `tag:#glossary` (or `path:glossary/`) colors every glossary node as a group **out of the
   box**, no custom tool. Per-*term* highlighting would need a plugin; **defer it**.
 
+**Both are hand-tested before they are documented.** Each depends on a third party we do not
+control — the *Spaced Repetition* plugin's card parser and Obsidian's graph-query syntax — and
+neither is reachable from `tools/ci.py`, which never opens Obsidian. So there is no automated
+evidence to be had here and inspection is not evidence: "the shape looks like what the plugin
+wants" is a guess until a card is actually reviewed in a real vault, and the two graph queries
+above cannot *both* be right. Exercise each in Obsidian, document what actually worked (with the
+plugin version), and if the term shape turns out to need a tweak, fix it in `glossary_new.py` —
+the tool owns the shape — rather than working around it in prose. See the #19 subtasks in
+[PLAN.md](../PLAN.md).
+
 ## 7. Sequencing — do not build it all at once
 
 Order by value / cost; earlier items must earn the later ones:
