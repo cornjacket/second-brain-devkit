@@ -8,15 +8,21 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-11)
-- **▶▶ NEXT — #3 hybrid FTS5 (now the lead lever).** #12's measurement half is **done**
-  (increment 2, below): the three built index-time features were ablated on the #15 corpus and
-  none is *situational*, so shipping `config/features.toml` was **deferred as dead config** until
-  a genuinely optional feature exists to toggle. **#3 hybrid FTS5** is exactly that first feature —
-  a query-time `hybrid_search` on/off toggle the harness can ablate — **and** the top IT-separation
-  lever. Building #3 is what re-opens the `config/features.toml` half of #12 with a real toggle.
+## ▶ Next up (2026-07-13)
+- **▶▶ NEXT — the glossary tail, then a write path.** With #21 landed the **MCP arc is closed**
+  (four tools, happy path + failure modes, all negative-tested). What remains of the glossary is a
+  docs-only closeout in `glossary/README.md` (Obsidian Spaced-Repetition flashcards + a
+  `path:glossary/` graph-colour group). After that the biggest real gap is **#5 `add_note`** — there
+  is still **no way to add a note from Claude Desktop** (the server is read-only by design; a write
+  tool must run the same embed → hydrate path the hooks do, not just drop a file on disk).
 - **Also unblocked:** the real-brain auto-link `--apply` calibration (task #8 — the bench corpus
   proved a confident `t_max ≈ 0.30`).
+- **Done 2026-07-13 — #21 MCP negative / security suite.** The MCP tier now tests what the server
+  must **refuse** (path traversal on `get_note` — the one untrusted-input surface) and **survive**
+  (its vector cache destroyed), not just what it does when used correctly. Headline lesson, learned
+  the hard way: **a test whose setup the system silently repairs proves nothing** — deleting
+  `brain.db` to prove the glossary never reads it is vacuous, because the server re-hydrates a
+  missing cache on startup. Poison it instead, and pin the invariant statically too. See #21 below.
 - **Done 2026-07-11 — #22 IT-corpus ablation bed (+ hardened).** Authored
   `tests/seed-corpus/queries.jsonl` + a `--corpus {bench,it}` flag on `tools/ablation.py`, then
   **hardened** the query set (lay/symptom phrasing) to restore headroom (recall@1 0.675, recall@5
@@ -278,10 +284,25 @@ or a behavior regression ships green. Two layers, only the first in the hermetic
       absent (stays out of the portable gate); needs `mcp`+`sqlite-vec`, **not** Ollama.
       Verified: passes green, and a negative test (reverting `structured_output=False`)
       is caught on both tools. (task #2)
-- [ ] **Layer 2b — MCP negative / security cases (task #21).** Extend
-      `check_mcp_server.py` with the failure-mode assertions the current happy-path
-      harness doesn't cover — the security boundary and the two-substrate isolation.
-      **Buildable now (independent of #20):**
+- [x] **Layer 2b — MCP negative / security cases (task #21).** DONE (2026-07-13):
+      `check_mcp_server.py` now drives the failure modes as well as the happy path —
+      traversal refusals (each asserted to fail *on the vault guard*, not on an
+      incidental `FileNotFoundError`), an in-vault `..` still served (proving escape
+      detection, not a naive `..` reject), substrate disjointness both ways, and the
+      glossary's embedding-free contract. **Every assertion was negative-tested** by
+      deliberately breaking the invariant it guards (5 regressions, all caught).
+      That pass earned the task's real lesson: the first embedding-free check was
+      **vacuous** — it deleted `data/brain.db`, but the server *re-hydrates a missing
+      cache on startup*, so a glossary wired straight into the vector store passed
+      it clean. The fix is to **poison** the db with garbage bytes (exists, so no
+      re-hydrate; corrupt, so any read raises) and to add a **static AST check** that
+      the glossary functions never even name `DB_PATH`/`brain.db`/`search_vault` —
+      catching the coupling the behavioral test cannot see (`DB_PATH.exists()` gating
+      changes behavior without opening the file). Generalizes: *a green test that
+      cannot be made to go red is decoration* — and a test whose setup the system
+      silently repairs is the sneakiest kind. Also hardened the harness to report a
+      broken tool as a legible FAIL rather than a `JSONDecodeError` traceback.
+      Original scope, all shipped:
       - **Path traversal on `get_note`.** The guard is resolve-based (`p.resolve()` then
         `vault not in p.parents`), so `..` is collapsed *before* the check — assert that
         explicitly: refuse an absolute path outside the vault (`/etc/passwd`), refuse a

@@ -75,7 +75,8 @@ Mirror the skill's surface — read-only, minimal:
   appears without a restart. Descriptions scope them to explicit "what is X" intent and state the
   glossary is absent from `search_second_brain` — the tool-layer guard that keeps hub-avoidance
   intact. Both register `structured_output=False` like the two above. Behavioral coverage lives in
-  `check_mcp_server.py` (the four-tool surface + the six #20 acceptance checks).
+  `check_mcp_server.py` (the four-tool surface + the six #20 acceptance checks); its failure modes —
+  traversal, substrate disjointness, embedding-free — are the #21 negative suite (§11.1).
 
 **Read-only by default.** No note-creation/editing tool in v1 — writing goes through
 the git-committed vault flow (pre/post-commit hooks embed + hydrate), which an MCP
@@ -239,3 +240,49 @@ backend is meaningless-but-nonzero); `get_note` returns Markdown; an out-of-vaul
 read is refused (`isError: True`). Requires Ollama running for a real brain. The
 server prints its own progress to **stderr**, so stdout stays a clean JSON-RPC
 channel — if a client ever fails to handshake, suspect something writing to stdout.
+
+## 11.1 Negative / security suite — what the server must *refuse* or *survive* (task #21)
+
+The checks in §10 are the happy path: they prove the server works when used correctly.
+`check_mcp_server.py` also drives the failure modes — the security boundary and the
+two-substrate isolation — because a contract nobody tests at the edges is a contract that
+quietly rots. All of it stays `mcp`-gated (SKIP + exit 0 without the SDK), `test` backend,
+no Ollama.
+
+**Path traversal on `get_note`.** `get_note` takes a caller-supplied path, so it is the
+server's only untrusted-input surface. The guard resolves the path first and then requires
+`vault/` among its parents, which means `..` is collapsed *before* the check. Both halves of
+that are asserted: every escape is refused (absolute `/etc/passwd`, a `..` climb out of the
+vault, a hop to a real sibling like `config/embedder.toml`, and a relative path — which
+resolves against the *brain root*, not `vault/`), **and** a `..` that stays inside the vault
+(`<dir>/../<dir>/note.md`) is still served. Refusals must fail *on the vault guard*, not on
+an incidental `FileNotFoundError` — a missing file would "pass" a naive test while proving
+nothing about the guard. Known gap, out of scope: a symlink inside the vault pointing out
+would resolve out and so be refused by the same guard, but nothing in a brain creates one.
+
+**Substrate disjointness.** Semantic search returns only PARA notes; the glossary tools
+return only glossary notes. Neither leaks into the other.
+
+**The glossary is embedding-free.** This is the invariant that keeps the glossary out of the
+vector index (see [glossary.md](glossary.md) — a definition sits semantically next to every
+note that mentions the term, so embedding it would make it a retrieval hub). It is pinned
+from two directions, and *both are needed*:
+
+- **Behavioral** — a second server runs against a brain whose vector substrate is destroyed:
+  sidecars deleted and `data/brain.db` **poisoned** with garbage bytes. Poisoned, not deleted,
+  and that is the whole point: `main()` re-hydrates a *missing* cache on startup, so a deleted
+  db is back — empty but valid — before the first tool call, and a glossary that secretly read
+  it would still pass. A corrupt db cannot be opened, so any read of the cache now raises.
+  Search fails; the glossary must still answer in full.
+- **Static** — an AST check that the glossary functions do not so much as *name* `DB_PATH`,
+  `brain.db`, `search_vault`, `hydrate_cache`, or `embedder`. This catches the coupling the
+  behavioral test cannot see: gating the glossary on `DB_PATH.exists()` changes behavior
+  without ever opening the file.
+
+**The suite is itself negative-tested.** Each assertion was confirmed to *fail* when the
+invariant it guards is deliberately broken: a naive `".." in path` reject (kills escape
+detection), the vault guard removed entirely, the glossary gated on `DB_PATH.exists()`, the
+glossary made to query `brain.db`, and `glossary/` added to `PARA_ROOTS` (breaching the
+exclusion). A green suite that cannot go red is decoration — the first draft of the
+embedding-free check passed against a glossary wired straight into the cache, which is
+exactly how the poisoned-db design was found.
