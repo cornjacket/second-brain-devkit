@@ -81,14 +81,20 @@ python3 scripts/glossary_new.py "retrieval substrates"   # -> vault/glossary/ret
 Fill in the one-line definition and commit. Glossary notes are **not** semantically
 searchable **by design** — they're never embedded (their meaning is the `[[term]]`
 link graph, the *symbolic* layer, not vector proximity), so they never appear in
-`search_vault.py`. To link a term wherever it's used in note bodies, run the scan
-(report by default, idempotent):
+`search_vault.py`.
+
+`glossary_new.py` also **links the new term wherever it already appears** in your notes
+(pass `--no-relink` to skip). To re-link the whole vault on demand — e.g. for terms you
+hand-wrote — run the scan (report by default, idempotent):
 
 ```bash
 python3 scripts/glossary_scan.py --apply   # insert [[term]] links across the vault
 ```
 
-See [`vault/glossary/README.md`](vault/glossary/README.md).
+To link terms **automatically as you commit** notes, set `glossary_autolink = true` in
+[`config/features.toml`](config/features.toml) — the pre-commit hook then links known terms
+in each staged note (off by default; it edits the note's body). See
+[`vault/glossary/README.md`](vault/glossary/README.md).
 
 > **Tip — phrase a note the way you'll search for it.** Search ranks a note by how
 > close its *wording and meaning* are to your query, so a note that mirrors the
@@ -284,7 +290,7 @@ You should see both tool names and a few ranked note paths.
 
 ```
 ├── .githooks/pre-commit   # embeds staged notes locally + line-count guard
-├── scripts/               # embedder, db, embed_staged, embed_vault, hydrate/update_cache, search, register, self_test, doctor, install_skill, mcp_server, glossary_new, glossary_scan
+├── scripts/               # embedder, db, embed_staged, embed_vault, hydrate/update_cache, search, register, self_test, doctor, install_skill, mcp_server, features, glossary_new/scan/autolink_staged
 ├── skill/second-brain/    # AI skill — consult this brain from any project (install_skill.py)
 ├── vault/                 # your notes — point Obsidian here
 │   ├── projects/  areas/  resources/  archive/    # PARA roots (embedding scope)

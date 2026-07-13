@@ -49,6 +49,7 @@ paths = [
   "scripts/embed_vault.py",
   "scripts/embedder.py",
   "scripts/features.py",
+  "scripts/glossary_autolink_staged.py",
   "scripts/glossary_new.py",
   "scripts/glossary_scan.py",
   "scripts/hydrate_cache.py",

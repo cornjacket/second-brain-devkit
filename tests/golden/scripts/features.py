@@ -15,6 +15,10 @@ searches (hybrid on, K=60).
   Env: ``SECOND_BRAIN_HYBRID_SEARCH`` (``1``/``0``/``true``/``false``/``on``/``off``).
 - ``rrf_k`` (int, default ``60``): the RRF damping constant; larger flattens the
   rank weighting. Env: ``SECOND_BRAIN_RRF_K``.
+- ``glossary_autolink`` (bool, default ``False``): when set, the pre-commit hook
+  links known glossary terms in each staged note before embedding it. Off by
+  default (a hook that edits your prose should be opt-in). Env:
+  ``SECOND_BRAIN_GLOSSARY_AUTOLINK``.
 """
 from __future__ import annotations
 
@@ -27,6 +31,7 @@ _CONFIG_PATH = Path(__file__).resolve().parent.parent / "config" / "features.tom
 
 _DEFAULT_HYBRID = True
 _DEFAULT_RRF_K = 60
+_DEFAULT_GLOSSARY_AUTOLINK = False
 
 _TRUE = {"1", "true", "yes", "on"}
 _FALSE = {"0", "false", "no", "off"}
@@ -82,3 +87,16 @@ def rrf_k() -> int:
     if isinstance(val, int) and not isinstance(val, bool):
         return val
     return _DEFAULT_RRF_K
+
+
+def glossary_autolink() -> bool:
+    """Whether the pre-commit hook links glossary terms in staged notes: env > config > default (False)."""
+    env = os.environ.get("SECOND_BRAIN_GLOSSARY_AUTOLINK")
+    if env is not None:
+        parsed = _parse_bool(env)
+        if parsed is not None:
+            return parsed
+    val = _config().get("glossary_autolink")
+    if isinstance(val, bool):
+        return val
+    return _DEFAULT_GLOSSARY_AUTOLINK

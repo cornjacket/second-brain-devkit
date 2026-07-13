@@ -63,9 +63,31 @@ def scaffold(term: str) -> str:
     return _SCAFFOLD.format(term=term)
 
 
+def _relink(term: str, slug: str) -> None:
+    """Link the new term wherever it already appears in a note body (its 'link on use' pass).
+
+    Reuses the glossary_scan engine, scoped to just this term. Runs synchronously so you see
+    what got linked when you add the term (the commit-hook path is the separate, opt-in
+    ``glossary_autolink`` toggle). The linked notes re-embed on their next commit.
+    """
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import glossary_scan  # noqa: E402  (emitted sibling; the shared link engine)
+
+    one = [(slug, term)]
+    total = 0
+    for note in glossary_scan.para_notes():
+        for surface, s in glossary_scan.link_note_file(note, one):
+            print(f"  link  {note.relative_to(REPO_ROOT)}: '{surface}' -> [[{s}]]")
+            total += 1
+    if total:
+        print(f"  linked {total} existing occurrence(s) — commit those notes to re-embed them.")
+
+
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Scaffold a new glossary term note (PARA(G)).")
     ap.add_argument("term", help="the term, in natural form (e.g. \"retrieval substrates\")")
+    ap.add_argument("--no-relink", action="store_true",
+                    help="just scaffold — do NOT link the term where it already appears in notes")
     args = ap.parse_args(argv)
 
     slug = slugify(args.term)
@@ -84,6 +106,8 @@ def main(argv: list[str]) -> int:
     dest.write_text(scaffold(args.term), encoding="utf-8")
     print(f"  created {dest.relative_to(REPO_ROOT)}")
     print("  fill in the definition, then commit (glossary notes are not embedded — no sidecar).")
+    if not args.no_relink:
+        _relink(args.term, slug)
     return 0
 
 

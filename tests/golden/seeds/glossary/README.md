@@ -62,16 +62,20 @@ sidecar to manage.
 
 Wherever a glossary term appears in another note's body, link it to its definition with
 `[[term]]` — that inline link is what carries the term's meaning (and draws the graph edge).
-Automate it with the scan:
+There are three ways to get the links in, all using the same engine (first unlinked occurrence
+per note, **idempotent**, so nothing is ever double-linked):
 
 ```bash
-python3 scripts/glossary_scan.py            # report unlinked term occurrences (dry run)
-python3 scripts/glossary_scan.py --apply    # insert the [[term]] links
+python3 scripts/glossary_new.py "corpus"     # scaffolds AND links the new term (--no-relink to skip)
+python3 scripts/glossary_scan.py             # report unlinked occurrences across the vault (dry run)
+python3 scripts/glossary_scan.py --apply     # insert the links across the vault
 ```
 
-It links the first unlinked occurrence per note (one link is enough) and is **idempotent** —
-re-running skips terms already linked. It is an **on-demand** pass, not a commit hook: `--apply`
-edits note bodies, so the touched notes re-embed on their next commit (the link is real content).
+- **Adding a term** with `glossary_new.py` links it wherever it already appears — the automatic path.
+- **`glossary_scan.py`** is the on-demand whole-vault pass (e.g. for terms you hand-wrote).
+- **Automatic on commit:** set `glossary_autolink = true` in `config/features.toml` and the
+  pre-commit hook links known terms in each **staged** note before embedding it (off by default —
+  it edits your note bodies). All three edit bodies, so the touched notes re-embed on commit.
 
 
 ## What ships in a fresh brain

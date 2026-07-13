@@ -124,12 +124,27 @@ so they never enter `data/brain.db`'s vector table.
 - Walk the vault; for each term in `glossary/`, find occurrences in other notes' bodies.
 - **Report unlinked occurrences** by default (dry-run) — "note X uses 'corpus' but does not
   link it." This is the periodic "scan all documents and add the links" workflow.
-- **`--apply`** inserts `[[term]]` at (e.g.) the first unlinked occurrence per note. Because
-  it edits bodies, it *does* change the substance hash and trigger a re-embed of the touched
-  notes — acceptable (the link is real content), but note it is an index-perturbing pass, so
-  it is **on-demand**, not a per-commit hook (same churn-control stance as `autolink.py`).
+- **`--apply`** inserts `[[term]]` at the first unlinked occurrence per note. Because it edits
+  bodies, it *does* change the substance hash and trigger a re-embed of the touched notes —
+  acceptable (the link is real content), but it is an index-perturbing pass.
 - **Detect-and-instruct**, `--apply`-gated, idempotent — consistent with
   `install_skill.py` / `doctor.py`.
+
+**Three ways the same link engine runs (`link_body`/`link_note_file`, shared):**
+1. **Whole-vault, on-demand** — `glossary_scan.py --apply`. The periodic "link everything" pass.
+2. **New term, scoped** — `glossary_new.py "<term>"` sweeps *just that term* across the vault
+   after scaffolding it (`--no-relink` to skip). Synchronous and visible — the automatic path
+   for adding a term. Chosen over a commit hook because a glossary note is non-PARA (its commit
+   wouldn't fire the embed hook) and a hook rewriting *other* notes would leave them unstaged.
+3. **Per-commit, contained, opt-in** — when `config/features.toml` `glossary_autolink = true`,
+   the pre-commit hook (`glossary_autolink_staged.py`, before `embed_staged.py`) links known
+   terms in the **staged** note(s) only and re-stages them, so a note embeds *with* its links.
+   Off by default — a hook that edits your prose should be opt-in — and contained (only the
+   notes you're already committing), which is what makes it safe where a whole-vault hook wasn't.
+
+The earlier "on-demand, never a hook" stance (churn-control, like `autolink.py`) still holds for
+the *whole-vault* sweep; the opt-in per-commit hook is safe precisely because it is scoped to the
+staged note, not the whole vault.
 
 **Deliberately the dumb version first** — exact-term matching, report + optional insert.
 That delivers ~80% of the value at near-zero cost. Fancier matching (stemming, aliases,

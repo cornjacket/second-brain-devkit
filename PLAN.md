@@ -990,7 +990,20 @@ requirement**); they also produce the material for a future GitHub tutorial.
       by default / `--apply` inserts `[[term]]` at the first unlinked occurrence per note, idempotent
       (skips already-linked terms + text inside existing wikilinks), dumb exact-phrase match
       (stemming/aliases/code-fence-skip deferred per §4); verified report→apply→no-op in the golden,
-      CI 8/8. Remaining: the flashcard/graph tail (mostly free). A curated
+      CI 8/8.
+      **INCREMENT 3 BUILT 2026-07-12 — auto-linking (shared engine, three triggers).** Extracted the
+      link engine (`link_body`/`link_note_file`) from `glossary_scan.py` so three paths share it:
+      (1) `glossary_scan.py --apply` whole-vault on-demand; (2) `glossary_new.py` sweeps *just the new
+      term* across the vault after scaffolding it (`--no-relink` to skip) — the automatic path for
+      adding a term, synchronous+visible (a commit hook is wrong here: a glossary note is non-PARA so
+      its commit skips the embed hook, and a hook editing *other* notes would leave them unstaged);
+      (3) opt-in per-commit — new `config/features.toml` `glossary_autolink` (default false, via
+      `features.py`) drives `glossary_autolink_staged.py` in the pre-commit hook (before
+      `embed_staged.py`), linking known terms in **staged** notes only + re-staging them, so a note
+      embeds with its links. Contained (staged-only) is what makes the hook safe where the whole-vault
+      sweep stayed on-demand. Verified in the golden (new-term sweep links first occurrence; --no-relink
+      skips; hook no-op when off, links+re-stages when on) and no-op in a fresh brain; CI 8/8. Remaining:
+      the flashcard/graph tail (mostly free). A curated
       **symbolic-layer** feature (distinct from the vector/semantic layer): the vault's ad-hoc
       concept notes become first-class. A term earns a `vault/glossary/{term}.md` note only when
       **pre-identified** as glossary-worthy (reused / non-obvious); a periodic **scan** links every

@@ -102,6 +102,42 @@ def linked_form(slug: str, matched: str) -> str:
     return f"[[{slug}]]" if matched == slug else f"[[{slug}|{matched}]]"
 
 
+# --- the shared link engine (reused by the pre-commit hook and glossary_new.py) ----------
+
+def link_body(body: str, terms: list[tuple[str, str]]) -> tuple[str, list[tuple[str, str]]]:
+    """Link the first unlinked occurrence of each term in ``body``.
+
+    Returns ``(new_body, linked)`` where ``linked`` is the ``(surface, slug)`` pairs inserted.
+    Idempotent: a term already linked, or with no unlinked occurrence, is skipped.
+    """
+    linked: list[tuple[str, str]] = []
+    for slug, surface in terms:
+        if already_linked(body, slug, surface):
+            continue
+        m = first_unlinked(body, surface)
+        if not m:
+            continue
+        matched = body[m.start():m.end()]
+        body = body[:m.start()] + linked_form(slug, matched) + body[m.end():]
+        linked.append((surface, slug))
+    return body, linked
+
+
+def link_note_file(path: Path, terms: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Apply ``link_body`` to a note file in place; return the ``(surface, slug)`` links made."""
+    frontmatter, body = split_frontmatter(path.read_text(encoding="utf-8"))
+    new_body, linked = link_body(body, terms)
+    if linked:
+        path.write_text(frontmatter + new_body, encoding="utf-8")
+    return linked
+
+
+def unlinked_in_body(body: str, terms: list[tuple[str, str]]) -> list[tuple[str, str]]:
+    """Report-only: the ``(surface, slug)`` terms that have an unlinked occurrence in ``body``."""
+    return [(surface, slug) for slug, surface in terms
+            if not already_linked(body, slug, surface) and first_unlinked(body, surface)]
+
+
 def scan(apply: bool) -> int:
     terms = glossary_terms()
     if not terms:
@@ -112,27 +148,19 @@ def scan(apply: bool) -> int:
     total = 0
     touched_notes = 0
     for note in para_notes():
-        text = note.read_text(encoding="utf-8")
-        frontmatter, body = split_frontmatter(text)
-        changed = False
         rel = note.relative_to(REPO_ROOT)
-        for slug, surface in terms:
-            if already_linked(body, slug, surface):
-                continue
-            m = first_unlinked(body, surface)
-            if not m:
-                continue
-            total += 1
-            if apply:
-                matched = body[m.start():m.end()]
-                body = body[:m.start()] + linked_form(slug, matched) + body[m.end():]
-                changed = True
+        if apply:
+            linked = link_note_file(note, terms)
+            if linked:
+                touched_notes += 1
+            for surface, slug in linked:
                 print(f"  link  {rel}: '{surface}' -> [[{slug}]]")
-            else:
+                total += 1
+        else:
+            _, body = split_frontmatter(note.read_text(encoding="utf-8"))
+            for surface, slug in unlinked_in_body(body, terms):
                 print(f"  todo  {rel}: '{surface}' is used but not linked -> [[{slug}]]")
-        if changed:
-            note.write_text(frontmatter + body, encoding="utf-8")
-            touched_notes += 1
+                total += 1
 
     if total == 0:
         print("glossary_scan: no unlinked term occurrences — vault is fully linked.")

@@ -65,9 +65,12 @@ so the scheme is written **PARA(G)**: Projects, Areas, Resources, Archive, plus 
   `README.md` — the vocabulary is the user's to curate. The term shape is embedded in
   `scripts/glossary_new.py` (the scaffolder owns it), not a separate template file.
 - **Tooling:** `scripts/glossary_new.py "<term>"` scaffolds a term note (dedup-checked,
-  detect-and-instruct); `scripts/glossary_scan.py` links term occurrences in note bodies
-  (report by default, `--apply` inserts) — an on-demand, idempotent pass (one link per term
-  per note), not a commit hook (it edits bodies, which re-embeds the touched notes).
+  detect-and-instruct) and links the new term where it already appears (`--no-relink` to skip);
+  `scripts/glossary_scan.py` is the on-demand whole-vault link pass (report by default, `--apply`
+  inserts, idempotent, one link per term per note). Optionally, `config/features.toml`
+  `glossary_autolink = true` runs a **contained** pre-commit pass
+  (`scripts/glossary_autolink_staged.py`) that links known terms in **staged** notes only, before
+  embedding — off by default. All three edit note bodies, so touched notes re-embed on commit.
 
 ### Note format
 
