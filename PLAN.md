@@ -24,11 +24,12 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   won the first set +13pp, nomic the second +7pp, the hardened set a tie) — so the earlier "mxbai
   decisively wins" was a phrasing artifact, **not** a robust embedder win. Stable across all sets:
   symmetric prefix hurts, canonical view flat. The hardened set is now the honest bed for #3.
-- **New — #20 glossary over MCP.** Expose `vault/glossary/` through two exact-match, no-embedding
-  MCP tools (`list_glossary_terms` / `lookup_glossary_term`) so an assistant can *discover and use*
-  the glossary — the definitions stay out of `search_second_brain` on purpose (hub avoidance). A G6
-  MCP read-tool sibling of the deferred #5 write path; **depends on #19** emitting the glossary
-  namespace. Full spec under [G6](#milestone-g6--the-ai-interface-reach-the-brain-from-any-project).
+- **Done 2026-07-12 — #20 glossary over MCP.** Exposed `vault/glossary/` through two exact-match,
+  no-embedding MCP tools (`list_glossary_terms` / `lookup_glossary_term`) so an assistant can
+  *discover and use* the glossary — definitions stay out of `search_second_brain` on purpose (hub
+  avoidance), enforced in the tool text. mtime-cached index, alias + normalized matching, near-miss
+  suggestions; `check_mcp_server.py` at the four-tool surface + six acceptance checks, MCP tier + CI
+  green. Built on #19's namespace. Its negative/security depth lands in **#21**.
 - **Done 2026-07-11:** **#12 increment 2** — extended `tools/ablation.py` with the two index-time
   ablations (canonical view ON/OFF, embedder model swap nomic vs mxbai-embed-large) + a memoized,
   model-parametrized embedder. Results ([benchmark-corpus §6](docs/benchmark-corpus.md)): canonical
@@ -473,7 +474,14 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         the multi-statement critical sections SQLite transactions can't span, while
         WAL handles reader-vs-writer. Only if overlapping writes prove real once the
         server lands.
-  - [ ] **Expose the glossary via dedicated MCP tools — exact-match, no embeddings (task #20).**
+  - [x] **Expose the glossary via dedicated MCP tools — exact-match, no embeddings (task #20). BUILT 2026-07-12.**
+        `list_glossary_terms` + `lookup_glossary_term` added to the emitted `mcp_server.py` (both
+        `structured_output=False`): a mtime-cached `glossary/*.md` index (normalized slug + frontmatter
+        `aliases:`), lookup returns the whole note with a lead-in-strip miss-fallback + `difflib`
+        near-miss; no embedding, never touches `data/brain.db`. `check_mcp_server.py` extended to the
+        four-tool surface + all six acceptance checks (list/exact/alias/normalized/near-miss/
+        search-excludes-glossary/hot-add); MCP tier green, CI 8/8. Negative/security depth (embedding-free
+        without `brain.db`, substrate disjointness) is #21.
         The vault's `glossary/` (a non-PARA sibling; [docs/glossary.md](docs/glossary.md)) holds
         short definitions of terms that recur across the whole vault. They are **deliberately kept
         out of semantic search**: a definition sits adjacent to *every* note that mentions the term,

@@ -1,8 +1,9 @@
 # MCP server — design & scoping
 
-**Status:** **BUILT — v1 (2026-07-04, golden `4867eec`).** `scripts/mcp_server.py`
-implements this design (stdio, read-only `search_second_brain` + `get_note`, thin
-wrapper over the brain's own `embedder`/`db`/`search_vault`); the MCP SDK is an
+**Status:** **BUILT — v1 (2026-07-04, golden `4867eec`); glossary tools added (#20, 2026-07-12).**
+`scripts/mcp_server.py` implements this design (stdio, read-only `search_second_brain` + `get_note`,
+plus the exact-match `list_glossary_terms` + `lookup_glossary_term` — §3, task #20), a thin
+wrapper over the brain's own `embedder`/`db`/`search_vault`; the MCP SDK is an
 isolated optional dep (`requirements-mcp.txt`). Registration is print-and-instruct in
 the README for v1 (auto-insert deferred). Build-time decisions settled in
 [OQ-6](../open-questions.md#oq-6); tracked in
@@ -64,15 +65,17 @@ Mirror the skill's surface — read-only, minimal:
 - **`get_note(source_file: str) -> str`** *(optional, likely yes).* Return a note's
   Markdown so the model can read the hit without a second round-trip. Path must be
   validated to live under the brain's `vault/` (no arbitrary file reads).
-- **`list_glossary_terms()` + `lookup_glossary_term(term)`** *(planned — task #20,
-  [PLAN G6](../PLAN.md#milestone-g6--the-ai-interface-reach-the-brain-from-any-project)).*
+- **`list_glossary_terms()` + `lookup_glossary_term(term)`** *(**BUILT** — task #20, 2026-07-12).*
   Exact-match, **no-embedding** access to `vault/glossary/` (a non-PARA sibling, kept out of the
   vector index by design — see [glossary.md](glossary.md)). `list_` returns all term names + aliases
-  (call it first when unsure a term exists); `lookup_` normalizes + alias-matches and returns the
-  whole short note, with `difflib` near-miss suggestions on a miss. Descriptions scope them to
-  explicit "what is X" intent and state the glossary is absent from `search_second_brain` — the
-  tool-layer guard that keeps hub-avoidance intact. Both register `structured_output=False` like the
-  two above.
+  (call it first when unsure a term exists); `lookup_` normalizes (lowercase, strip punctuation,
+  spaces/underscores → `-`) + alias-matches (frontmatter `aliases:`) and returns the whole short note,
+  with a lead-in-strip miss-fallback (`what is X` → `X`) and `difflib` near-miss suggestions on a real
+  miss. The index scans `glossary/*.md` on demand, **mtime-cached on the directory** so a new term
+  appears without a restart. Descriptions scope them to explicit "what is X" intent and state the
+  glossary is absent from `search_second_brain` — the tool-layer guard that keeps hub-avoidance
+  intact. Both register `structured_output=False` like the two above. Behavioral coverage lives in
+  `check_mcp_server.py` (the four-tool surface + the six #20 acceptance checks).
 
 **Read-only by default.** No note-creation/editing tool in v1 — writing goes through
 the git-committed vault flow (pre/post-commit hooks embed + hydrate), which an MCP
