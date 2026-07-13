@@ -455,6 +455,25 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                 fails.append(f"add_note did not recover from a non-fast-forward push (the "
                              f"multi-client case): {report3!r}")
 
+            # --- an unpushable note must SHOUT, not whisper ---------------------------------
+            # A failed push still returns SUCCESS (the note was created, committed, embedded), so
+            # nothing makes the model mention it. If the warning isn't the FIRST thing in the
+            # payload it gets summarized away as "saved!" and the user believes a note synced
+            # when it didn't. Point the remote at a dead path to force the failure.
+            _git(brain, "remote", "set-url", "origin", str(brain.parent / "gone.git"), env=env)
+            r4 = await s.call_tool("add_note", {"title": "Unpushable Note",
+                                                "para_root": "resources", "body": "w"})
+            head = "".join(_texts(r4)).splitlines()[0] if _texts(r4) else ""
+            if r4.isError:
+                fails.append("add_note raised on a failed push — the note IS created, committed "
+                             "and searchable, so this must be a partial success, not an error")
+            elif "ACTION NEEDED" not in head or "NOT PUSHED" not in head:
+                fails.append(f"a failed push is not surfaced on the FIRST line, so a model can "
+                             f"summarize it away as 'saved': {head!r}")
+            if not (brain / "vault" / "resources" / "unpushable-note.md").is_file():
+                fails.append("add_note discarded the note when the push failed — a failed push "
+                             "must never be a lost note")
+
     return fails
 
 
