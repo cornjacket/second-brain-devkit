@@ -43,9 +43,17 @@ flashcard deck.
 
 Wherever a glossary term appears in another note's body, link it to its definition with
 `[[term]]` — that inline link is what carries the term's meaning (and draws the graph edge).
-A `scripts/glossary_scan.py` tool to automate this — report unlinked occurrences and, with
-`--apply`, insert the links as an on-demand pass — is on the roadmap; for now, add the links by
-hand as you write.
+Automate it with the scan:
+
+```bash
+python3 scripts/glossary_scan.py            # report unlinked term occurrences (dry run)
+python3 scripts/glossary_scan.py --apply    # insert the [[term]] links
+```
+
+It links the first unlinked occurrence per note (one link is enough) and is **idempotent** —
+re-running skips terms already linked. It is an **on-demand** pass, not a commit hook: `--apply`
+edits note bodies, so the touched notes re-embed on their next commit (the link is real content).
+
 
 ## What ships in a fresh brain
 

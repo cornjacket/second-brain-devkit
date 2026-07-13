@@ -4,8 +4,11 @@
 `vault/glossary/` (non-PARA sibling) with `glossary/README.md`, the `templates/glossary-term.md`
 scaffold, `type: glossary` marker, `scripts/glossary_new.py` (dedup-checked term scaffolder),
 embedding-exclusion (verified — falls out of PARA-scoping for free), and dual-README + SPEC §2.1
-docs (PARA → PARA(G)). Unblocks #20/#21. **Remaining:** increment 2 = `scripts/glossary_scan.py`
-(the on-demand body-link pass), then the flashcard/graph tail. Task #19. A feature that gives a
+docs (PARA → PARA(G)). Unblocks #20/#21. **Increment 2 BUILT 2026-07-12** — `scripts/glossary_scan.py`,
+the on-demand body-link pass: report by default / `--apply` inserts `[[term]]` at the first unlinked
+occurrence per note, **idempotent** (skips already-linked terms), skips text inside existing
+wikilinks; verified in the golden (report → apply → no-op re-run). **Remaining:** the flashcard/graph
+tail (mostly free). Task #19. A feature that gives a
 brain a **controlled vocabulary**: one atomic Markdown note per **pre-identified** term,
 and every use of that term across the vault links back to its definition. The links are
 authored (or scripted) into note **bodies**, where the word actually appears — so a reader

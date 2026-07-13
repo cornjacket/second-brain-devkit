@@ -50,6 +50,7 @@ paths = [
   "scripts/embedder.py",
   "scripts/features.py",
   "scripts/glossary_new.py",
+  "scripts/glossary_scan.py",
   "scripts/hydrate_cache.py",
   "scripts/install_skill.py",
   "scripts/marked_block.py",

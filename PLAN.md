@@ -977,8 +977,12 @@ requirement**); they also produce the material for a future GitHub tutorial.
       2026-07-12** — namespace + convention + `glossary_new.py` + docs + SPEC + harness emit into
       every brain (see the Namespace/Embedding-exclusion/New-term/Docs/Contract/Harness subtasks
       below, all done); embedding-exclusion verified free in the golden (embed_vault/hydrate/search
-      ignore `glossary/`, zero sidecars, no `doctor` drift); CI 8/8. **Unblocks #20/#21.** Remaining:
-      the scan tool (increment 2) + the flashcard/graph tail. A curated
+      ignore `glossary/`, zero sidecars, no `doctor` drift); CI 8/8. **Unblocks #20/#21.**
+      **INCREMENT 2 BUILT 2026-07-12** — `scripts/glossary_scan.py`, the on-demand body-linker: report
+      by default / `--apply` inserts `[[term]]` at the first unlinked occurrence per note, idempotent
+      (skips already-linked terms + text inside existing wikilinks), dumb exact-phrase match
+      (stemming/aliases/code-fence-skip deferred per §4); verified report→apply→no-op in the golden,
+      CI 8/8. Remaining: the flashcard/graph tail (mostly free). A curated
       **symbolic-layer** feature (distinct from the vector/semantic layer): the vault's ad-hoc
       concept notes become first-class. A term earns a `vault/glossary/{term}.md` note only when
       **pre-identified** as glossary-worthy (reused / non-obvious); a periodic **scan** links every

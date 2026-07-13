@@ -65,8 +65,9 @@ so the scheme is written **PARA(G)**: Projects, Areas, Resources, Archive, plus 
   `README.md` + the `templates/glossary-term.md` scaffold — the vocabulary is the
   user's to curate.
 - **Tooling:** `scripts/glossary_new.py "<term>"` scaffolds a term note (dedup-checked,
-  detect-and-instruct). An on-demand `scripts/glossary_scan.py` to link term occurrences in
-  note bodies (report by default, `--apply` inserts) is a roadmap item; link by hand until then.
+  detect-and-instruct); `scripts/glossary_scan.py` links term occurrences in note bodies
+  (report by default, `--apply` inserts) — an on-demand, idempotent pass (one link per term
+  per note), not a commit hook (it edits bodies, which re-embeds the touched notes).
 
 ### Note format
 

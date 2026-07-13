@@ -92,8 +92,8 @@ marked `type: glossary`. The scheme is advertised as **PARA(G)** — an orthogon
   `PARA_ROOTS = (projects, areas, resources, archive)`, and `glossary/` simply isn't one.
 - **Emitted, not pre-filled.** Brains ship the empty folder + `glossary/README.md` +
   the `templates/glossary-term.md` scaffold + `scripts/glossary_new.py` (dedup-checked
-  term scaffolder). An on-demand `glossary_scan.py` (link term occurrences in bodies) is
-  a roadmap item.
+  term scaffolder) + `scripts/glossary_scan.py` (on-demand, idempotent body-linker —
+  report by default, `--apply` inserts `[[term]]` links).
 - **Built prototype-first** in the golden, like every feature. Design + rationale:
   [docs/glossary.md](docs/glossary.md); per-brain contract in the product spec §2.1.
 
