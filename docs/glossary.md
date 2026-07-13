@@ -1,6 +1,11 @@
 # Glossary — a controlled-vocabulary layer for the brain
 
-**Status:** design-only / backlog — nothing built. Task #19. A feature that gives a
+**Status:** **increment 1 BUILT 2026-07-12** — the namespace + convention emit into every brain:
+`vault/glossary/` (non-PARA sibling) with `glossary/README.md`, the `templates/glossary-term.md`
+scaffold, `type: glossary` marker, `scripts/glossary_new.py` (dedup-checked term scaffolder),
+embedding-exclusion (verified — falls out of PARA-scoping for free), and dual-README + SPEC §2.1
+docs (PARA → PARA(G)). Unblocks #20/#21. **Remaining:** increment 2 = `scripts/glossary_scan.py`
+(the on-demand body-link pass), then the flashcard/graph tail. Task #19. A feature that gives a
 brain a **controlled vocabulary**: one atomic Markdown note per **pre-identified** term,
 and every use of that term across the vault links back to its definition. The links are
 authored (or scripted) into note **bodies**, where the word actually appears — so a reader

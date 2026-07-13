@@ -78,6 +78,25 @@ vectors — mismatched models yield incomparable results.
 > for a single brain's PARA layout, sidecar schema, embedding contract, cache
 > DDL, search CLI, and `register`. Details below are summaries — defer to those.
 
+### Glossary — the controlled-vocabulary layer (PARA(G))
+
+Every generated brain ships a **glossary**: `vault/glossary/`, a typed **non-PARA
+sibling** (like `vault/templates/`) holding one atomic note per pre-identified term,
+marked `type: glossary`. The scheme is advertised as **PARA(G)** — an orthogonal note
+*type*, not a fifth actionability bucket.
+
+- **Embedding-excluded for free.** Glossary notes never enter `data/brain.db`: a
+  keyword-dense definition would rank too high for its own term, and their meaning is
+  the `[[term]]` link graph (the *symbolic* layer), not vector proximity. This needs **no
+  exclusion code** — every embed/cache/`doctor` path already scopes to
+  `PARA_ROOTS = (projects, areas, resources, archive)`, and `glossary/` simply isn't one.
+- **Emitted, not pre-filled.** Brains ship the empty folder + `glossary/README.md` +
+  the `templates/glossary-term.md` scaffold + `scripts/glossary_new.py` (dedup-checked
+  term scaffolder). An on-demand `glossary_scan.py` (link term occurrences in bodies) is
+  a roadmap item.
+- **Built prototype-first** in the golden, like every feature. Design + rationale:
+  [docs/glossary.md](docs/glossary.md); per-brain contract in the product spec §2.1.
+
 ## The Kit's Mission
 
 This repository is a **generator**. Spinning up a new Second Brain with it should

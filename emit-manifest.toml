@@ -49,6 +49,7 @@ paths = [
   "scripts/embed_vault.py",
   "scripts/embedder.py",
   "scripts/features.py",
+  "scripts/glossary_new.py",
   "scripts/hydrate_cache.py",
   "scripts/install_skill.py",
   "scripts/marked_block.py",
@@ -62,9 +63,11 @@ paths = [
   "skill/second-brain/query.py",
   "seeds/archive/.gitkeep",
   "seeds/areas/knowledge-management.md",
+  "seeds/glossary/README.md",
   "seeds/projects/second-brain.md",
   "seeds/resources/embeddings.md",
   "seeds/resources/sqlite-vec.md",
+  "seeds/templates/glossary-term.md",
   "seeds/templates/new-note.md",
   "tests/README.md",
   "tests/fixtures/vault/areas/habits.md",
@@ -102,9 +105,11 @@ paths = [
 paths = [
   "vault/archive/.gitkeep",
   "vault/areas/knowledge-management.md",
+  "vault/glossary/README.md",
   "vault/projects/second-brain.md",
   "vault/resources/embeddings.md",
   "vault/resources/sqlite-vec.md",
+  "vault/templates/glossary-term.md",
   "vault/templates/new-note.md",
 ]
 

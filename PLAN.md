@@ -972,8 +972,13 @@ requirement**); they also produce the material for a future GitHub tutorial.
       (local-first, no new service).
 
 ## Glossary (task #19, backlog): a controlled-vocabulary term layer for the brain
-- [ ] **Give every generated brain a controlled-vocabulary glossary — one atomic note per
-      pre-identified term, linked from wherever the term is used.** (task #19) A curated
+- [~] **Give every generated brain a controlled-vocabulary glossary — one atomic note per
+      pre-identified term, linked from wherever the term is used.** (task #19) **INCREMENT 1 BUILT
+      2026-07-12** — namespace + convention + `glossary_new.py` + docs + SPEC + harness emit into
+      every brain (see the Namespace/Embedding-exclusion/New-term/Docs/Contract/Harness subtasks
+      below, all done); embedding-exclusion verified free in the golden (embed_vault/hydrate/search
+      ignore `glossary/`, zero sidecars, no `doctor` drift); CI 8/8. **Unblocks #20/#21.** Remaining:
+      the scan tool (increment 2) + the flashcard/graph tail. A curated
       **symbolic-layer** feature (distinct from the vector/semantic layer): the vault's ad-hoc
       concept notes become first-class. A term earns a `vault/glossary/{term}.md` note only when
       **pre-identified** as glossary-worthy (reused / non-obvious); a periodic **scan** links every
