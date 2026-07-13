@@ -1,23 +1,25 @@
-# Daily plan — 2026-07-12
+# Daily plan — 2026-07-13
 
-**Focus:** Sat landed **#3 increment 1** — hybrid FTS5 + RRF fusion in the one shared
-`search_vault.search()` (CI 8/8, semantic tier 5/5 incl. an exact-token case). Today wires the
-**config surface** and **measures the payoff**, finishing the #3 arc.
+**Focus:** Sun 07-12 closed the glossary arc — **#19** (namespace + scan + auto-linking, inc 1–3)
+and **#20** (glossary-over-MCP tools) shipped, alongside the **#3** hybrid-search toggle; the real
+brain was upgraded live via `update_brain`. Mon 07-13 closes the **MCP coverage** arc with **#21**,
+then mops up the small glossary tail.
 
-- **▶▶ #3 increment 2 — `config/features.toml` toggle** (`hybrid_search`, `rrf_k`) + `scripts/features.py`,
-  env > config > default like `embedder.py`. Emitted → manifest/vendor/template/CI. This is the
-  **deferred #12 Half-B config surface**, now justified by a genuinely *situational* query-time toggle.
-- **#3 increment 3 — ablate hybrid vs vector-only** on the **hardened IT query set** (`tools/ablation.py` §4),
-  where exact-token queries are dense search's blind spot — the payoff measurement.
-- **Loop:** prototype in `../second-brain-test/` → `vendor_golden.py` → `build_template.py` → `tools/ci.py` (8 gates).
-- **Stretch / parallel:** start **#19 glossary namespace** (unblocks #20/#21 glossary-over-MCP), or run
-  the calibrated **#8 auto-link `--apply`** on the real brain (`t_max ≈ 0.30`).
+- **▶▶ #21 — MCP negative/security tests** (`check_mcp_server.py`, mcp-gated): `get_note`
+  path-traversal refusals (absolute-outside, `..`-escape — but a `..` that stays inside is allowed),
+  plus the now-unblocked glossary isolation — search-excludes-glossary end-to-end, glossary tools are
+  embedding-free (work with `data/brain.db` removed), and substrate disjointness.
+- **Glossary tail (mostly free):** a short flashcards + graph-color closeout in `glossary/README.md`
+  (Spaced Repetition plugin + a `path:glossary/` color group) — docs, no code.
+- **Stretch:** #5 `add_note` MCP write tool, or #8 auto-link `--apply` calibration on the real brain.
+- **Loop:** anything emitted goes prototype-first in `second-brain-test/` → vendor → `tools/ci.py`
+  (8 gates) + the mcp tier; #21 is harness-side (devkit-only).
 
 ```
- sat 07-11 ✅ #3 inc1  hybrid FTS5 + RRF  (CI 8/8 · semantic 5/5)
+ sun 07-12 ✅ #19 glossary (namespace·scan·autolink) + #20 glossary-MCP  ·  real brain upgraded
                  │
                  ▼
- sun 07-12  ▶▶ #3 inc2 features.toml toggle ──► #3 inc3 ablate hybrid vs vector-only (IT set)
-            ‖ stretch: #19 glossary namespace  ·  #8 auto-link --apply (real brain)
- guards: tools/ci.py (8) green · prototype-first in second-brain-test/
+ mon 07-13  ▶▶ #21 MCP negative/security (traversal + glossary isolation) ──► glossary flashcard/graph tail
+            ‖ stretch: #5 add_note  ·  #8 auto-link --apply (real brain)
+ guards: tools/ci.py (8) + mcp tier green · prototype-first in second-brain-test/
 ```
