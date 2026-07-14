@@ -9,6 +9,12 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
+- **▶▶ FIRST — #28, a live bug** (found 2026-07-14 in the real brain): `add_note`'s pathspec commit
+  leaves the **real index holding the pre-hook blob** when `glossary_autolink` edits the note, so
+  the **next commit by anyone silently reverts the link**. It corrupts note content and it is
+  already loose in a running brain. One-line fix (re-sync the index after the partial commit).
+  CI missed it because `glossary_autolink` defaults to **false** — the harness never runs the
+  config the user does.
 - **▶▶ NEXT — #26 then #25** (user-chosen, 2026-07-14). **#26** makes the embed input
   *wikilink-invariant*, so inserting a link into a note does not re-embed it — the existing
   `content_hash` gate already skips unchanged notes; it is the *view* that is too literal. **#25**
@@ -551,6 +557,62 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         byte-diffs must be regenerated. A real migration, but a one-off. Tests: a link-only edit
         produces an identical hash and **skips** the embed; a prose edit still re-embeds; a piped
         `[[slug|surface]]` normalizes to its surface text; fixtures regenerate byte-stably.
+        **The generalised lesson is written up in the real brain** (a project-independent note, this
+        repo is only its evidence): *"Embed the substance, not the file"* —
+        `vault/resources/embed-the-substance-not-the-file.md`.
+  - [ ] **BUG — `add_note` leaves a poisoned index when a hook edits the note (task #28).**
+        **Found in the wild 2026-07-14, in the user's real brain. Silently corrupts the *next*
+        commit anyone makes, and it reverts note content — highest-priority of the open items.**
+        **Mechanism.** `add_note` commits with a **pathspec** (`git commit -- <file>`) so it can
+        never sweep up the user's staged work — the safety property #5 was built around. But a
+        pathspec commit is a **partial commit**: git builds a **temporary index** and hands *that*
+        to the hooks. With `glossary_autolink = true`, the pre-commit hook edits the note (links a
+        glossary term) and re-stages it — **into the temp index**. So `add_note`'s own commit is
+        correct. But the **real index is never updated**: it keeps the pre-hook blob. That leaves a
+        phantom staged change — a staged *revert* of the hook's edit — lying in wait. The next
+        commit by anyone (a human, or Claude Code) silently includes it and **un-links the term**.
+        Observed exactly this: an unrelated commit reverted `[[ablation]]` → `ablation` in a note it
+        never touched.
+        **Fix.** After the pathspec commit, re-sync the real index for that path (`git add -- <rel>`)
+        so it matches the committed tree. Keep the pathspec — it is doing its job; the missing step
+        is the index refresh. Any tool doing a partial commit alongside file-modifying hooks needs
+        this.
+        **Why CI missed it, which is the lesson.** `glossary_autolink` defaults to **false**, so the
+        golden and the whole harness run with the hook that triggers it **switched off**. The write
+        suite passed because it never exercised the configuration the user actually runs. *A test
+        matrix that only covers the default config does not cover the product.* Test: run the
+        `add_note` suite with `glossary_autolink = true` and assert **the index is clean after the
+        call** (`git diff --cached` empty) — and negative-test it, since without the fix it must go
+        red.
+  - [ ] **Bounded, filterable list tools — and the missing tag vocabulary (task #27).** The listing
+        tools (`list_vault`, `list_glossary_terms`, and the `list_tags` this task adds) return
+        *everything*. At a few hundred notes that is a wall of context; at a few thousand it is
+        unusable. **Pagination is the wrong fix** — cursors/offsets are for a human scrolling a UI;
+        an agent handed "page 1 of 12" either treats it as the whole truth or burns twelve
+        round-trips. For a model-facing tool the primitives are **filter** and **rank**, not
+        **page**.
+        **The real hazard is silent truncation.** A capped list that doesn't say it was capped reads
+        to the model as *"this is everything"* — it fails to find `ml`, invents `machine-learning`,
+        and the vocabulary quietly forks. **Every bounded response must state what it omitted and
+        how to narrow** ("showing 30 of 214; pass `match=`"). Same disease as a green test that
+        can't go red: a silent cap reads as complete coverage.
+        Per tool, because the purpose differs:
+        - **`list_vault`** — keep it *structural* (counts per root; notes for one root, `match`
+          filter, capped + self-describing). The reason a model calls it before writing is *"does
+          something like this already exist?"* — that is a **semantic** question `search_second_brain`
+          already answers better. Point the tool description at search; don't rebuild retrieval
+          inside a lister.
+        - **`list_glossary_terms`** — bounded *by design*: a **controlled** vocabulary that grows big
+          enough to need paging is a **smell, not a requirement** (it means terms are being minted
+          that shouldn't be — see #25). Return it whole, add a `prefix`/`match` filter, cap honestly.
+          "Nearest similar" already exists on the lookup side (difflib near-miss).
+        - **`list_tags` (NEW — a real gap).** The vault has an evolved tag vocabulary
+          (`second-brain` ×9, `retrieval` ×9, `ml` ×7 …) and **no tool exposes it**: `list_vault`
+          returns only title/path, `add_note` takes freeform `tags`. So an assistant in Claude
+          Desktop is **blind to the vocabulary and invents near-misses** — every Desktop-written
+          note is a coin-flip on tag drift. Return tags **sorted by count** with the total (frequency
+          ordering is what makes truncation meaningful — the ones worth reusing are the common ones)
+          plus a `match` filter. `note_view.frontmatter_tags` already exists to read them.
   - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
         Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
         separator. **The reported bug was not in the server, and needs no server change.**
