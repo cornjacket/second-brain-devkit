@@ -699,6 +699,27 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         (and `--repair` fixes it). Negative-test it — without the check, `doctor` must currently say
         *"healthy & consistent"* while holding vectors from a view that no longer exists, which is
         exactly the false-green this task exists to kill.
+  - [x] **The search score is not a distance — label it (task #31).** DONE 2026-07-14 (golden
+        `9f42626`); write-up → [docs/search-score-labeling.md](docs/search-score-labeling.md).
+        **Surfaced by a false alarm it caused:** a reviewer read the brain's search output, saw every
+        score at ~0.03, concluded it was running a **stub embedder**, and told the user their config
+        was broken. It wasn't — the brain is on Ollama, 768-dim. The 0.03 is **RRF**: scores are
+        computed from **ranks**, so a hit ranked #1 in both lists scores exactly `2/(60+1)` =
+        **0.0328** and every score lands near `1/k` **by construction**. Clustered small scores are
+        the algorithm working. **But the brain had told them to read it that way** — when #3 shipped
+        hybrid search, the MCP tool's description was updated ("hybrid relevance `score`, larger =
+        more relevant") and **the skill's was not**: it still said *"distance … lower = closer"*,
+        false in both halves, on the interface every CLI agent actually uses. Fixed: the skill calls
+        it a **score**, says **higher = better**, and explains that RRF scores are rank-derived and
+        carry **no similarity magnitude** — so a small clustered score says nothing about embedding
+        quality or which backend is live. `query.py` prints a legend instead of a bare number.
+        `autolink.py` deliberately untouched (it reports *genuine* cosine distances).
+        **The lesson:** *when a quantity's meaning changes, its label is part of the change.* #3
+        reversed the polarity (lower-is-better → higher-is-better) and changed the units, and shipped
+        the number under the old name. Nothing broke — which is why it survived. **A mislabelled
+        value fails silently, and it fails in the *reader*, not the code**: it cost a competent
+        reviewer a confident, wrong diagnosis. When changing a metric, grep for every place its
+        *name or interpretation* is written down, not just every place it is computed.
   - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
         Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
         separator. **The reported bug was not in the server, and needs no server change.**
