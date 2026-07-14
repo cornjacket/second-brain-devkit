@@ -359,6 +359,14 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
             tpl = "".join(_texts(await s.call_tool("get_note_template", {})))
             if "tags:" not in tpl:
                 fails.append(f"get_note_template did not return the vault template: {tpl[:80]!r}")
+            # The editorial gate must REACH Claude Desktop. It lives in CLAUDE.md, which Desktop
+            # never reads — the template is its only route. Without it an assistant can write a
+            # mechanically perfect note about something utterly disposable, and add_note will
+            # commit and push it: the tool makes filling the brain with junk fast and easy.
+            if "would I search for this in six months" not in tpl:
+                fails.append("get_note_template does not carry the 'what earns a note' gate — a "
+                             "Desktop assistant has no bar for what deserves to be a note at all "
+                             "(CLAUDE.md is invisible over MCP; the template is the only route)")
 
             # --- the happy path: create -> commit -> push -> searchable ---------------------
             res = await s.call_tool("add_note", {

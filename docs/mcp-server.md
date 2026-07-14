@@ -113,6 +113,40 @@ Everything that follows is a consequence of writing to a repo a **human also use
 **Still not offered:** editing or deleting a note. Create-only is the smallest surface that closes
 the gap, and an agent that can silently rewrite a note you authored is a different risk class.
 
+### 3.2 The gap `add_note` opened — and the gate that closes it
+
+A write tool makes notes *cheap*, and cheap notes are how a brain fills with things nobody will
+ever search for. The rules for **what deserves to be a note at all** (durable over transient; the
+six-month retrieval test; link don't copy) lived only in the brain's `CLAUDE.md` — which is at the
+repo root, so it is **not embedded** (invisible to `search_second_brain`), and which **Claude
+Desktop never reads** (it's a Claude Code convention). So the moment `add_note` shipped, a Desktop
+assistant could produce a mechanically perfect note about something utterly disposable, and the
+tool would dutifully commit and push it. The mechanics were discoverable; the judgment wasn't.
+
+The gate is therefore **deliberately duplicated** into `seeds/templates/new-note.md` — the file
+`get_note_template()` returns, and Desktop's only route to it. This is the one place the project
+knowingly breaks its own link-don't-copy rule, and the justification is that **the two audiences
+are disjoint**: an agent inside the repo reads `CLAUDE.md` and can never call an MCP tool; an
+assistant in Desktop reads the template and can never see `CLAUDE.md`. Neither can reach the
+other's copy, so there is no "which is right?" to resolve — it is one rule delivered down two pipes
+that don't connect, a *delivery* problem rather than a duplication problem.
+
+Leaving a mere **pointer** in `CLAUDE.md` ("go read the template") was rejected: it converts an
+always-loaded rule into one the model must remember to fetch, and forgetting is **silent** — the
+note still gets written, just unfiltered. A rule whose violation produces no signal is not a rule.
+
+Duplication is only safe if it cannot drift, so drift is made **mechanical, not promised**:
+`CLAUDE.md` is canonical, the block is delimited by markers in both files, and **CI gate 9**
+(`tools/check_note_gate.py`) fails the build if the two disagree (`--sync` rewrites the mirror).
+The MCP tier additionally asserts the gate actually *arrives* — that `get_note_template()`'s text
+contains it — because a gate that never reaches the client protects nothing.
+
+**Known limit:** `update_brain.py` never writes `vault/` (it's user data), so an *existing* brain
+upgraded later keeps its old template — the same constraint that forced #19's term scaffold into
+`glossary_new.py`. This guarantee covers **newly generated** brains. That is also arguably correct:
+once the template is in your vault it is *yours*, and `get_note_template()` should return your bar,
+not ours.
+
 ## 4. Architecture — thin wrapper over existing scripts
 
 The server is a **thin adapter**, not new retrieval logic. It reuses the brain's

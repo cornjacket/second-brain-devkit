@@ -18,6 +18,17 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - **Then:** **#23** (investigate shipping the brain as a Claude Code *plugin* — one installable unit
   instead of the skill install + print-and-instruct MCP registration), or **#8** auto-link `--apply`
   calibration on the real brain (cheap; the threshold is already known).
+- **Done 2026-07-13 — the note-quality gate reaches Claude Desktop (follow-on to #5).** `add_note`
+  made notes cheap to add, which is exactly how a brain fills with things nobody will ever search
+  for — and the rules for *what earns a note* lived only in `CLAUDE.md`, which is unembedded **and**
+  never read by Desktop. The gate is now **deliberately duplicated** into the note template (what
+  `get_note_template()` returns), justified because **the audiences are disjoint** — an in-repo
+  agent can't call an MCP tool, a Desktop assistant can't see `CLAUDE.md`; one rule, two pipes that
+  don't connect. A pointer was rejected: it trades an always-loaded rule for one the model must
+  remember to fetch, and forgetting is **silent** (the note still gets written, just unfiltered).
+  Drift is made impossible rather than promised — **CI gate 9** (`tools/check_note_gate.py`, CI is
+  now 9 gates) fails the build if the copies disagree, and the MCP tier asserts the gate actually
+  *arrives* in `get_note_template()`'s text. Both negative-tested.
 - **Done 2026-07-13 — #5 `add_note`, the write path.** You can now add a note to the brain **from
   Claude Desktop**: it creates the note, commits it (which is what *embeds* it — so it is searchable
   immediately) and pushes it, so the note reaches the brain's other clients rather than living on

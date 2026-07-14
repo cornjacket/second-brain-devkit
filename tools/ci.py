@@ -148,6 +148,14 @@ def step_remote_sync() -> bool:
     return _run([PY, str(TOOLS / "check_remote_sync.py")], env=env)
 
 
+def step_note_gate() -> bool:
+    # The "what earns a note" gate is deliberately duplicated (CLAUDE.md for an in-repo agent,
+    # the note template for Claude Desktop via get_note_template — disjoint audiences that
+    # cannot see each other's copy). Duplication is only safe if it can't drift, so this makes
+    # drift a build failure instead of a promise. Pure stdlib, no git.
+    return _run([PY, str(TOOLS / "check_note_gate.py")])
+
+
 def step_readme_block() -> bool:
     # Hermetic: create a brain + drive update_brain's README splice (git + stdlib,
     # no Ollama/mcp). Same self-contained identity so the brain's commits pass on a
@@ -157,14 +165,15 @@ def step_readme_block() -> bool:
 
 
 STEPS = [
-    ("1/8 manifest partition", step_partition),
-    ("2/8 template in sync with golden", step_template_in_sync),
-    ("3/8 emitted scripts compile", step_py_compile),
-    ("4/8 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/8 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/8 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/8 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/8 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("1/9 manifest partition", step_partition),
+    ("2/9 template in sync with golden", step_template_in_sync),
+    ("3/9 emitted scripts compile", step_py_compile),
+    ("4/9 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/9 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/9 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/9 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/9 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/9 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
 ]
 
 
