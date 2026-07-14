@@ -86,6 +86,28 @@ repo's own directive: `setup-new-repo.sh --update` only ever rewrites the conten
 
 - **Commit autonomously; never push unless asked; stop at the task boundary.** Do **not** ask permission to commit and do **not** ask "shall I commit?" in prose — stage and commit completed work following the commit-message schema below on your own initiative. To keep commits silent (no permission prompt), match the allow-list: run `git add <paths>` and `git commit` as **separate** calls (not a `&&` compound), and pass the message as a **single-quoted** string — **no `$(cat <<EOF)` command substitution** (avoid apostrophes in the body so single-quoting works). **Never `git push` on your own** — push only when the user **explicitly** asks; do not ask to push either. Autonomy is *within* a task: do everything the task needs **except** pushing. Once a task's commit is announced, **stop and yield to the user** — report what landed and wait, rather than rolling forward into the next task unprompted. The task boundary is a checkpoint, not a place to keep going.
 
+- **Put a BLANK LINE between the title and `- [Context]:`.** Git ends the *subject* at the
+  first blank line — with none, the entire message becomes the subject, and `git log --oneline`,
+  `git shortlog`, GitHub's commit list, and every `%s`-based tool print the whole body on one
+  line. This repo did that for **83 of its first 158 commits** (subjects of 1,600–3,400 chars),
+  destroying the very "scan `git log` and grasp the change from the title alone" property the
+  schema exists to guarantee. The tell that it is happening: needing `| cut -c1-80` to make
+  `git log --oneline` readable. The whole fix is one blank line:
+
+  ```
+  feat(mcp): add a note to the brain from Claude Desktop
+                                          ← this blank line IS the fix
+  - [Context]: …
+  - [Impact]: …
+  ```
+
+  `[Context]`/`[Impact]` still sit in the body, so the schema and project-status's extraction
+  are unaffected (it reads the full message, not the subject). **Do not rewrite existing
+  history** to fix it — the content is fine, only the framing was wrong. The schema block
+  below is *injected* and cannot be edited here; the durable fix belongs upstream in
+  `templates/claude-rule.md` in [project-status](https://github.com/cornjacket/project-status),
+  which would fix every repo in the portfolio at once. This bullet is the local guard until then.
+
 <!-- ai-project-status:begin -->
 <!--
   This block is injected and refreshed by project-status:
