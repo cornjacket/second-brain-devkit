@@ -17,6 +17,7 @@ spec so they cannot drift.
 - What every source file is for → [docs/source-map.md](docs/source-map.md)
 - MCP server design + Claude Desktop → [docs/mcp-server.md](docs/mcp-server.md),
   [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
+- MCP hardening — nothing may hang the server (task #24, open) → [docs/mcp-hardening.md](docs/mcp-hardening.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 - Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
 - Brain README managed block — devkit region + user space (`update_brain.py` splices, built task #9) → [docs/readme-managed-block.md](docs/readme-managed-block.md)

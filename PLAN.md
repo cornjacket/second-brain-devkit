@@ -488,6 +488,31 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         on each tool (classic text-output; return still reaches the model as JSON text).
         Verified in Desktop after restart. Full write-up in
         [docs/mcp-server.md §11](docs/mcp-server.md); lesson also saved to `~/notes`.
+  - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
+        Desktop bug report of `add_note` hanging on a `para_root` with a path separator. **The
+        reported bug does not exist** — Desktop's own client log shows every call answered in
+        **≤3 ms**, `para_root` *is* allowlist-validated (rejects in 0.00 s with no side effects,
+        reproduced under Desktop's minimal launchd env), and the vault was clean afterwards, which
+        proves nothing got past validation (`add_note` writes the file *before* touching git). The
+        stall was **client-side, after the server had answered**. *Lesson: a hang reported at the
+        client is not evidence of a hang at the server — read `~/Library/Logs/Claude/mcp.log`,
+        which pairs every request with its response and timing, before theorising.* But the
+        investigation surfaced four **real** ways the server could hang or corrupt itself, none of
+        which caused this, all cheap to close:
+        - [ ] **`embedder.py` `urlopen()` has no timeout** → a stalled Ollama (typically a **cold
+              model load**) blocks **forever**. Exposed: `search_second_brain` *and* `git commit`
+              (the pre-commit hook embeds). The one genuinely unbounded hang in the system.
+        - [ ] **`_git` inherits stdin — which IS the JSON-RPC channel.** `capture_output=True`
+              redirects stdout/stderr but not stdin, so a git/ssh child could read Desktop's
+              protocol bytes and corrupt the session. Needs `stdin=DEVNULL` everywhere.
+        - [ ] **`GIT_TERMINAL_PROMPT=0` doesn't cover ssh** (passphrase/host-key) — and this
+              brain's remote is SSH. Needs `GIT_SSH_COMMAND="ssh -o BatchMode=yes"`.
+        - [ ] **`TimeoutExpired` uncaught** → traceback instead of a clean failed-push report.
+        Tests: reject every non-PARA `para_root` (`resources/test`, `resources/`, `../escape`,
+        absolute) **immediately and side-effect-free**; git steps non-interactive + timeout-bounded;
+        a stalled embed errors rather than hangs. **Does not touch the indexer's walk** —
+        exclusion-by-placement (glossary/templates are excluded purely by not being PARA roots)
+        must hold. → [docs/mcp-hardening.md](docs/mcp-hardening.md)
   - [ ] **INVESTIGATE — ship the brain as a Claude Code *plugin* (task #23).** Today a brain's
         AI surface is installed by hand in two unrelated ways: `install_skill.py` copies the
         `second-brain` skill into `~/.claude/skills/`, and the MCP server is **print-and-instruct**
