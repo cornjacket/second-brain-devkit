@@ -9,12 +9,14 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
-- **▶▶ FIRST — #28, a live bug** (found 2026-07-14 in the real brain): `add_note`'s pathspec commit
-  leaves the **real index holding the pre-hook blob** when `glossary_autolink` edits the note, so
-  the **next commit by anyone silently reverts the link**. It corrupts note content and it is
-  already loose in a running brain. One-line fix (re-sync the index after the partial commit).
-  CI missed it because `glossary_autolink` defaults to **false** — the harness never runs the
-  config the user does.
+- **Done 2026-07-14 — #28, a live content-corruption bug, FIXED.** `add_note`'s pathspec commit left
+  the **real index holding the pre-hook blob** when `glossary_autolink` edited the note, so **the
+  next commit by anyone silently reverted the link** — observed in the real brain. Fixed + regression
+  test under the non-default config, negative-tested.
+  → **[docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)**;
+  **@david still to review §6** (the judgement calls, not the code).
+  It spawned **#29**: CI ran only the *default* config, so the toggle that triggers the bug was
+  never on. **A matrix that only exercises defaults does not test the product.**
 - **▶▶ NEXT — #26 then #25** (user-chosen, 2026-07-14). **#26** makes the embed input
   *wikilink-invariant*, so inserting a link into a note does not re-embed it — the existing
   `content_hash` gate already skips unchanged notes; it is the *view* that is too literal. **#25**
@@ -560,9 +562,23 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         **The generalised lesson is written up in the real brain** (a project-independent note, this
         repo is only its evidence): *"Embed the substance, not the file"* —
         `vault/resources/embed-the-substance-not-the-file.md`.
-  - [ ] **BUG — `add_note` leaves a poisoned index when a hook edits the note (task #28).**
-        **Found in the wild 2026-07-14, in the user's real brain. Silently corrupts the *next*
-        commit anyone makes, and it reverts note content — highest-priority of the open items.**
+  - [x] **BUG — `add_note` leaves a poisoned index when a hook edits the note (task #28).** FIXED
+        2026-07-14 (golden `9a36850`); **full write-up → [docs/partial-commit-index-poisoning.md]
+        (docs/partial-commit-index-poisoning.md)**. Found in the wild in the user's real brain:
+        a commit adding a *new* note silently **reverted a `[[wikilink]]` in a different note it
+        never touched**. Fix: re-sync the real index for the path immediately after the pathspec
+        commit (`git add -- <rel>`); the pathspec stays — it is doing its job. Regression test runs
+        the write suite with **`glossary_autolink = true`** (non-default), asserts `git diff
+        --cached` is empty after the call, and carries an anti-vacuity check that the hook really
+        did edit the note; negative-tested (removing the fix turns the tier red).
+        - [ ] **@david — REVIEW this failure mode + the fix** (§6 of the doc). Four load-bearing
+              judgements to confirm, not code: that the pathspec commit **stays** (the alternative —
+              committing the whole index — has no such bug, but lets an agent's commit contain your
+              unrelated staged work; the bug was worth having); that the fix is a post-commit index
+              refresh; that the blast radius is bounded to file-modifying hooks under a non-default
+              toggle; and whether to skim `git log -p vault/` for other reverted links (signature:
+              a commit that removes `[[…]]` from a note it otherwise does not touch).
+        **The original report, kept for the mechanism:**
         **Mechanism.** `add_note` commits with a **pathspec** (`git commit -- <file>`) so it can
         never sweep up the user's staged work — the safety property #5 was built around. But a
         pathspec commit is a **partial commit**: git builds a **temporary index** and hands *that*
@@ -584,6 +600,23 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         `add_note` suite with `glossary_autolink = true` and assert **the index is clean after the
         call** (`git diff --cached` empty) — and negative-test it, since without the fix it must go
         red.
+  - [ ] **CI must exercise NON-DEFAULT config, not just the defaults (task #29).** Generalised
+        straight from **#28**, which shipped, passed every gate, and then corrupted note content in
+        a real brain — because the toggle that triggers it (`glossary_autolink`) **defaults to
+        `false`**, so the golden, the template and every harness run executed with the only
+        file-modifying hook **switched off**. The write suite that explicitly asserts "never touch
+        the user's staged work" passed precisely because the triggering condition never occurred.
+        **A test matrix that only exercises defaults does not test the product** — every non-default
+        toggle is an uncovered code path, and it will be found by the user, on their data.
+        **Build:** a config matrix in `tools/ci.py` — run the acceptance gates across the
+        `config/features.toml` toggle space, not just its defaults. Today that is `hybrid_search`
+        (default **true** → also test **false**, the vector-only path the ablation baseline uses),
+        `glossary_autolink` (default **false** → also test **true**, now done ad-hoc by the mcp tier
+        — fold it in), and `rrf_k`. Keep it cheap: not a full cross-product, but **every toggle
+        flipped at least once** (n+1 runs, not 2^n), which is what would have caught #28.
+        **Also audit for the same class of gap:** any *other* behaviour that only fires under a
+        non-default setting (e.g. the `test` vs `ollama` backend split — CI runs `test` almost
+        everywhere) and say plainly which paths remain uncovered rather than implying coverage.
   - [ ] **Bounded, filterable list tools — and the missing tag vocabulary (task #27).** The listing
         tools (`list_vault`, `list_glossary_terms`, and the `list_tags` this task adds) return
         *everything*. At a few hundred notes that is a wall of context; at a few thousand it is

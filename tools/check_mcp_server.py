@@ -315,6 +315,14 @@ def git_init_with_remote(brain: Path, bare: Path, env: dict) -> None:
     repo stands in for the user's GitHub remote (same trick as `check_remote_sync.py`), which
     keeps the tier hermetic: no network, no credentials.
     """
+    # Run the write suite with glossary_autolink ON — a NON-default config (#28). The bug this
+    # guards against only exists when a pre-commit hook *edits* the staged note, and the only hook
+    # that does is off by default. The suite passed for weeks against a config the user does not
+    # run. A matrix that only covers defaults does not cover the product.
+    cfg = brain / "config" / "features.toml"
+    cfg.write_text(cfg.read_text(encoding="utf-8").replace("glossary_autolink = false",
+                                                           "glossary_autolink = true"),
+                   encoding="utf-8")
     _git(brain, "init", "-q", env=env)
     _git(brain, "config", "user.email", "mcp-check@example.invalid", env=env)
     _git(brain, "config", "user.name", "MCP Check", env=env)
@@ -369,9 +377,13 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                              "(CLAUDE.md is invisible over MCP; the template is the only route)")
 
             # --- the happy path: create -> commit -> push -> searchable ---------------------
+            # The body mentions a planted glossary term ("ablation"), so with glossary_autolink ON
+            # the pre-commit hook EDITS this note and re-stages it — the exact condition that
+            # exposed #28.
             res = await s.call_tool("add_note", {
                 "title": "Write Path Check", "para_root": "resources",
-                "body": "A note created over MCP by the harness.", "tags": ["harness"]})
+                "body": "A note created over MCP by the harness, mentioning ablation once.",
+                "tags": ["harness"]})
             report = " ".join(_texts(res))
             if res.isError:
                 fails.append(f"add_note errored: {report[:160]}")
@@ -385,6 +397,25 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                              "embeds — this is the whole reason the tool commits)")
             if "pushed to origin" not in report:
                 fails.append(f"add_note did not push: {report!r}")
+
+            # --- #28: add_note must leave NO phantom staged change ---------------------------
+            # A pathspec commit is a *partial* commit — git hands hooks a TEMPORARY index. With
+            # glossary_autolink on, the hook edits the note and re-stages it into that temp index,
+            # so the REAL index keeps the pre-hook blob: a staged REVERT of the hook's edit, which
+            # the next commit by anyone silently applies (observed in the wild: an unrelated commit
+            # un-linked [[ablation]] in a note it never touched). The index must match HEAD.
+            staged_after = _git(brain, "diff", "--cached", "--name-only", env=env).stdout.strip()
+            if staged_after:
+                fails.append(f"add_note left a POISONED INDEX — staged after the call: "
+                             f"{staged_after.split()} (a pathspec commit hides hook re-staging in "
+                             f"a temp index; the real index must be re-synced)")
+            # ...and the hook's edit really did survive into the commit (proves the hook ran at all,
+            # so the assertion above isn't vacuously passing on a config where nothing edits).
+            committed = _git(brain, "show", "HEAD:vault/resources/write-path-check.md",
+                             env=env).stdout
+            if "[[ablation]]" not in committed:
+                fails.append("glossary_autolink did not link the term — the #28 index assertion "
+                             "above is vacuous unless a hook actually edits the staged note")
             # the note is really in the REMOTE, not just locally committed
             remote_ls = subprocess.run(
                 ["git", "--git-dir", str(bare), "ls-tree", "-r", "--name-only", "HEAD"],
