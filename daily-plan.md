@@ -1,25 +1,31 @@
-# Daily plan — 2026-07-13
+# Daily plan — 2026-07-14
 
-**Focus:** Sun 07-12 closed the glossary arc — **#19** (namespace + scan + auto-linking, inc 1–3)
-and **#20** (glossary-over-MCP tools) shipped, alongside the **#3** hybrid-search toggle; the real
-brain was upgraded live via `update_brain`. Mon 07-13 closes the **MCP coverage** arc with **#21**,
-then mops up the small glossary tail.
+**Focus:** Mon 07-13 closed the MCP arc — **#21** (negative/security suite), **#5** (`add_note`:
+write a note from Claude Desktop, commit + push), and the note-quality gate (CI gate 9). It also
+burned an hour on a "server hang" that turned out to be an **unclicked approval dialog** in Desktop.
+Tue 07-14 makes the *glossary* writable from Desktop — but builds the cheap enabler first.
 
-- **▶▶ #21 — MCP negative/security tests** (`check_mcp_server.py`, mcp-gated): `get_note`
-  path-traversal refusals (absolute-outside, `..`-escape — but a `..` that stays inside is allowed),
-  plus the now-unblocked glossary isolation — search-excludes-glossary end-to-end, glossary tools are
-  embedding-free (work with `data/brain.db` removed), and substrate disjointness.
-- **Glossary tail (mostly free):** a short flashcards + graph-color closeout in `glossary/README.md`
-  (Spaced Repetition plugin + a `path:glossary/` color group) — docs, no code.
-- **Stretch:** #5 `add_note` MCP write tool, or #8 auto-link `--apply` calibration on the real brain.
-- **Loop:** anything emitted goes prototype-first in `second-brain-test/` → vendor → `tools/ci.py`
-  (8 gates) + the mcp tier; #21 is harness-side (devkit-only).
+- **▶▶ #26 — wikilink-invariant embed input** (do first; it is what makes #25 sane): strip `[[…]]`
+  markup from `note_view.canonical_body` so a link insertion leaves the embed input byte-identical
+  and the **existing** `content_hash` gate skips the re-embed. A prose edit still re-embeds. Also
+  closes a feedback loop the design already claimed: the system's own auto-links currently enter
+  its own vectors. Migration: every `content_hash` changes → one full re-embed + regenerate the
+  committed `test` fixtures.
+- **#25 — `add_glossary_term` MCP tool:** scaffold the term **and** run the whole-vault auto-link
+  sweep — the cascade **is the feature**. Stage only what the sweep itself touched (never `-A`), so
+  a user's in-progress work still can't ride along. Needs `aliases`, collision refusal, and a
+  "what earns a term" bar — a controlled vocabulary an LLM can mint into freely isn't controlled.
+- **Carrying:** **#24** (four real hang vectors — the embedder's `urlopen()` has **no timeout**;
+  a cold Ollama load can hang the server forever). Not the cause of yesterday's stall, but live.
+- **Loop:** prototype-first in `second-brain-test/` → vendor → `tools/ci.py` (**9** gates) + the
+  mcp tier. Every new assertion negative-tested — a test that can't go red is decoration.
 
 ```
- sun 07-12 ✅ #19 glossary (namespace·scan·autolink) + #20 glossary-MCP  ·  real brain upgraded
+ mon 07-13 ✅ #21 negative suite · #5 add_note (commit+push) · note-gate (CI 9/9)
+            └─ detour: "server hang" = Desktop approval dialog nobody clicked
                  │
                  ▼
- mon 07-13  ▶▶ #21 MCP negative/security (traversal + glossary isolation) ──► glossary flashcard/graph tail
-            ‖ stretch: #5 add_note  ·  #8 auto-link --apply (real brain)
- guards: tools/ci.py (8) + mcp tier green · prototype-first in second-brain-test/
+ tue 07-14  ▶▶ #26 wikilink-invariant view ──► #25 add_glossary_term (cascade = feature)
+            ‖ carrying: #24 hang vectors (urlopen has no timeout)
+ guards: tools/ci.py (9) + mcp tier green · prototype-first in second-brain-test/
 ```

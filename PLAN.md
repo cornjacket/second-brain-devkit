@@ -9,10 +9,12 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
-- **▶▶ NEXT — #25 `add_glossary_term`** (user-chosen, 2026-07-14): make the glossary *writable*
-  from Claude Desktop, closing the same asymmetry #5 closed for notes. **Open the task before
-  building — the auto-link sweep is a real decision**, not a detail (it would edit other notes,
-  breaking `add_note`'s one-file-per-commit safety property).
+- **▶▶ NEXT — #26 then #25** (user-chosen, 2026-07-14). **#26** makes the embed input
+  *wikilink-invariant*, so inserting a link into a note does not re-embed it — the existing
+  `content_hash` gate already skips unchanged notes; it is the *view* that is too literal. **#25**
+  then adds `add_glossary_term` to the MCP server, and its whole-vault auto-link **cascade is the
+  point** ("the system does the work for me"), which #26 makes nearly free. Build #26 first: it is
+  what turns the cascade from a re-embed storm into a hash comparison.
   *Recorded dissent on ordering:* **#24 arguably belongs first.** #25 is a feature; #24 is a live
   defect in shipped code — the embedder's `urlopen()` has **no timeout**, so a cold Ollama model
   load can hang the server **forever**, reachable from both `search_second_brain` and `git commit`.
@@ -503,17 +505,17 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         assistant can *use* the controlled vocabulary but never *extend* it — the same asymmetry
         #5 just closed for notes. Naming: **`add_glossary_term`**, not `insert_`, to match
         `add_note` (one verb for one concept).
-        **The crux — decide before building: does the tool run the auto-link sweep?**
-        `glossary_new.py` does two things: it scaffolds the term note, **and** it sweeps the whole
-        vault linking the term's first occurrence in every PARA note (`--no-relink` skips). That
-        sweep **edits other notes**, which re-embeds them — so over MCP it means a commit touching
-        many files. `add_note`'s central safety property is that it stages **exactly one file** and
-        can never sweep a user's in-progress work into an agent-authored commit; a whole-vault
-        relink is the direct opposite of that. Options: **(a)** scaffold only (`--no-relink`), leave
-        linking to the user's on-demand `glossary_scan --apply` — smallest blast radius, keeps the
-        one-file invariant, but the term lands unlinked; **(b)** scaffold + sweep + commit
-        everything it touched — matches the CLI's behaviour but an agent now rewrites bodies of
-        notes it was never asked to touch. **Recommend (a)**, and say so in the tool description.
+        **The sweep — DECIDED 2026-07-14 (user): run it. Option (b).** `glossary_new.py` scaffolds
+        the term note **and** sweeps the whole vault linking the term's first occurrence in every
+        PARA note; the tool does both and commits everything it touched. The cascade **is the
+        feature** — "the system does the work for me" — not a blast radius to be minimized. This
+        deliberately relaxes `add_note`'s one-file-per-commit rule, and the relaxation is
+        principled: `add_note` stages one file because it must never sweep up work the *user* was
+        doing; the glossary sweep's multi-file edit is **its own intended output**, not somebody
+        else's changes swept in by accident. Still required: only ever stage the files the sweep
+        *itself* linked (never `git add -A`), so a user's unrelated in-progress edits still cannot
+        ride along in an agent-authored commit. **#26 makes this cheap** — with a
+        wikilink-invariant canonical view, a link-only edit does not re-embed at all.
         Also needed: an `aliases` param (lookup depends on frontmatter `aliases:`); refusal on a
         key **or alias** collision with an existing term (today it is first-writer-wins with a
         stderr warning — invisible over MCP); reuse `glossary_new.scaffold()` rather than
@@ -524,6 +526,31 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         or not. Tests extend the #5 write suite (create → commit → push → listable/lookup-able
         without restart; collision refusal; still **never embedded** — the glossary must stay out of
         the vector index, which is the whole reason it exists).
+  - [ ] **Wikilink-invariant canonical view — a link insertion must not re-embed (task #26).**
+        Enables #25's cascade, and closes a feedback loop the design already declared closed.
+        **The mechanism, and why it is the right shape:** the embed input is a note's *canonical
+        substance view* (`note_view.canonical_body` — body only, frontmatter stripped, whitespace
+        pinned) and `embed_staged` **already** gates on its `content_hash`: an unchanged note does
+        not re-embed. The gate works; the **view is too literal**. `canonical_body` does not strip
+        wikilink markup, so `An ablation shows…` and `An [[ablation]] shows…` hash differently
+        (verified: `b0e29cda3` vs `2ef73b957`) and the note re-embeds for a change that carries
+        **no meaning**. Fix: normalize `[[slug|surface]]` → `surface` and `[[term]]` → `term`
+        *before* hashing/embedding. Then a link-only edit leaves the embed input **byte-identical**,
+        the existing hash gate fires, and the glossary cascade costs **zero** re-embeddings — while
+        a genuine edit to the prose still changes the hash and still re-embeds. **The hash
+        comparison over the markup-stripped view is precisely what distinguishes "the content
+        changed" from "a link was inserted", which is the distinction the whole design needs.**
+        **This is a correctness fix, not just an optimization.** `note_view.py`'s own stated
+        invariant is that the embedding is computed over substance, *never* over metadata, so that
+        **the system's own output cannot feed back into the vector**. A wikilink written by
+        `glossary_scan` is exactly the system's own output — the loop was closed for frontmatter
+        and left open through the body. And `[[ablation]]` vs `ablation` is pure markup noise
+        perturbing a vector for no semantic reason.
+        **Cost, honestly:** changing the view changes **every** note's `content_hash` → a one-time
+        full re-embed of every vault, and the committed `test`-backend fixtures that `self_test.py`
+        byte-diffs must be regenerated. A real migration, but a one-off. Tests: a link-only edit
+        produces an identical hash and **skips** the embed; a prose edit still re-embeds; a piped
+        `[[slug|surface]]` normalizes to its surface text; fixtures regenerate byte-stably.
   - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
         Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
         separator. **The reported bug was not in the server, and needs no server change.**
