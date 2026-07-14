@@ -21,12 +21,14 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   green suite because the toggle that triggers it is off by default. Every `features.toml` toggle is
   now flipped off its default at least once — and **the gate reads the toggle space from the config
   file, so a new toggle with no coverage fails the build.** Forgetting is a build error now.
-- **▶▶ NEXT — #26 then #25** (user-chosen, 2026-07-14). **#26** makes the embed input
-  *wikilink-invariant*, so inserting a link into a note does not re-embed it — the existing
-  `content_hash` gate already skips unchanged notes; it is the *view* that is too literal. **#25**
-  then adds `add_glossary_term` to the MCP server, and its whole-vault auto-link **cascade is the
-  point** ("the system does the work for me"), which #26 makes nearly free. Build #26 first: it is
-  what turns the cascade from a re-embed storm into a hash comparison.
+- **Done 2026-07-14 — #26: a link insertion no longer re-embeds a note.** The canonical view strips
+  wikilink markup before hashing/embedding, so auto-linking a term across the vault now costs
+  **zero** re-embeds — while a real prose edit still re-embeds. It also closes the feedback loop the
+  design only half-shut: the loop was barred for frontmatter but the body (where `glossary_scan`
+  writes its links) was still being embedded verbatim, round-tripping the system's own output into
+  its own vectors.
+- **▶▶ NEXT — #25 `add_glossary_term`.** Its whole-vault auto-link **cascade is the point** ("the
+  system does the work for me") — and #26 just made that cascade nearly free.
   *Recorded dissent on ordering:* **#24 arguably belongs first.** #25 is a feature; #24 is a live
   defect in shipped code — the embedder's `urlopen()` has **no timeout**, so a cold Ollama model
   load can hang the server **forever**, reachable from both `search_second_brain` and `git commit`.
@@ -538,7 +540,18 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         or not. Tests extend the #5 write suite (create → commit → push → listable/lookup-able
         without restart; collision refusal; still **never embedded** — the glossary must stay out of
         the vector index, which is the whole reason it exists).
-  - [ ] **Wikilink-invariant canonical view — a link insertion must not re-embed (task #26).**
+  - [x] **Wikilink-invariant canonical view — a link insertion must not re-embed (task #26).**
+        DONE 2026-07-14 (golden `bb525e4`). `note_view.canonical_body` now strips wikilink markup
+        (`[[term]]` → `term`, `[[slug|surface]]` → `surface`, `![[embed]]` too) before the body is
+        hashed and embedded — so a **link-only edit is byte-identical in the canonical view**, the
+        existing `content_hash` no-op gate fires, and the note is **not re-embedded at all**, while a
+        genuine prose edit still changes the hash and still re-embeds. Verified end-to-end through
+        the real commit hook: inserting a link prints `skip (substance unchanged)` and leaves the
+        vector sidecar **byte-identical**; editing the prose re-embeds. The emitted `self_test.py`
+        now asserts the invariant in **every brain** (and it is negative-tested — removing the strip
+        turns CI red). **Migration was far cheaper than feared:** the committed `test` fixtures carry
+        no wikilinks, so they reproduce byte-for-byte and needed **no** regeneration; only live
+        vaults re-embed once (the real brain: 12 notes, done, doctor green).
         Enables #25's cascade, and closes a feedback loop the design already declared closed.
         **The mechanism, and why it is the right shape:** the embed input is a note's *canonical
         substance view* (`note_view.canonical_body` — body only, frontmatter stripped, whitespace

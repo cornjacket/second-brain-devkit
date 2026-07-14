@@ -58,6 +58,26 @@ its own prior output. Excluding metadata from the embedding input breaks it at t
 the vector is a function of substance only, the auto-links are a pure downstream read of
 the vector, and one pass reaches a fixed point.
 
+**The loop was only half-closed until 2026-07-14 (task #26).** Excluding *frontmatter* shut
+the `related_auto:` door — but `glossary_scan` writes its links into the **body**, as
+`[[wikilinks]]`, and the body *was* being embedded verbatim. So the system's own output was
+still round-tripping into its own vectors, just through a different door. The canonical view
+now **strips wikilink markup** (`[[term]]` → `term`, `[[slug|surface]]` → `surface`) before
+hashing and embedding, which closes it properly and buys a large second prize:
+
+- **A link insertion is now byte-identical in the canonical view**, so `content_hash` matches
+  and the existing no-op gate in `embed_staged` **skips the embed entirely**. Auto-linking a
+  term across the whole vault costs **zero** re-embeds. That is what makes #25's
+  `add_glossary_term` cascade cheap rather than a re-embed storm.
+- **A real prose edit still changes the hash and still re-embeds.** The hash comparison over a
+  markup-stripped view is precisely what distinguishes *"the content changed"* from *"a link
+  was inserted"* — a distinction the raw file cannot express, since both are just "the file
+  changed".
+
+The general form, worth remembering beyond this repo: **markup is not substance, and any
+derived value written back into an artifact must be computed over a view that excludes it.**
+(Written up project-independently in the real brain as *"Embed the substance, not the file"*.)
+
 ## 2. Auto-linking pass
 
 - **Input:** the existing per-note vectors in `data/brain.db` (no re-embed needed to
