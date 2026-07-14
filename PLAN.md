@@ -29,6 +29,11 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   its own vectors.
 - **▶▶ NEXT — #25 `add_glossary_term`.** Its whole-vault auto-link **cascade is the point** ("the
   system does the work for me") — and #26 just made that cascade nearly free.
+- **Also open, from #26 — [#30] stale vectors after an embed-view change.** `update_brain` ships a
+  new canonical view but never re-embeds, so an upgraded brain silently holds vectors built by the
+  *old* view. The real brain is correct only because the migration was run **by hand** — and a
+  migration that depends on remembering is not a migration. `doctor.py` should detect the stale
+  hash and `--repair` it.
   *Recorded dissent on ordering:* **#24 arguably belongs first.** #25 is a feature; #24 is a live
   defect in shipped code — the embedder's `urlopen()` has **no timeout**, so a cold Ollama model
   load can hang the server **forever**, reachable from both `search_second_brain` and `git commit`.
@@ -669,6 +674,31 @@ each session. MCP is reserved for the one case a skill can't serve (below).
           note is a coin-flip on tag drift. Return tags **sorted by count** with the total (frequency
           ordering is what makes truncation meaningful — the ones worth reusing are the common ones)
           plus a `match` filter. `note_view.frontmatter_tags` already exists to read them.
+  - [ ] **Stale vectors after an embed-view change — detect it, don't rely on memory (task #30).**
+        The honest completion of **#26**. Changing `note_view.canonical_body` changes what every
+        note *would* embed to — but `update_brain.py` ships the new code and **never re-embeds**
+        (it deliberately never touches `vault/` or `data/`). So any brain upgraded to a version with
+        a new canonical view is left holding vectors computed under the **old** view: not broken —
+        search still works — but **silently stale**, and they thaw one note at a time, whenever each
+        note happens to be committed next. The user's own brain is correct only because the
+        migration was run **by hand**. *A migration that depends on someone remembering is not a
+        migration.*
+        **Build (either, or both):**
+        - **`doctor.py` detects it.** It already walks vault ↔ sidecar ↔ cache for consistency; add
+          the one check it is missing — recompute `content_hash(note)` and compare it to the hash
+          **stored in the sidecar**. A mismatch means the sidecar's vector was produced by a
+          *different view of the same unchanged text* — i.e. the embed input definition moved under
+          it. Report it as stale-and-repairable, and let `--repair` run the `embed_vault` +
+          `hydrate_cache` pass. This is the natural home: `doctor` is already the "is my brain
+          ready?" preflight.
+        - **`update_brain.py` warns.** When an upgrade rewrites a file that defines the embed input
+          (`note_view.py`, `embedder.py`), print a **migration notice** — "your vectors were built
+          with the previous view; run `embed_vault.py && hydrate_cache.py` once" — rather than
+          leaving the brain quietly stale.
+        **Test:** build a brain, embed, mutate the canonical view, and assert `doctor` reports stale
+        (and `--repair` fixes it). Negative-test it — without the check, `doctor` must currently say
+        *"healthy & consistent"* while holding vectors from a view that no longer exists, which is
+        exactly the false-green this task exists to kill.
   - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
         Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
         separator. **The reported bug was not in the server, and needs no server change.**
