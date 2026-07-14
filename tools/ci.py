@@ -148,6 +148,15 @@ def step_remote_sync() -> bool:
     return _run([PY, str(TOOLS / "check_remote_sync.py")], env=env)
 
 
+def step_config_matrix() -> bool:
+    # Exercise NON-DEFAULT config (#29). #28 shipped through a green suite because the toggle that
+    # triggers it defaults to false, so the harness never ran the config the user runs. This flips
+    # every features.toml toggle off its default at least once, and FAILS if a new toggle ships
+    # with no coverage. Hermetic: generates brains, test backend, git + stdlib.
+    env = {**os.environ, **{k: v for k, v in GIT_IDENTITY.items() if k not in os.environ}}
+    return _run([PY, str(TOOLS / "check_config_matrix.py")], env=env)
+
+
 def step_note_gate() -> bool:
     # The "what earns a note" gate is deliberately duplicated (CLAUDE.md for an in-repo agent,
     # the note template for Claude Desktop via get_note_template — disjoint audiences that
@@ -165,15 +174,16 @@ def step_readme_block() -> bool:
 
 
 STEPS = [
-    ("1/9 manifest partition", step_partition),
-    ("2/9 template in sync with golden", step_template_in_sync),
-    ("3/9 emitted scripts compile", step_py_compile),
-    ("4/9 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/9 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/9 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/9 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/9 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/9 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("1/10 manifest partition", step_partition),
+    ("2/10 template in sync with golden", step_template_in_sync),
+    ("3/10 emitted scripts compile", step_py_compile),
+    ("4/10 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/10 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/10 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/10 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/10 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/10 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/10 config matrix (every toggle exercised off its default)", step_config_matrix),
 ]
 
 

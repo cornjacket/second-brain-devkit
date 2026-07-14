@@ -17,6 +17,10 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   **@david still to review §6** (the judgement calls, not the code).
   It spawned **#29**: CI ran only the *default* config, so the toggle that triggers the bug was
   never on. **A matrix that only exercises defaults does not test the product.**
+- **Done 2026-07-14 — #29, CI gate 10: non-default config is now tested.** #28 shipped through a
+  green suite because the toggle that triggers it is off by default. Every `features.toml` toggle is
+  now flipped off its default at least once — and **the gate reads the toggle space from the config
+  file, so a new toggle with no coverage fails the build.** Forgetting is a build error now.
 - **▶▶ NEXT — #26 then #25** (user-chosen, 2026-07-14). **#26** makes the embed input
   *wikilink-invariant*, so inserting a link into a note does not re-embed it — the existing
   `content_hash` gate already skips unchanged notes; it is the *view* that is too literal. **#25**
@@ -600,23 +604,29 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         `add_note` suite with `glossary_autolink = true` and assert **the index is clean after the
         call** (`git diff --cached` empty) — and negative-test it, since without the fix it must go
         red.
-  - [ ] **CI must exercise NON-DEFAULT config, not just the defaults (task #29).** Generalised
-        straight from **#28**, which shipped, passed every gate, and then corrupted note content in
-        a real brain — because the toggle that triggers it (`glossary_autolink`) **defaults to
-        `false`**, so the golden, the template and every harness run executed with the only
-        file-modifying hook **switched off**. The write suite that explicitly asserts "never touch
-        the user's staged work" passed precisely because the triggering condition never occurred.
-        **A test matrix that only exercises defaults does not test the product** — every non-default
-        toggle is an uncovered code path, and it will be found by the user, on their data.
-        **Build:** a config matrix in `tools/ci.py` — run the acceptance gates across the
-        `config/features.toml` toggle space, not just its defaults. Today that is `hybrid_search`
-        (default **true** → also test **false**, the vector-only path the ablation baseline uses),
-        `glossary_autolink` (default **false** → also test **true**, now done ad-hoc by the mcp tier
-        — fold it in), and `rrf_k`. Keep it cheap: not a full cross-product, but **every toggle
-        flipped at least once** (n+1 runs, not 2^n), which is what would have caught #28.
-        **Also audit for the same class of gap:** any *other* behaviour that only fires under a
-        non-default setting (e.g. the `test` vs `ollama` backend split — CI runs `test` almost
-        everywhere) and say plainly which paths remain uncovered rather than implying coverage.
+  - [x] **CI must exercise NON-DEFAULT config, not just the defaults (task #29).** DONE 2026-07-14 —
+        **CI gate 10** (`tools/check_config_matrix.py`; CI is now **10** gates). Generalised straight
+        from **#28**, which shipped, passed every gate, and then corrupted note content in a real
+        brain — because the toggle that triggers it (`glossary_autolink`) **defaults to `false`**, so
+        the golden, the template and every harness run executed with the only file-modifying hook
+        **switched off**. The write suite that explicitly asserts "never touch the user's staged
+        work" passed precisely because the triggering condition never occurred. *A test matrix that
+        only exercises defaults does not test the product.*
+        **Built:** every `features.toml` toggle is flipped **off its default** at least once —
+        `hybrid_search` false (the vector-only baseline), `rrf_k` 10, `glossary_autolink` true (a
+        pre-commit hook that *rewrites the file being committed*: it must link the term, embed the
+        linked note, and leave a **clean index** — the #28 signature, now asserted in the plain-git
+        flow too, not just over MCP). **n+1 runs, not 2^n** — deliberately.
+        **The anti-recurrence mechanism is the real deliverable:** the gate **derives the toggle
+        space from `config/features.toml` itself**, so shipping a new toggle without coverage — or
+        letting a default drift out of step with the matrix — **fails the build**. Forgetting is now
+        a build error, not a bug found in production. Negative-tested four ways: a new uncovered
+        toggle, a drifted default, a broken hook path, and (the subtle one) **a toggle that is
+        silently ignored**.
+        **Names its gaps instead of implying coverage:** toggle *interactions* are untested (one
+        flip at a time) and the `ollama` backend is not exercised (all gates run `test`; Ollama is
+        opt-in via `check_semantic_retrieval.py`). Printed on every run — a silent gap reads as
+        coverage.
   - [ ] **Bounded, filterable list tools — and the missing tag vocabulary (task #27).** The listing
         tools (`list_vault`, `list_glossary_terms`, and the `list_tags` this task adds) return
         *everything*. At a few hundred notes that is a wall of context; at a few thousand it is
