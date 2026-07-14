@@ -9,7 +9,16 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
-- **▶▶ NEXT — the glossary tail (needs a human at an Obsidian window).** Both remaining glossary
+- **▶▶ NEXT — #25 `add_glossary_term`** (user-chosen, 2026-07-14): make the glossary *writable*
+  from Claude Desktop, closing the same asymmetry #5 closed for notes. **Open the task before
+  building — the auto-link sweep is a real decision**, not a detail (it would edit other notes,
+  breaking `add_note`'s one-file-per-commit safety property).
+  *Recorded dissent on ordering:* **#24 arguably belongs first.** #25 is a feature; #24 is a live
+  defect in shipped code — the embedder's `urlopen()` has **no timeout**, so a cold Ollama model
+  load can hang the server **forever**, reachable from both `search_second_brain` and `git commit`.
+  A new write tool sits on top of that same substrate. The user's call stands; noting it so the
+  order is a decision, not an oversight.
+- **Then — the glossary tail (needs a human at an Obsidian window).** Both remaining glossary
   items are docs-only but **cannot be verified from CI** (it never opens Obsidian), so each now
   carries a hand-test as its acceptance criterion: install the *Spaced Repetition* plugin and see a
   term render as a card, and add the graph colour group — settling which query actually works
@@ -488,6 +497,33 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         on each tool (classic text-output; return still reaches the model as JSON text).
         Verified in Desktop after restart. Full write-up in
         [docs/mcp-server.md §11](docs/mcp-server.md); lesson also saved to `~/notes`.
+  - [ ] **Write path for the glossary — `add_glossary_term` MCP tool (task #25).** The glossary is
+        readable from Claude Desktop (`list_glossary_terms` / `lookup_glossary_term`, #20) but not
+        **writable**: `add_note` is PARA-only by allowlist, and `glossary_new.py` is CLI-only. So an
+        assistant can *use* the controlled vocabulary but never *extend* it — the same asymmetry
+        #5 just closed for notes. Naming: **`add_glossary_term`**, not `insert_`, to match
+        `add_note` (one verb for one concept).
+        **The crux — decide before building: does the tool run the auto-link sweep?**
+        `glossary_new.py` does two things: it scaffolds the term note, **and** it sweeps the whole
+        vault linking the term's first occurrence in every PARA note (`--no-relink` skips). That
+        sweep **edits other notes**, which re-embeds them — so over MCP it means a commit touching
+        many files. `add_note`'s central safety property is that it stages **exactly one file** and
+        can never sweep a user's in-progress work into an agent-authored commit; a whole-vault
+        relink is the direct opposite of that. Options: **(a)** scaffold only (`--no-relink`), leave
+        linking to the user's on-demand `glossary_scan --apply` — smallest blast radius, keeps the
+        one-file invariant, but the term lands unlinked; **(b)** scaffold + sweep + commit
+        everything it touched — matches the CLI's behaviour but an agent now rewrites bodies of
+        notes it was never asked to touch. **Recommend (a)**, and say so in the tool description.
+        Also needed: an `aliases` param (lookup depends on frontmatter `aliases:`); refusal on a
+        key **or alias** collision with an existing term (today it is first-writer-wins with a
+        stderr warning — invisible over MCP); reuse `glossary_new.scaffold()` rather than
+        duplicating the term shape (single source, per the 2026-07-12 decision); and a **"what
+        earns a term"** bar in the tool description — a *controlled* vocabulary that an LLM can mint
+        into freely stops being controlled, the same failure `get_note_template`'s gate prevents for
+        notes. Cost to weigh: an **8th** tool schema, loaded into every Desktop session whether used
+        or not. Tests extend the #5 write suite (create → commit → push → listable/lookup-able
+        without restart; collision refusal; still **never embedded** — the glossary must stay out of
+        the vector index, which is the whole reason it exists).
   - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
         Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
         separator. **The reported bug was not in the server, and needs no server change.**
