@@ -1,6 +1,7 @@
 # MCP server hardening — nothing may hang the server (task #24)
 
-**Status:** OPEN (surfaced 2026-07-14, from a Claude Desktop bug report).
+**Status:** OPEN — four hang vectors to close (§2). The bug that *started* this (§1) turned out to
+be a Claude Desktop approval dialog nobody clicked; **the server needs no change for it.**
 **Scope:** the emitted `scripts/mcp_server.py` and `scripts/embedder.py`.
 **Constraint that does not bend:** none of this touches the indexer's walk. `glossary/` and
 `templates/` are excluded from the vector index *purely* by not being PARA roots — no exclusion
@@ -8,44 +9,71 @@ list, no config flag — and that must hold. Every fix below is inside the tool/
 
 ---
 
-## 1. What was reported, and what was actually true
+## 1. The reported bug — a post-mortem (SOLVED; nothing to fix in the server)
 
 **Report:** `add_note` hangs (no response, 4-minute client timeout) when `para_root` contains a
-path separator (`"resources/test"`). Suspected cause: it gets past validation and blocks in the
-`git push`.
+path separator (`"resources/test"`). Suspected cause: it gets past validation and blocks in `git
+push`.
 
-**Finding: the server never hung, and the reported cause does not exist.** Claude Desktop's own
-client log is decisive — *every* call was answered, and none took longer than **3 ms**:
+**Root cause: an unanswered tool-approval dialog in Claude Desktop. The server was never asked.**
 
-```
-04:01:38.569  client → tools/call  id=7
-04:01:38.571  server → result        (2 ms)
-04:01:42.501  client → tools/call  id=8
-04:01:42.504  server → result        (3 ms)
-```
+`add_note` is the only **write** tool on this server; every other tool is read-only and had already
+been approved. Desktop gates *dispatch* on approval, and approval is **sticky per tool**. The model
+emitted one `add_note` call, Desktop raised an approval dialog, **nobody clicked it**, so the call
+was never dispatched. After four minutes the model's tool slot was filled with Desktop's synthetic
+message: *"No result received… the local MCP server may be unresponsive, crashed, or not running."*
 
-Corroborating evidence:
+Every clause of that message is false. The server was idle, healthy, had run continuously for
+hours, and had never received the call. **That message is what sent the investigation into the
+server for an hour**, and it is itself a Claude Desktop bug.
 
-- `para_root` **is** validated: `if para_root not in PARA_ROOTS: raise ValueError(...)` — a strict
-  membership test against the 4-tuple, not a path join. Reproduced under Desktop's own minimal
-  launchd environment (no `SSH_AUTH_SOCK`): **returns in 0.00 s, `isError=True`, no side effects.**
-- The **vault was clean** afterwards — nothing written, staged, or committed. `add_note` writes the
-  file *before* it touches git, so a hang in commit/push would have left the `.md` on disk. It
-  didn't, which proves nothing ever got past validation.
-- The push does **not** block in that environment either: it fails fast (0.83 s, `publickey`).
-- Sampling the live server process showed it **idle** in its event loop, not stuck.
+How it was proved (each step is falsifiable, and one killed the previous theory):
 
-The stall was therefore **client-side in Claude Desktop, after the server had already answered**.
-Not a server bug. Recorded here so nobody "fixes" the validation twice.
+1. `para_root` **is** allowlist-validated (`if para_root not in PARA_ROOTS: raise`). Reproduced
+   under Desktop's own minimal launchd env: **0.00 s, `isError=True`, no side effects.** The vault
+   was clean afterwards — and since `add_note` writes the file *before* touching git, a hang in
+   commit/push would have left the `.md` on disk. It didn't. Nothing got past validation.
+2. `isError=True` delivery works: a `get_note` refusal (**structurally identical** — one text
+   block, `structuredContent: null`) came back instantly in the same session.
+3. The payload theories (the `tags` array, the ~1.5 KB body) died the same way: both return
+   instantly.
+4. **Approval is sticky** — a dialog appeared for `add_note` on its next call and *not* on the one
+   after. A dialog appearing at all therefore proves `add_note` had **never** been approved before,
+   including at 04:01. Combined with dispatch-is-gated (an approved call produces exactly **one**
+   dispatch), it follows that **no `add_note` call ever reached the server**.
 
-**The lesson worth keeping:** a hang reported at the client is not evidence of a hang at the
-server. The MCP client log (`~/Library/Logs/Claude/mcp.log`) pairs every request with its
-response and timing — read it *first*, before theorising about the server.
+### The two traps, both worth remembering
 
-## 2. The real defects the investigation surfaced
+**A hang at the client is not evidence of a hang at the server.** The client log
+(`~/Library/Logs/Claude/mcp.log`) pairs every request with its response and timing — read it
+*first*. Here it showed every call answered in ≤3 ms, which exonerated the server immediately.
 
-None of these caused the reported symptom. All are genuine ways the server **could** hang or
-corrupt itself, and all are cheap to close.
+**But that log does not record the tool name or the params** — only `method="tools/call" id=N
+params { metadata: undefined }`. So two calls seen at 04:01 were assumed to be `add_note`, inferred
+purely from the response *shape* (one content block). They were not `add_note` at all — almost
+certainly the model obeying `add_note`'s own instructions to call `get_note_template` and
+`list_vault` first, both of which return one block. That false identification produced a phantom
+"the client auto-retried, so a response was lost" clue that was chased for some time.
+
+**The generalisable failure — committed three times in one investigation, by three different
+parties — is asserting a mechanism from a symptom without checking the premise it rests on.** The
+fix is cheap and mechanical: before reasoning *from* a fact, verify the fact is recorded rather
+than inferred. "Is that actually in the log, or did I derive it?" would have saved an hour.
+
+### Client-side bugs (Claude Desktop — not ours, not actionable here)
+
+Recorded so the next person doesn't re-derive them:
+
+- The timeout message **blames the MCP server** ("unresponsive, crashed, or not running") for what
+  is a client-side unanswered-approval timeout. Actively misleading.
+- MCP call logging **omits the tool name and arguments**, which makes the logs nearly useless for
+  attributing a call — the direct cause of the phantom-retry detour above.
+
+## 2. Task #24 — the four hang vectors (this is the whole scope)
+
+**None of these caused the reported symptom.** They were surfaced *by* the investigation and stand
+on their own: each is a genuine way the server could hang or corrupt itself, and all are cheap to
+close. This list is task #24 in full — the approval-dialog stall above needs no server change.
 
 - [ ] **2a. `embedder.py` — `urlopen(req)` has no timeout.** Python defaults to *no limit*, so a
       stalled Ollama blocks **forever**. The realistic trigger is a **cold model load** on the

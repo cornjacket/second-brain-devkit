@@ -489,16 +489,23 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         Verified in Desktop after restart. Full write-up in
         [docs/mcp-server.md §11](docs/mcp-server.md); lesson also saved to `~/notes`.
   - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
-        Desktop bug report of `add_note` hanging on a `para_root` with a path separator. **The
-        reported bug does not exist** — Desktop's own client log shows every call answered in
-        **≤3 ms**, `para_root` *is* allowlist-validated (rejects in 0.00 s with no side effects,
-        reproduced under Desktop's minimal launchd env), and the vault was clean afterwards, which
-        proves nothing got past validation (`add_note` writes the file *before* touching git). The
-        stall was **client-side, after the server had answered**. *Lesson: a hang reported at the
-        client is not evidence of a hang at the server — read `~/Library/Logs/Claude/mcp.log`,
-        which pairs every request with its response and timing, before theorising.* But the
-        investigation surfaced four **real** ways the server could hang or corrupt itself, none of
-        which caused this, all cheap to close:
+        Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
+        separator. **The reported bug was not in the server, and needs no server change.**
+        **Root cause: an unanswered tool-approval dialog in Claude Desktop — the server was never
+        asked.** `add_note` is the only *write* tool; Desktop gates dispatch on approval, approval
+        is sticky per tool, and nobody clicked the dialog, so the call was never dispatched. Desktop
+        then told the model *"the local MCP server may be unresponsive, crashed, or not running"* —
+        false in every clause (it was idle, healthy, and never asked), and that message is what sent
+        an hour of debugging into the wrong subsystem. *Two lessons, both cheap:* (1) **a hang at
+        the client is not evidence of a hang at the server** — `~/Library/Logs/Claude/mcp.log` pairs
+        every request with its response and timing, so read it *first*; it exonerated the server in
+        one look. (2) **That log does NOT record the tool name or params** — so two calls seen at
+        04:01 were *assumed* to be `add_note` from their response shape alone, and weren't, which
+        manufactured a phantom "the client auto-retried" clue. **Three parties in this investigation
+        each asserted a mechanism from a symptom without checking the premise under it.** Before
+        reasoning *from* a fact, ask whether it was recorded or merely inferred.
+        **Scope of #24 is now exactly the four hang vectors the investigation surfaced** — none
+        caused the symptom; each is a genuine way the server could hang or corrupt itself:
         - [ ] **`embedder.py` `urlopen()` has no timeout** → a stalled Ollama (typically a **cold
               model load**) blocks **forever**. Exposed: `search_second_brain` *and* `git commit`
               (the pre-commit hook embeds). The one genuinely unbounded hang in the system.
