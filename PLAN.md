@@ -27,8 +27,12 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   design only half-shut: the loop was barred for frontmatter but the body (where `glossary_scan`
   writes its links) was still being embedded verbatim, round-tripping the system's own output into
   its own vectors.
-- **▶▶ NEXT — #25 `add_glossary_term`.** Its whole-vault auto-link **cascade is the point** ("the
-  system does the work for me") — and #26 just made that cascade nearly free.
+- **Done 2026-07-14 — #25 `add_glossary_term`: the glossary is now writable from Claude Desktop.**
+  Define a term, and it link-cascades across the whole vault in one commit (the cascade is the
+  feature) — #26 made that nearly free. Eighth tool; refuses slug/alias collisions; never embedded;
+  the "what earns a term" bar is in the description. → [mcp-server.md §3.3](docs/mcp-server.md).
+- **▶▶ NEXT — #30** (stale-vector detection in `doctor`, the honest completion of #26) **or #24**
+  (the four server hang vectors — the embedder's unbounded `urlopen` is the live one).
 - **Also open, from #26 — [#30] stale vectors after an embed-view change.** `update_brain` ships a
   new canonical view but never re-embeds, so an upgraded brain silently holds vectors built by the
   *old* view. The real brain is correct only because the migration was run **by hand** — and a

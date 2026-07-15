@@ -119,10 +119,11 @@ async def drive(brain: Path, env: dict) -> list[str]:
             await s.initialize()
             tools = {t.name: t for t in (await s.list_tools()).tools}
 
-            # 1. exact tool surface (seven: #20 added the glossary pair, #5 the write path)
+            # 1. exact tool surface (eight: #20 glossary pair, #5 write path, #25 add_glossary_term)
             expected = {"search_second_brain", "get_note",
                         "list_glossary_terms", "lookup_glossary_term",
-                        "add_note", "list_vault", "get_note_template"}
+                        "add_note", "list_vault", "get_note_template",
+                        "add_glossary_term"}
             if set(tools) != expected:
                 fails.append(f"tools/list = {sorted(tools)}, expected {sorted(expected)}")
 
@@ -494,6 +495,69 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                 fails.append(f"add_note did not recover from a non-fast-forward push (the "
                              f"multi-client case): {report3!r}")
 
+            # --- #25 add_glossary_term: define, LINK-cascade, commit, push (remote still live) --
+            # A note that already mentions the term-to-be, so the sweep has something to link.
+            host = brain / "vault" / "resources" / "glossary-host.md"
+            host.write_text("---\ntags: [h]\n---\n\n# Host\n\nWe used beam search here.\n",
+                            encoding="utf-8")
+            _git(brain, "add", "--", "vault/resources/glossary-host.md", env=env)
+            _git(brain, "commit", "-q", "-m", "note: glossary host", env=env)
+
+            gres = await s.call_tool("add_glossary_term", {
+                "term": "beam search",
+                "definition": "A heuristic search keeping the k best partial candidates each step.",
+                "aliases": ["beam-search decoding"]})
+            greport = " ".join(_texts(gres))
+            if gres.isError:
+                fails.append(f"add_glossary_term errored: {greport[:160]}")
+            else:
+                gnote = brain / "vault" / "glossary" / "beam-search.md"
+                if not gnote.is_file():
+                    fails.append("add_glossary_term reported success but wrote no glossary note")
+                # the definition was actually placed (the scaffold-substitution didn't silently
+                # ship the placeholder)
+                elif "k best partial candidates" not in gnote.read_text(encoding="utf-8"):
+                    fails.append("add_glossary_term did not fill in the definition line")
+                # the CASCADE: the pre-existing mention was linked, and committed in the SAME commit
+                if "[[beam-search" not in host.read_text(encoding="utf-8"):
+                    fails.append("add_glossary_term did not link the term into an existing note "
+                                 "(the vault-wide sweep is the feature)")
+                committed = _git(brain, "show", "--stat", "--name-only", "--format=", "HEAD",
+                                 env=env).stdout.split()
+                if "vault/glossary/beam-search.md" not in committed or \
+                        "vault/resources/glossary-host.md" not in committed:
+                    fails.append(f"the term note and the linked note did not land in one commit: "
+                                 f"{committed}")
+                # the glossary note must NOT be embedded (it is non-PARA — the exclusion holds)
+                if (gnote.parent / f".{gnote.stem}.embed.json").exists():
+                    fails.append("add_glossary_term embedded the glossary note — it must stay out "
+                                 "of the vector index")
+                # #28: no phantom staged change left behind
+                if _git(brain, "diff", "--cached", "--name-only", env=env).stdout.strip():
+                    fails.append("add_glossary_term left a poisoned index (staged after the call)")
+                if "pushed to origin" not in greport:
+                    fails.append(f"add_glossary_term did not push: {greport!r}")
+                # reachable by lookup + alias, and ABSENT from search
+                got = "".join(_texts(await s.call_tool(
+                    "lookup_glossary_term", {"term": "beam-search decoding"})))
+                if "k best partial candidates" not in got:
+                    fails.append("the new term is not resolvable by its alias via lookup")
+                sr = _json_blocks(await s.call_tool(
+                    "search_second_brain", {"query": "beam search", "k": 5}), fails, "search(term)")
+                if any("/glossary/" in h.get("source_file", "") for h in sr):
+                    fails.append("the new glossary term leaked into search_second_brain")
+
+            # duplicate term and alias-collision are refused
+            dup = await s.call_tool("add_glossary_term",
+                                    {"term": "Beam Search", "definition": "x"})
+            if not dup.isError:
+                fails.append("add_glossary_term redefined an existing term (must be create-only)")
+            coll = await s.call_tool("add_glossary_term",
+                                     {"term": "brand new term", "definition": "x",
+                                      "aliases": ["beam-search decoding"]})
+            if not coll.isError:
+                fails.append("add_glossary_term accepted an alias that collides with an existing term")
+
             # --- an unpushable note must SHOUT, not whisper ---------------------------------
             # A failed push still returns SUCCESS (the note was created, committed, embedded), so
             # nothing makes the model mention it. If the warning isn't the FIRST thing in the
@@ -631,6 +695,8 @@ def main() -> int:
               "multi-client case)")
         print("  ok    list_vault browses the PARA roots; get_note_template returns the vault "
               "template")
+        print("  ok    add_glossary_term defines + link-cascades + commits + pushes; term note "
+              "not embedded; duplicate/alias-collision refused; excluded from search")
         print("\nMCP tier OK: server contract holds")
         return 0
     finally:

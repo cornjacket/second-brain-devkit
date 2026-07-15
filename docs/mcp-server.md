@@ -113,6 +113,42 @@ Everything that follows is a consequence of writing to a repo a **human also use
 **Still not offered:** editing or deleting a note. Create-only is the smallest surface that closes
 the gap, and an agent that can silently rewrite a note you authored is a different risk class.
 
+- **`add_glossary_term(term, definition, aliases)`** *(**BUILT** — task #25, 2026-07-14; §3.3).*
+  The write path for the **glossary** — define a term, link it across the vault, commit and push.
+
+### 3.3 The glossary write path — `add_glossary_term` (task #25)
+
+`add_note` writes PARA notes; it is allowlist-restricted to the four PARA roots and cannot touch
+`glossary/`. So the controlled vocabulary was *readable* from Desktop (#20) but not *writable* —
+the same asymmetry #5 closed for notes. This closes it, and its one interesting departure from
+`add_note` is deliberate:
+
+**The auto-link cascade is the feature, not a side effect.** Adding a term runs the whole-vault
+"link on use" sweep — it wikilinks the term's first occurrence in every note that already mentions
+it — and commits the term note **plus every note it linked** in one commit. That relaxes `add_note`'s
+one-file-per-commit rule, and the relaxation is principled: `add_note` stages a single file so it can
+never sweep up *the user's* in-progress work, whereas the sweep's multi-file edit is **the tool's own
+intended output**, not someone else's changes caught by accident. It still stages **only** the files
+it created or linked (never `git add -A`), so your unrelated staged work is still safe. **#26 is what
+makes this affordable** — a wikilink insertion no longer re-embeds a note, so linking a term across
+the vault costs zero re-embeds.
+
+The rest mirrors the glossary's design invariants:
+
+- **Built from the shared scaffold.** Reuses `glossary_new.scaffold()` — the single source of the
+  term shape — so a term added over MCP is byte-identical to one added by the CLI. The definition is
+  substituted on the stable `Term ? …` marker, not the placeholder's wording, so a scaffold change
+  can never silently ship the placeholder (it raises instead).
+- **Refuses a collision on the term slug *or any alias*.** The vocabulary is controlled; a duplicate
+  key is a vault bug, not a merge. (The server-side index only *warns* on collision and picks
+  first-writer — invisible over MCP, so the tool refuses loudly.)
+- **Never embedded.** The glossary note is non-PARA, so it stays out of the vector index and the term
+  is reachable only through `lookup_glossary_term` / `list_glossary_terms`, never `search_second_brain`
+  — the hub-avoidance split that #20/#21 enforce, now held at the write boundary too.
+- **A "what earns a term" bar** in the tool description: a controlled vocabulary an assistant can mint
+  into freely stops being controlled. Jargon/acronyms/named methods whose *exact* meaning recurs — not
+  whole topics (those are `add_note`), not passing mentions.
+
 ### 3.2 The gap `add_note` opened — and the gate that closes it
 
 A write tool makes notes *cheap*, and cheap notes are how a brain fills with things nobody will
