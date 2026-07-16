@@ -148,6 +148,13 @@ def step_remote_sync() -> bool:
     return _run([PY, str(TOOLS / "check_remote_sync.py")], env=env)
 
 
+def step_hang_safety() -> bool:
+    # Nothing the server does may hang forever (#24): the embedder's HTTP call is timeout-bounded
+    # (tested behaviorally against a local wedged socket), and _git spawns non-interactively with
+    # DEVNULL stdin, ssh BatchMode, and a caught timeout. Hermetic, stdlib only.
+    return _run([PY, str(TOOLS / "check_hang_safety.py")])
+
+
 def step_doctor_stale() -> bool:
     # doctor.py must detect a stale embedding — a sidecar whose vector predates the note's current
     # canonical view (#30). update_brain ships a new view but never re-embeds, so without this an
@@ -182,17 +189,18 @@ def step_readme_block() -> bool:
 
 
 STEPS = [
-    ("1/11 manifest partition", step_partition),
-    ("2/11 template in sync with golden", step_template_in_sync),
-    ("3/11 emitted scripts compile", step_py_compile),
-    ("4/11 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/11 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/11 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/11 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/11 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/11 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/11 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/11 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("1/12 manifest partition", step_partition),
+    ("2/12 template in sync with golden", step_template_in_sync),
+    ("3/12 emitted scripts compile", step_py_compile),
+    ("4/12 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/12 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/12 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/12 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/12 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/12 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/12 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/12 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/12 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
 ]
 
 

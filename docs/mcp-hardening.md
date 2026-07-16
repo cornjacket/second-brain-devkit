@@ -1,7 +1,8 @@
 # MCP server hardening — nothing may hang the server (task #24)
 
-**Status:** OPEN — four hang vectors to close (§2). The bug that *started* this (§1) turned out to
-be a Claude Desktop approval dialog nobody clicked; **the server needs no change for it.**
+**Status:** **DONE 2026-07-15** (golden `e4cc545`) — all four hang vectors closed, CI **gate 12**
+(`tools/check_hang_safety.py`) guards them, negative-tested. The bug that *started* this (§1) was a
+Claude Desktop approval dialog nobody clicked; the server needed no change for that.
 **Scope:** the emitted `scripts/mcp_server.py` and `scripts/embedder.py`.
 **Constraint that does not bend:** none of this touches the indexer's walk. `glossary/` and
 `templates/` are excluded from the vector index *purely* by not being PARA roots — no exclusion
@@ -75,37 +76,39 @@ Recorded so the next person doesn't re-derive them:
 on their own: each is a genuine way the server could hang or corrupt itself, and all are cheap to
 close. This list is task #24 in full — the approval-dialog stall above needs no server change.
 
-- [ ] **2a. `embedder.py` — `urlopen(req)` has no timeout.** Python defaults to *no limit*, so a
+- [x] **2a. `embedder.py` — `urlopen(req)` has no timeout.** Python defaults to *no limit*, so a
       stalled Ollama blocks **forever**. The realistic trigger is a **cold model load** on the
       first embed after boot. Anything that embeds is exposed: `search_second_brain`, and
       `git commit` itself (the pre-commit hook embeds the staged note). **This is the closest
       thing to a real unbounded hang in the system.** Fix: an explicit connect/read timeout, and
       a clear error saying Ollama did not respond — a slow brain must degrade to an error, never
       to silence.
-- [ ] **2b. `mcp_server._git` inherits stdin — and stdin *is* the JSON-RPC channel.**
+- [x] **2b. `mcp_server._git` inherits stdin — and stdin *is* the JSON-RPC channel.**
       `subprocess.run(..., capture_output=True)` redirects stdout/stderr but **not** stdin, so a
       git or ssh child can read from the protocol stream: it could consume Desktop's bytes and
       corrupt the session, or block waiting for input that never comes. Fix:
       `stdin=subprocess.DEVNULL` on every subprocess. A tool server must never let a child touch
       its transport.
-- [ ] **2c. `GIT_TERMINAL_PROMPT=0` does not cover ssh.** It suppresses *git's* prompts, not
+- [x] **2c. `GIT_TERMINAL_PROMPT=0` does not cover ssh.** It suppresses *git's* prompts, not
       **ssh's** passphrase or host-key prompts — and this brain's remote is SSH. Fix:
       `GIT_SSH_COMMAND="ssh -o BatchMode=yes"` so ssh fails instead of asking.
-- [ ] **2d. `subprocess.TimeoutExpired` is not caught,** so a timeout surfaces as a traceback
+- [x] **2d. `subprocess.TimeoutExpired` is not caught,** so a timeout surfaces as a traceback
       rather than a clean tool error. The 120 s per-call timeout is also long for a headless
       server. Fix: catch it, shorten the push timeout, and report it like any other failed push
       (the note is still committed and searchable — a failed push is not a lost note).
 
-## 3. Tests to add (`tools/check_mcp_server.py`, write suite)
+## 3. Tests — where each landed (all negative-tested)
 
-- [ ] `add_note` rejects every `para_root` outside `{projects, areas, resources, archive}` —
-      including `"resources/test"`, `"resources/"`, `"../escape"`, and an absolute path.
-- [ ] Rejection is **immediate and side-effect-free**: no file written, nothing staged, no commit,
-      and it is bounded in wall-clock time (a validation error must not be able to take seconds).
-- [ ] Every git step is **non-interactive** and **timeout-bounded**: no stdin is inherited, and no
-      credential/passphrase prompt can block the call. Assert `stdin=DEVNULL` behaviourally by
-      running against a remote that would otherwise prompt.
-- [ ] An embed call that stalls **errors** rather than hanging (bound the embedder's timeout).
+- [x] **A stalled embed errors, doesn't hang** — CI **gate 12** (`check_hang_safety.py`),
+      *behavioral*: the emitted embedder is driven against a local socket that accepts and never
+      answers, and must raise a bounded error. The gate bounds its own wait, so a regression (the
+      timeout removed) fails the gate rather than hanging CI.
+- [x] **Git is non-interactive + timeout-bounded** — gate 12, *static* on the emitted `_git`:
+      `stdin=DEVNULL`, ssh `BatchMode=yes`, `GIT_TERMINAL_PROMPT=0`, a `timeout`, and a caught
+      `TimeoutExpired`.
+- [x] **`para_root` rejection is immediate + side-effect-free** — already covered by the #21/#28
+      write suite in `check_mcp_server.py` (rejects `resources/test` / `resources/` / `../escape` /
+      absolute, writes nothing, leaves a clean index).
 
 Every assertion is negative-tested, per the standing rule: a test that cannot be made to go red
 is decoration.

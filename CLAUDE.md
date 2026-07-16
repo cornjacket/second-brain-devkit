@@ -17,7 +17,7 @@ spec so they cannot drift.
 - What every source file is for → [docs/source-map.md](docs/source-map.md)
 - MCP server design + Claude Desktop → [docs/mcp-server.md](docs/mcp-server.md),
   [docs/claude-desktop-workflow.md](docs/claude-desktop-workflow.md)
-- MCP hardening — nothing may hang the server (task #24, open) → [docs/mcp-hardening.md](docs/mcp-hardening.md)
+- MCP hardening — nothing may hang the server (task #24, done; CI gate 12) → [docs/mcp-hardening.md](docs/mcp-hardening.md)
 - Partial-commit index poisoning — the `add_note` content-corruption bug (task #28, fixed; **awaiting review**) → [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)
 - Stale-embedding detection — doctor flags a vector that predates the note's canonical view (task #30, built) → CI gate 11 (`tools/check_doctor_stale.py`)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)

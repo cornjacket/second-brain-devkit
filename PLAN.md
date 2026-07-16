@@ -34,8 +34,12 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - **Done 2026-07-15 — #30: doctor now detects a stale embedding** (a vector that predates the note's
   current canonical view) and `--repair`s it; `update_brain` warns on a view-defining change. CI gate
   11. The silent-staleness #26 could leave in an upgraded brain is now loud.
-- **▶▶ NEXT — #24** (the four server hang vectors — the embedder's unbounded `urlopen` is the live
-  one; a cold Ollama load can hang the server forever) **or #27** (bounded list tools + `list_tags`).
+- **Done 2026-07-15 — #24: nothing the server does can hang.** The embedder's HTTP call is bounded
+  (a stalled Ollama errors, not hangs), and git subprocesses spawn non-interactively with DEVNULL
+  stdin, ssh BatchMode, and a caught timeout. CI gate 12, negative-tested.
+- **▶▶ NEXT — #27** (bounded, filterable list tools + the missing `list_tags`) **or #23** (investigate
+  shipping the brain as a Claude Code plugin). Still human-blocked: the #28 review + the glossary
+  flashcard/graph Obsidian hand-test.
 - **Also open, from #26 — [#30] stale vectors after an embed-view change.** `update_brain` ships a
   new canonical view but never re-embeds, so an upgraded brain silently holds vectors built by the
   *old* view. The real brain is correct only because the migration was run **by hand** — and a
@@ -737,7 +741,14 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         value fails silently, and it fails in the *reader*, not the code**: it cost a competent
         reviewer a confident, wrong diagnosis. When changing a metric, grep for every place its
         *name or interpretation* is written down, not just every place it is computed.
-  - [ ] **MCP hardening — nothing may hang the server (task #24).** Surfaced 2026-07-14 from a
+  - [x] **MCP hardening — nothing may hang the server (task #24).** DONE 2026-07-15 (golden
+        `e4cc545`; CI **gate 12** `check_hang_safety.py`, negative-tested). All four vectors closed:
+        the embedder's `urlopen` is now timeout-bounded (a wedged Ollama raises a clear error
+        instead of hanging — tested behaviorally against a local black-hole socket); `_git` spawns
+        with `stdin=DEVNULL` (the stdio JSON-RPC channel is no longer reachable by a child), an ssh
+        `BatchMode=yes` command (ssh can't prompt), the git prompt off, and a caught `TimeoutExpired`
+        (a timeout is a clean failed-op, not a traceback). The gate bounds its own wait so it can't
+        hang CI. → [docs/mcp-hardening.md](docs/mcp-hardening.md). ORIGINAL REPORT: surfaced 2026-07-14 from a
         Desktop bug report of `add_note` hanging (4-min timeout) on a `para_root` with a path
         separator. **The reported bug was not in the server, and needs no server change.**
         **Root cause: an unanswered tool-approval dialog in Claude Desktop — the server was never
