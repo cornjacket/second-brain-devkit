@@ -23,12 +23,18 @@ Hermetic; stdlib only. Devkit tool, never emitted.
 """
 from __future__ import annotations
 
-import os
-import socket
 import sys
-import threading
-import time
-from pathlib import Path
+
+# Set BEFORE any import from the tracked template/ tree, so importing the emitted embedder cannot
+# drop a __pycache__/*.pyc into template/ (which would pollute the byte-exact template and get
+# copied into a brain). Must be module-level — by the time a function runs it may be too late.
+sys.dont_write_bytecode = True
+
+import os  # noqa: E402
+import socket  # noqa: E402
+import threading  # noqa: E402
+import time  # noqa: E402
+from pathlib import Path  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 EMITTED = REPO_ROOT / "template" / "scripts"
@@ -61,7 +67,7 @@ def check_embed_timeout() -> list[str]:
     embedder hangs (the bug), the *gate* reports it as a failure rather than hanging CI. A gate
     that can hang is worse than the bug it guards.
     """
-    sys.path.insert(0, str(EMITTED))
+    sys.path.insert(0, str(EMITTED))  # bytecode writing already disabled at module load
     host, srv = _blackhole()
     result: dict = {}
 

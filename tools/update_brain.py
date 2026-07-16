@@ -167,6 +167,10 @@ def plan(brain: Path) -> tuple[list[str], list[str], list[tuple[str, str]]]:
         if src.is_dir() and not src.is_symlink():
             continue
         rel = src.relative_to(TEMPLATE).as_posix()
+        # Never emit Python bytecode caches — they are machine/version-specific build artifacts
+        # that can leak into template/ if a tool imports from it, and must never reach a brain.
+        if "__pycache__/" in rel or rel.endswith(".pyc"):
+            continue
         if _is_preserved(rel):
             continue
         if rel == README:
@@ -219,11 +223,15 @@ def update_brain(target, *, apply: bool = False) -> int:
     EMBED_INPUT_FILES = {"scripts/note_view.py", "scripts/embedder.py"}
     view_changed = sorted(EMBED_INPUT_FILES.intersection(new + changed))
     if view_changed:
-        print(f"\n⚠  MIGRATION — this update changes how notes embed ({', '.join(view_changed)}).")
-        print("   Your existing vectors were built with the previous definition and are now")
-        print("   STALE (search still works, but they no longer match what notes would embed to).")
-        print("   Re-embed once after applying:  python3 scripts/doctor.py --repair")
-        print("   (doctor also reports the staleness on its own — this is just the heads-up.)")
+        # Deliberately says MAY, not WILL: some changes to these files alter the embedding output
+        # (a new canonical view, a new model) and make every vector stale; others don't (a timeout,
+        # an error message). update_brain can't tell which — so it points at doctor, which recomputes
+        # each note's content_hash and reports the truth. Overclaiming "stale" here would cry wolf.
+        print(f"\n⚠  NOTE — this update touches how notes embed ({', '.join(view_changed)}).")
+        print("   IF it changed the embedding itself (a new view or model), your existing vectors")
+        print("   are now stale — search still works, but they no longer match. To be sure, run:")
+        print("       python3 scripts/doctor.py           # reports 'stale embedding' if so")
+        print("       python3 scripts/doctor.py --repair  # re-embeds only what actually changed")
 
     if not (new or changed):
         print("\n✅ already up to date — nothing to do.")
