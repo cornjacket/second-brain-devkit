@@ -31,8 +31,11 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   Define a term, and it link-cascades across the whole vault in one commit (the cascade is the
   feature) — #26 made that nearly free. Eighth tool; refuses slug/alias collisions; never embedded;
   the "what earns a term" bar is in the description. → [mcp-server.md §3.3](docs/mcp-server.md).
-- **▶▶ NEXT — #30** (stale-vector detection in `doctor`, the honest completion of #26) **or #24**
-  (the four server hang vectors — the embedder's unbounded `urlopen` is the live one).
+- **Done 2026-07-15 — #30: doctor now detects a stale embedding** (a vector that predates the note's
+  current canonical view) and `--repair`s it; `update_brain` warns on a view-defining change. CI gate
+  11. The silent-staleness #26 could leave in an upgraded brain is now loud.
+- **▶▶ NEXT — #24** (the four server hang vectors — the embedder's unbounded `urlopen` is the live
+  one; a cold Ollama load can hang the server forever) **or #27** (bounded list tools + `list_tags`).
 - **Also open, from #26 — [#30] stale vectors after an embed-view change.** `update_brain` ships a
   new canonical view but never re-embeds, so an upgraded brain silently holds vectors built by the
   *old* view. The real brain is correct only because the migration was run **by hand** — and a
@@ -678,7 +681,17 @@ each session. MCP is reserved for the one case a skill can't serve (below).
           note is a coin-flip on tag drift. Return tags **sorted by count** with the total (frequency
           ordering is what makes truncation meaningful — the ones worth reusing are the common ones)
           plus a `match` filter. `note_view.frontmatter_tags` already exists to read them.
-  - [ ] **Stale vectors after an embed-view change — detect it, don't rely on memory (task #30).**
+  - [x] **Stale vectors after an embed-view change — detect it, don't rely on memory (task #30).**
+        DONE 2026-07-15 (golden `1a10689`). Both halves built: `doctor.py` recomputes each note's
+        `content_hash`, compares it to the sidecar's stored hash, reports a mismatch as a **stale
+        embedding**, and `--repair` re-embeds it (catches a prose edit not re-embedded AND the #26
+        view-change case; a missing stored hash counts as stale so an old brain re-embeds).
+        `update_brain.py` prints a **migration notice** when it changes a view-defining file
+        (`note_view.py`/`embedder.py`) — "your vectors are now stale, run doctor --repair". New CI
+        **gate 11** (`check_doctor_stale.py`, negative-tested — a neutered check goes red) proves a
+        clean brain reports none, an edited-but-unembedded note is flagged + exits non-zero, repair
+        clears it, and a stored-hash mismatch is caught. → [source-map](docs/source-map.md).
+        ORIGINAL:
         The honest completion of **#26**. Changing `note_view.canonical_body` changes what every
         note *would* embed to — but `update_brain.py` ships the new code and **never re-embeds**
         (it deliberately never touches `vault/` or `data/`). So any brain upgraded to a version with

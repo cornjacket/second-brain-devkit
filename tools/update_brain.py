@@ -212,6 +212,19 @@ def update_brain(target, *, apply: bool = False) -> int:
     print(f"\npreserved (never touched): vault/, data/, config/, CLAUDE.md, "
           "GEMINI.md, git history")
 
+    # Migration notice (#30). These files define the *embed input* — what a note's vector is
+    # computed over. If one of them changes, every existing vector was produced by the OLD
+    # definition, but this tool never re-embeds (vault/ + data/ are preserved). Search still
+    # works, so the staleness is silent. Tell the user to re-embed once; doctor --repair does it.
+    EMBED_INPUT_FILES = {"scripts/note_view.py", "scripts/embedder.py"}
+    view_changed = sorted(EMBED_INPUT_FILES.intersection(new + changed))
+    if view_changed:
+        print(f"\n⚠  MIGRATION — this update changes how notes embed ({', '.join(view_changed)}).")
+        print("   Your existing vectors were built with the previous definition and are now")
+        print("   STALE (search still works, but they no longer match what notes would embed to).")
+        print("   Re-embed once after applying:  python3 scripts/doctor.py --repair")
+        print("   (doctor also reports the staleness on its own — this is just the heads-up.)")
+
     if not (new or changed):
         print("\n✅ already up to date — nothing to do.")
         return 0

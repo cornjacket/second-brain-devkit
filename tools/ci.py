@@ -148,6 +148,14 @@ def step_remote_sync() -> bool:
     return _run([PY, str(TOOLS / "check_remote_sync.py")], env=env)
 
 
+def step_doctor_stale() -> bool:
+    # doctor.py must detect a stale embedding — a sidecar whose vector predates the note's current
+    # canonical view (#30). update_brain ships a new view but never re-embeds, so without this an
+    # upgraded brain is silently stale and doctor would still say "healthy". Hermetic: generate,
+    # embed (test backend), mutate, assert stale + repair.
+    return _run([PY, str(TOOLS / "check_doctor_stale.py")])
+
+
 def step_config_matrix() -> bool:
     # Exercise NON-DEFAULT config (#29). #28 shipped through a green suite because the toggle that
     # triggers it defaults to false, so the harness never ran the config the user runs. This flips
@@ -174,16 +182,17 @@ def step_readme_block() -> bool:
 
 
 STEPS = [
-    ("1/10 manifest partition", step_partition),
-    ("2/10 template in sync with golden", step_template_in_sync),
-    ("3/10 emitted scripts compile", step_py_compile),
-    ("4/10 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/10 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/10 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/10 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/10 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/10 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/10 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("1/11 manifest partition", step_partition),
+    ("2/11 template in sync with golden", step_template_in_sync),
+    ("3/11 emitted scripts compile", step_py_compile),
+    ("4/11 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/11 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/11 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/11 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/11 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/11 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/11 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/11 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
 ]
 
 
