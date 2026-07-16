@@ -37,8 +37,10 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - **Done 2026-07-15 — #24: nothing the server does can hang.** The embedder's HTTP call is bounded
   (a stalled Ollama errors, not hangs), and git subprocesses spawn non-interactively with DEVNULL
   stdin, ssh BatchMode, and a caught timeout. CI gate 12, negative-tested.
-- **▶▶ NEXT — #27** (bounded, filterable list tools + the missing `list_tags`) **or #23** (investigate
-  shipping the brain as a Claude Code plugin). Still human-blocked: the #28 review + the glossary
+- **Done 2026-07-15 — #27: list tools are bounded + filterable, and `list_tags` exposes the tag
+  vocabulary** (filter/rank not pagination; a silent cap fails CI). Nine-tool surface.
+- **▶▶ NEXT — #23** (investigate shipping the brain as a Claude Code plugin — docs/research, no code).
+  Still human-blocked: the #28 review + the glossary flashcard/graph Obsidian hand-test. Still human-blocked: the #28 review + the glossary
   flashcard/graph Obsidian hand-test.
 - **Also open, from #26 — [#30] stale vectors after an embed-view change.** `update_brain` ships a
   new canonical view but never re-embeds, so an upgraded brain silently holds vectors built by the
@@ -656,7 +658,14 @@ each session. MCP is reserved for the one case a skill can't serve (below).
         flip at a time) and the `ollama` backend is not exercised (all gates run `test`; Ollama is
         opt-in via `check_semantic_retrieval.py`). Printed on every run — a silent gap reads as
         coverage.
-  - [ ] **Bounded, filterable list tools — and the missing tag vocabulary (task #27).** The listing
+  - [x] **Bounded, filterable list tools — and the missing tag vocabulary (task #27).** DONE
+        2026-07-15 (golden `2646676`). `list_vault`/`list_glossary_terms` gained a `match` filter and
+        a shared **honest cap** (`SECOND_BRAIN_LIST_CAP`, default 50) whose overflow appends a
+        `{_truncated}` marker saying how many were omitted and how to narrow — a **silent cap fails
+        the mcp tier** (negative-tested). New **`list_tags`** returns the frontmatter tag vocabulary
+        as `{tag,count}` sorted by count (the only tool that exposes it, so a Desktop assistant stops
+        inventing near-miss tags). Nine-tool surface. **Filter/rank, not pagination** — the model
+        primitive. → [mcp-server.md §3.4](docs/mcp-server.md). ORIGINAL: The listing
         tools (`list_vault`, `list_glossary_terms`, and the `list_tags` this task adds) return
         *everything*. At a few hundred notes that is a wall of context; at a few thousand it is
         unusable. **Pagination is the wrong fix** — cursors/offsets are for a human scrolling a UI;

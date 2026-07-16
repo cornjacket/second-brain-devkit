@@ -115,6 +115,24 @@ the gap, and an agent that can silently rewrite a note you authored is a differe
 
 - **`add_glossary_term(term, definition, aliases)`** *(**BUILT** — task #25, 2026-07-14; §3.3).*
   The write path for the **glossary** — define a term, link it across the vault, commit and push.
+- **`list_tags(match)`** *(**BUILT** — task #27, 2026-07-15).* The vault's frontmatter tag
+  vocabulary as `{tag, count}` sorted by count — the **only** tool that exposes it, so an assistant
+  tagging a new note reuses an existing tag instead of inventing a near-miss that splits the group.
+  `list_vault` and `list_glossary_terms` also gained a `match` filter and an **honest cap** (§3.4).
+
+### 3.4 List tools: filter and rank, never paginate or truncate silently (task #27)
+
+The list tools are consumed by a **model**, not a scrolling human, so the primitives are **filter**
+and **rank**, not **pagination** — an agent handed "page 1 of 12" either treats it as the whole
+truth or burns a round-trip per page. Each takes a `match` substring filter, and results are
+**capped** (`SECOND_BRAIN_LIST_CAP`, default 50). The cap is the load-bearing part: a truncated
+list that *doesn't say so* reads to the model as "this is everything", so it fails to find a value
+and invents one. On overflow the reply's last element is a `{_truncated: …}` marker stating how many
+were omitted and how to narrow — a silent cap is a bug, and the MCP tier fails if the marker is
+missing. `list_tags` ranks by count so the reusable (common) tags survive the cap;
+`list_glossary_terms` returns whole (a controlled vocabulary big enough to page is a smell, not a
+requirement); `list_vault` stays *structural* and points the "does a note like this exist?" question
+at `search_second_brain`, which answers by meaning rather than by scanning titles.
 
 ### 3.3 The glossary write path — `add_glossary_term` (task #25)
 

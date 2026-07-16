@@ -119,11 +119,12 @@ async def drive(brain: Path, env: dict) -> list[str]:
             await s.initialize()
             tools = {t.name: t for t in (await s.list_tools()).tools}
 
-            # 1. exact tool surface (eight: #20 glossary pair, #5 write path, #25 add_glossary_term)
+            # 1. exact tool surface (nine: #20 glossary pair, #5 write path, #25 add_glossary_term,
+            #    #27 list_tags)
             expected = {"search_second_brain", "get_note",
                         "list_glossary_terms", "lookup_glossary_term",
                         "add_note", "list_vault", "get_note_template",
-                        "add_glossary_term"}
+                        "add_glossary_term", "list_tags"}
             if set(tools) != expected:
                 fails.append(f"tools/list = {sorted(tools)}, expected {sorted(expected)}")
 
@@ -251,6 +252,53 @@ async def drive(brain: Path, env: dict) -> list[str]:
                     "lookup_glossary_term", {"term": "ablation"})))
                 if "type: glossary" not in got:
                     fails.append("lookup_glossary_term returned a non-glossary note")
+
+            # 8. list tools filter, and cap HONESTLY — never truncate silently (#27) ------------
+            if "list_tags" in tools:
+                # the generated brain's seed notes carry frontmatter tags; list_tags surfaces the
+                # vocabulary (nothing else does) sorted by count.
+                tagrows = _json_blocks(await s.call_tool("list_tags", {}), fails, "list_tags")
+                if not tagrows or not all("tag" in r and "count" in r for r in tagrows):
+                    fails.append(f"list_tags did not return {{tag,count}} rows: {tagrows}")
+                counts = [r["count"] for r in tagrows]
+                if counts != sorted(counts, reverse=True):
+                    fails.append(f"list_tags is not sorted by count desc: {tagrows}")
+                # the match filter narrows to a substring
+                one_tag = tagrows[0]["tag"]
+                filtered = _json_blocks(await s.call_tool("list_tags", {"match": one_tag}),
+                                        fails, "list_tags(match)")
+                if any(one_tag not in r.get("tag", "") for r in filtered):
+                    fails.append(f"list_tags(match={one_tag!r}) returned a non-matching tag: {filtered}")
+
+            if "list_vault" in tools:
+                # match filters note titles
+                allres = _json_blocks(await s.call_tool(
+                    "list_vault", {"para_root": "resources"}), fails, "list_vault(resources)")
+                titles = [r.get("title", "") for r in allres if "title" in r]
+                if titles:
+                    probe = titles[0][:3]
+                    got = _json_blocks(await s.call_tool(
+                        "list_vault", {"para_root": "resources", "match": probe}),
+                        fails, "list_vault(match)")
+                    if any(probe.lower() not in r.get("title", "").lower()
+                           for r in got if "title" in r):
+                        fails.append(f"list_vault(match={probe!r}) returned a non-matching title")
+
+            # a capped list must ANNOUNCE the truncation (a silent cap reads as "everything").
+            # Re-run one tool under a cap of 1 via a second server, and require a _truncated marker.
+            cap1 = {**env, "SECOND_BRAIN_LIST_CAP": "1"}
+            params1 = StdioServerParameters(command=sys.executable, args=[server], env=cap1)
+            async with stdio_client(params1) as (r1, w1):
+                async with ClientSession(r1, w1) as s1:
+                    await s1.initialize()
+                    capped = _json_blocks(await s1.call_tool("list_tags", {}), fails,
+                                          "list_tags (cap=1)")
+                    if len(capped) != 2 or "_truncated" not in capped[-1]:
+                        fails.append(f"a capped list did not announce the truncation (silent cap "
+                                     f"reads as 'this is everything'): {capped}")
+                    elif "of" not in capped[-1]["_truncated"] or "match" not in capped[-1]["_truncated"]:
+                        fails.append(f"the truncation marker doesn't say how many/how to narrow: "
+                                     f"{capped[-1]}")
 
     return fails
 
