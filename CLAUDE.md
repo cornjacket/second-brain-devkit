@@ -20,6 +20,7 @@ spec so they cannot drift.
 - MCP hardening — nothing may hang the server (task #24, done; CI gate 12) → [docs/mcp-hardening.md](docs/mcp-hardening.md)
 - Partial-commit index poisoning — the `add_note` content-corruption bug (task #28, fixed; **awaiting review**) → [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)
 - Stale-embedding detection — doctor flags a vector that predates the note's canonical view (task #30, built) → CI gate 11 (`tools/check_doctor_stale.py`)
+- Tag hygiene — deterministic detector + backfill applier + write-time near-miss warning; prototyped in the golden (task #32, Stages 1–4+6 done; emission + MCP tool deferred) → [docs/tag-hygiene.md](docs/tag-hygiene.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 - Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
 - Brain README managed block — devkit region + user space (`update_brain.py` splices, built task #9) → [docs/readme-managed-block.md](docs/readme-managed-block.md)
