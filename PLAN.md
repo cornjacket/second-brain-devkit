@@ -9,6 +9,14 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
+- **▶▶ NEXT — #34, Desktop e2e against your real brain (disposable-branch harness).** The #33 suite
+  assumes a throwaway fixture brain, but Desktop is configured to point at the real `~/second-brain`,
+  so a fresh brain means reconfiguring Desktop every run. Instead run the scenarios on a **disposable
+  git branch**: `setup.sh` branches off a clean `main` (the write scenarios commit onto the branch;
+  the no-upstream push fails harmlessly), paste the #33 prompts in Desktop **unchanged**, then
+  `teardown.sh` deletes the branch, re-hydrates the cache, removes orphan sidecars, and **asserts the
+  brain is byte-identical** to before. Devkit-only tooling; no emission, no CI gate (human at Desktop,
+  like #33). → **[docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md)**.
 - **Done 2026-07-16 — #32, tag hygiene as a vault deliverable (Stages 1–6, emitted).** Deterministic
   tooling for tag drift in a living vault: a detector (near-miss / discrimination / overlap /
   format-lint), a backfill applier (dry-run default, idempotent), `tag_lint.py` + `tag_apply.py`

@@ -11,22 +11,24 @@ command — `python3 tools/ci.py` (13 automated gates).
 find and fix a messy tag vocabulary, task #32) and a **Claude Desktop end-to-end test kit** (ready-made
 prompts + checker scripts, task #33). CI is green.
 
-**Today — mostly the acceptance work automation can't do (a human at the app):**
-- **Run the Desktop e2e kit end-to-end** (`desktop-e2e/`): generate a throwaway brain, connect Claude
-  Desktop to it, paste the 5 prompts, run `verify/run_all.py`. This is the only way to confirm the
-  features work in the *real* Desktop client (the automated tests use a different client).
-- **Glossary Obsidian hand-test** (carried over, needs a human): open the vault in Obsidian and check a
-  glossary term renders as a flashcard and appears in the graph view.
-- **Investigate the "plugin" path (#23) — research + notes only, no code:** could the brain install as a
-  single Claude Code *plugin* instead of today's two-step (skill install + MCP registration)? Key
-  unknown: does a plugin-bundled server even reach Claude *Desktop*? Decide and write it down — "not
-  worth it" is a perfectly good answer.
+**Today — top of the list is building #34, then using it:**
+- **▶▶ Build #34 — the disposable-branch e2e harness** (`desktop-e2e/setup.sh` + `teardown.sh`). It
+  lets the #33 Desktop test kit run against the **real** `~/second-brain` on a throwaway git branch —
+  **no Desktop reconfiguration** — then tear down to a byte-identical brain. This is the blocker:
+  today, running the kit means standing up a fresh brain and re-pointing Desktop at it, which is why
+  it hasn't happened. → [docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md).
+- **Then run the Desktop e2e kit** on the real brain via that branch — paste the 5 prompts in Desktop,
+  run `verify/run_all.py`: the first real end-to-end pass in the actual client.
+- **Glossary Obsidian hand-test** (carry, needs a human): a glossary term renders as a flashcard and
+  shows in the graph view.
+- **#23 plugin research** (if time; notes only, no code): could the brain install as one Claude Code
+  *plugin* instead of the skill-install + MCP-registration two-step?
 
 ```
  shipped ▶ tag hygiene (#32) + Desktop e2e kit (#33) — CI 13/13 green
               │
               ▼
- today   run the Desktop e2e kit in the real app ─► glossary Obsidian hand-test
-         └─ side quest: #23 plugin research (notes only, no code)
+ today   ▶▶ BUILD #34 (disposable-branch setup/teardown) ──► run the e2e kit on the REAL brain
+         └─ carry: glossary Obsidian hand-test · #23 plugin research (notes only)
  guardrail: any code change still goes prototype → vendor → tools/ci.py green
 ```
