@@ -1,29 +1,32 @@
-# Daily plan — 2026-07-16
+# Daily plan — 2026-07-17
 
-**Focus:** Wed 07-15 cleared the heavy items — **#25** (`add_glossary_term`, validated live from
-Desktop with the RRF term), **#30** (doctor detects a stale embedding, CI gate 11), and **#24**
-(the four server hang vectors, CI gate 12) — all shipped to the real brain. What's left is lighter
-and mostly about the *edges* of the tool surface, not new machinery.
+**What this repo is (for a newcomer):** `second-brain-devkit` is a *generator*. It builds a personal
+"second brain" — a plain-Markdown notes vault a human edits in Obsidian, plus a local SQLite
+semantic-search index an AI reads — and ships it as a ready-to-run repo. Working here means improving
+the generator and the features every generated brain inherits. The rhythm is always the same:
+prototype a feature by hand in the sibling `second-brain-test/`, copy it in, and prove it with one
+command — `python3 tools/ci.py` (13 automated gates).
 
-- **▶▶ #27 — bounded, filterable list tools + the missing `list_tags`.** The list tools return
-  *everything*; unusable at scale. Filter/rank, **not** pagination (an agent handed "page 1 of 12"
-  treats it as the whole truth). No silent truncation — every capped reply says what it omitted.
-  And expose the **tag vocabulary** a Desktop assistant is currently blind to (it invents
-  near-miss tags today). Prototype in the golden → vendor → mcp tier.
-- **Then #23 — investigate the Claude Code *plugin* path** (docs/research, no code): can one plugin
-  ship the skill + MCP server as a single installable unit? Key unknown: does a plugin-bundled MCP
-  server reach Claude *Desktop*, or only Claude Code? Decide, write it down; "not worth it" is a
-  valid outcome.
-- **Human-blocked (carry):** the **#28 review** (§6 — judgement calls) and the glossary
-  flashcard/graph **Obsidian hand-test** (see the golden/brain plan).
-- **Loop:** prototype-first → `tools/ci.py` (**12** gates) + mcp tier. Every assertion
-  negative-tested.
+**Where we left off:** the last push shipped two things into every brain — **tag hygiene** (tools that
+find and fix a messy tag vocabulary, task #32) and a **Claude Desktop end-to-end test kit** (ready-made
+prompts + checker scripts, task #33). CI is green.
+
+**Today — mostly the acceptance work automation can't do (a human at the app):**
+- **Run the Desktop e2e kit end-to-end** (`desktop-e2e/`): generate a throwaway brain, connect Claude
+  Desktop to it, paste the 5 prompts, run `verify/run_all.py`. This is the only way to confirm the
+  features work in the *real* Desktop client (the automated tests use a different client).
+- **Glossary Obsidian hand-test** (carried over, needs a human): open the vault in Obsidian and check a
+  glossary term renders as a flashcard and appears in the graph view.
+- **Investigate the "plugin" path (#23) — research + notes only, no code:** could the brain install as a
+  single Claude Code *plugin* instead of today's two-step (skill install + MCP registration)? Key
+  unknown: does a plugin-bundled server even reach Claude *Desktop*? Decide and write it down — "not
+  worth it" is a perfectly good answer.
 
 ```
- wed 07-15 ✅ #25 (glossary write, live) · #30 (doctor stale, gate 11) · #24 (hang, gate 12)
-                 │
-                 ▼
- thu 07-16  ▶▶ #27 list tools + list_tags ──► #23 plugin investigation (docs only)
-            ‖ human-blocked: #28 review · glossary flashcard/graph Obsidian test
- guards: tools/ci.py (12) + mcp tier green · prototype-first in second-brain-test/
+ shipped ▶ tag hygiene (#32) + Desktop e2e kit (#33) — CI 13/13 green
+              │
+              ▼
+ today   run the Desktop e2e kit in the real app ─► glossary Obsidian hand-test
+         └─ side quest: #23 plugin research (notes only, no code)
+ guardrail: any code change still goes prototype → vendor → tools/ci.py green
 ```
