@@ -63,6 +63,12 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 - **▶▶ NEXT — #23** (investigate shipping the brain as a Claude Code plugin — docs/research, no code).
   Still human-blocked: the #28 review + the glossary flashcard/graph Obsidian hand-test. Still human-blocked: the #28 review + the glossary
   flashcard/graph Obsidian hand-test.
+- **▶ STANDING MANUAL ACCEPTANCE — run `desktop-e2e/` (task #33).** After any Claude Desktop update
+  or MCP-surface change, run the human-driven e2e: generate a throwaway fixture brain, point Desktop
+  at it, paste `desktop-e2e/prompts/01..05`, then `python3 desktop-e2e/verify/run_all.py --brain
+  <fixture>`. Confirms the write-time `TAG HINT` (#32) and the tool contract survive the **real**
+  Desktop client — the class of bug G6's Python client cannot see (the `outputSchema` drop). Not a
+  CI gate; blocked on a human at the app. → **[docs/desktop-e2e.md](docs/desktop-e2e.md)**.
 - **Also open, from #26 — [#30] stale vectors after an embed-view change.** `update_brain` ships a
   new canonical view but never re-embeds, so an upgraded brain silently holds vectors built by the
   *old* view. The real brain is correct only because the migration was run **by hand** — and a
