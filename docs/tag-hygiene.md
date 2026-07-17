@@ -1,9 +1,9 @@
 # Tag hygiene — hygiene as a vault deliverable (task #32)
 
-**Status:** **Stages 1–4 + 6 DONE 2026-07-16** (golden `3431858`) — the deterministic
-detector, the backfill applier, both CLIs, and the write-time near-miss warning, with 12
-fixture tests. Prototyped in the golden (`../second-brain-test`); **not yet emitted** — the
-emission wiring (Stage 5) and the read-only MCP tool (Stage 7) are **deferred** (see §7).
+**Status:** **Stages 1–6 DONE 2026-07-16** (golden `3431858`) — the deterministic detector,
+the backfill applier, both CLIs, and the write-time near-miss warning, with 12 fixture tests;
+**now emitted into every generated brain** (manifest `[verbatim]`, **CI gate 13**
+`tools/check_tag_lint.py`). Only the read-only MCP tool (Stage 7) is **deferred** (see §7).
 **Scope:** frontmatter `tags:` only, in the PARA roots — the exact surface `list_tags`
 enumerates. Never bodies, wikilinks, titles, the glossary, or the note template.
 
@@ -109,17 +109,18 @@ Therefore:
   shorter form — advisory; `tag_apply.py` applies exactly the mapping it is given.
 - `tag_apply.py`: dry-run unless `--apply`; nothing commits without human sign-off.
 
-## 7. Deferred
+## 7. Emission (Stage 5, done) and what remains
 
-- **Stage 5 — emission wiring.** Emit the detector, applier, and both CLIs into every brain:
-  add the four `scripts/*.py` to `emit-manifest.toml [verbatim]`, re-run `vendor_golden.py`
-  + `build_template.py`, and add an **informational** CI gate (`tools/check_tag_lint.py` +
-  a `STEPS` entry in `tools/ci.py`) that runs the lint on the emitted seed corpus. The test
-  fixtures stay emission-excluded (dev artifacts — they are built in a tempdir at run time,
-  so there is nothing to exclude). Chosen posture: **informational, never fails** (drift is
-  visible, not fatal). See [SPEC §5.2](../SPEC.md) and
-  [emit-manifest.toml](../emit-manifest.toml).
-- **Stage 7 — read-only `lint_tags` MCP tool.** Expose the detector as a read-only MCP tool
+- **Stage 5 — emission wiring (DONE 2026-07-16).** `tag_hygiene.py`, `tag_lint.py`, and
+  `tag_apply.py` are in `emit-manifest.toml [verbatim]`, so `vendor_golden.py` +
+  `build_template.py` carry them into `template/` and every generated brain; the Mode-A/B
+  structural diff (gates 5/6) governs them like any emitted script. `tests/test_tag_hygiene.py`
+  is `[exclude]` (a dev artifact — a brain ships the tools, not their tests). **CI gate 13**
+  (`tools/check_tag_lint.py`) runs the vendored suite against the emitted bytes and smoke-runs
+  the lint CLI. Note the two senses of "informational": the *tool* exits 0 on findings (never
+  blocks a commit — that is the chosen lint posture), while the *gate* asserts the detector is
+  correct and DOES fail on a regression. See [emit-manifest.toml](../emit-manifest.toml).
+- **Stage 7 — read-only `lint_tags` MCP tool (DEFERRED).** Expose the detector as a read-only MCP tool
   so Desktop sees vault health during normal note-taking (`analyze` already returns a
   JSON-able `Report`). **Hold until a brain is large enough to feel drift** — at ~12 notes /
   25 tags this is speculative surface. Same lesson as the `ai`-tag decision: do not build

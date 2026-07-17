@@ -60,6 +60,9 @@ paths = [
   "scripts/search_vault.py",
   "scripts/seed_vault.py",
   "scripts/self_test.py",
+  "scripts/tag_apply.py",
+  "scripts/tag_hygiene.py",
+  "scripts/tag_lint.py",
   "scripts/update_cache.py",
   "skill/second-brain/SKILL.md",
   "skill/second-brain/query.py",
@@ -133,6 +136,7 @@ paths = [
   "tasks/0002-markdown-line-count-guard.md",
   "tasks/0003-para-seed-script.md",
   "tasks/0004-sidecar-policy-and-test-tiers.md",
+  "tests/test_tag_hygiene.py",
 ]
 
 [exclude.reasons]
@@ -142,3 +146,4 @@ paths = [
 "PLAN.md" = "the golden's own build tracker — the generator builds the brain instead"
 "daily-plan.md" = "ai-project-status forward-plan — dev-process only"
 "tasks/*" = "the golden's task specs — artifacts of hand-building the golden"
+"tests/test_tag_hygiene.py" = "dev-only regression test for the tag-hygiene detector/applier (task #32) — builds fixtures in a tempdir; a brain ships the tools, not their tests. Run in CI against the vendored copy (gate 13)."

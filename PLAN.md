@@ -9,16 +9,18 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-13)
-- **Done 2026-07-16 — #32, tag hygiene as a vault deliverable (Stages 1–4 + 6).** Deterministic
+- **Done 2026-07-16 — #32, tag hygiene as a vault deliverable (Stages 1–6, emitted).** Deterministic
   tooling for tag drift in a living vault: a detector (near-miss / discrimination / overlap /
   format-lint), a backfill applier (dry-run default, idempotent), `tag_lint.py` + `tag_apply.py`
   CLIs, and a **non-blocking** near-miss warning on `add_note` and `add_glossary_term` — the
   near-miss rule shared so lint and the write path cannot drift. Detection is deterministic string
   statistics; only the canonical-form choice needs a human, sandwiched between two mechanical layers.
   Prototyped in the golden (`3431858`), 12 fixture tests assert exactly the planted flags and no
-  false positives. **Deferred:** Stage 5 emission wiring (manifest + `vendor_golden` + an
-  *informational* CI gate) and Stage 7 (read-only `lint_tags` MCP tool — hold until a brain is big
-  enough to feel drift). → **[docs/tag-hygiene.md](docs/tag-hygiene.md)**.
+  false positives. **Now emitted into every brain** (manifest `[verbatim]`, **CI gate 13**): the
+  detector suite runs against the emitted bytes and the lint CLI is smoke-tested. The lint tool is
+  informational (exit 0 on findings); the gate fails on a detector regression. **Deferred:** Stage 7
+  (read-only `lint_tags` MCP tool — hold until a brain is big enough to feel drift).
+  → **[docs/tag-hygiene.md](docs/tag-hygiene.md)**.
 - **Done 2026-07-14 — #28, a live content-corruption bug, FIXED.** `add_note`'s pathspec commit left
   the **real index holding the pre-hook blob** when `glossary_autolink` edited the note, so **the
   next commit by anyone silently reverted the link** — observed in the real brain. Fixed + regression

@@ -188,19 +188,28 @@ def step_readme_block() -> bool:
     return _run([PY, str(TOOLS / "check_readme_block.py")], env=env)
 
 
+def step_tag_lint() -> bool:
+    # Byte-diffing proves the tag-hygiene scripts were copied; this proves the emitted
+    # detector still WORKS — it runs the suite against the vendored bytes and smoke-runs
+    # the lint CLI. The lint's informational posture (exit 0 on findings) is in the tool;
+    # this gate is the regression check. Hermetic: stdlib + the vendored tree.
+    return _run([PY, str(TOOLS / "check_tag_lint.py")])
+
+
 STEPS = [
-    ("1/12 manifest partition", step_partition),
-    ("2/12 template in sync with golden", step_template_in_sync),
-    ("3/12 emitted scripts compile", step_py_compile),
-    ("4/12 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/12 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/12 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/12 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/12 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/12 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/12 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/12 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/12 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("1/13 manifest partition", step_partition),
+    ("2/13 template in sync with golden", step_template_in_sync),
+    ("3/13 emitted scripts compile", step_py_compile),
+    ("4/13 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/13 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/13 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/13 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/13 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/13 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/13 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/13 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/13 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/13 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
 ]
 
 
