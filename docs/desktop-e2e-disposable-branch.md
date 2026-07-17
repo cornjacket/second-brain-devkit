@@ -18,26 +18,39 @@ Desktop reconfiguration**.
 Desktop's MCP server operates on whatever is checked out in the brain directory. So isolate the
 entire run on a branch instead of standing up a new brain:
 
-- **Setup (`setup.sh`):** assert `main` is clean, record its HEAD, `git checkout -b e2e-run`.
-  Every note the scenarios create now commits onto that branch, never `main`. A fresh branch has
-  no upstream, so `add_note`'s push step fails **harmlessly** — the note is created locally and
-  nothing reaches the remote.
+- **Setup (`setup.sh`):** assert `main` is clean **and its search index already matches the vault**
+  (`scripts/doctor.py` green — a known-good baseline, so we don't blame the test for pre-existing
+  drift), record HEAD, `git checkout -b e2e-run`. Every note the scenarios create now commits onto
+  that branch, never `main`. A fresh branch has no upstream, so `add_note`'s push step fails
+  **harmlessly** — the note is created locally and nothing reaches the remote.
 - **Run:** paste the #33 prompts into Desktop **unchanged** — same brain, same connector, no
-  reconfiguration.
-- **Teardown (`teardown.sh`):** `git checkout main`; `git branch -D e2e-run`; then restore the
-  *derived* state git does not track — re-run `scripts/hydrate_cache.py` (drop the test notes from
-  the search cache) and remove the orphaned `.embed.json` sidecars; finally **assert** `main`'s
-  HEAD equals the recorded HEAD and `git status` is clean.
+  reconfiguration. (As each note is written, the brain's own commit hooks embed it, so the branch's
+  index stays consistent *during* the run.)
+- **Teardown (`teardown.sh`):** `git checkout main`; `git branch -D e2e-run`; then **rebuild the
+  derived search layer to match the restored vault** — remove the test notes' orphan `.embed.json`
+  sidecars and rebuild `data/brain.db` (re-embed + `scripts/hydrate_cache.py`) so no test embeddings
+  linger; finally **assert** HEAD equals the recorded HEAD, `git status` is clean, and
+  `scripts/doctor.py` is green.
 
-## 3. Correctness — leave no trace
+## 3. Correctness — the derived index MUST follow the vault, or the brain is corrupted
 
-- **git-tracked** artifacts (the test notes, the glossary term, the term's link-cascade edits to
-  other notes) vanish with the branch delete.
-- **derived** artifacts survive a branch delete because they are gitignored: the cache
-  (`data/brain.db`) and the per-note `.embed.json` sidecars. Teardown re-hydrates the cache and
-  removes orphan sidecars.
-- teardown **asserts** the end state (HEAD unchanged, working tree clean, no orphan test files)
-  and fails **loudly** if anything is off, rather than claiming a clean-up it did not achieve.
+The search layer is **derived** state git does not version: the per-note `.embed.json` vectors and
+the `data/brain.db` index (vectors + FTS). It must always describe *whatever vault is currently
+checked out*. A branch swap changes the `.md` files but **not** this derived layer, so if
+setup/teardown don't resync it, you get a **corrupted brain** — three concrete failure modes:
+
+- **Phantom hits** — after teardown reverts the vault, `data/brain.db` still holds the test notes'
+  vectors, so search keeps returning "Planning agents" / "ablation study" that no longer exist.
+- **Orphan sidecars** — the test notes' gitignored `.embed.json` files survive the branch delete,
+  litter `vault/`, and can re-poison a later `hydrate_cache`.
+- **Missing embeddings** (the reverse) — a note present on a branch but never embedded looks
+  unsearchable until the index is rebuilt.
+
+So both scripts own the derived layer, not just the git state: **setup** proves the baseline index
+matches the vault (a clean target to restore to), and **teardown** clears the old embeddings + index
+and rebuilds them from the restored vault, then **verifies `doctor.py` is green** — no phantom, no
+orphan, no stale vector. Teardown fails **loudly** if HEAD moved, the tree is dirty, or the index
+does not match, rather than claiming a clean-up it did not achieve.
 
 ## 4. The #33 verifiers work as-is
 
