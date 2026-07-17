@@ -21,6 +21,13 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   informational (exit 0 on findings); the gate fails on a detector regression. **Deferred:** Stage 7
   (read-only `lint_tags` MCP tool — hold until a brain is big enough to feel drift).
   → **[docs/tag-hygiene.md](docs/tag-hygiene.md)**.
+- **▶ PLANNED — #33, Claude Desktop e2e (canned prompts + side-effect verifiers).** Close the gap
+  G6 (`check_mcp_server.py`) cannot: it drives a *Python* MCP client, so it is blind to
+  Desktop-client bugs (the `outputSchema` drop, §11). No API drives Desktop's GUI, so the driver is
+  a **human** pasting ready-made prompts stored in the devkit, but the **oracle is a script** —
+  assert deterministic **side effects** (a note created + committed, a traversal refused, the
+  server-log tool-call), never the model's prose. Human-in-the-loop **release acceptance, not a CI
+  gate** — same pattern as the Obsidian hand-tests. → **[docs/desktop-e2e.md](docs/desktop-e2e.md)**.
 - **Done 2026-07-14 — #28, a live content-corruption bug, FIXED.** `add_note`'s pathspec commit left
   the **real index holding the pre-hook blob** when `glossary_autolink` edited the note, so **the
   next commit by anyone silently reverted the link** — observed in the real brain. Fixed + regression
