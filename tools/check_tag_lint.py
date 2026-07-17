@@ -34,7 +34,10 @@ _REPORT_KEYS = ("note_total", "tag_total", "near_miss", "near_universal",
 
 
 def _run(argv: list[str]) -> subprocess.CompletedProcess:
-    return subprocess.run(argv, capture_output=True, text=True)
+    # -B: never write .pyc. These run code that lives INSIDE tests/golden/, so a __pycache__
+    # here would be an unclassified file that fails the very next partition check (gate 1) —
+    # the same .pyc-pollution trap the hang-safety gate hit against template/.
+    return subprocess.run([argv[0], "-B", *argv[1:]], capture_output=True, text=True)
 
 
 def main() -> int:

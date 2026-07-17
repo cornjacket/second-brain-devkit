@@ -48,8 +48,9 @@ All in `../second-brain-test/scripts/` + `tests/`:
     - *format-lint* — an underscore in an otherwise kebab vocabulary reads as a leaked
       identifier.
   - **Applier** (`rewrite_tags` / `apply_mapping`, mutating) — rewrites frontmatter `tags:`
-    only from an explicit mapping, preserves everything else, dedupes on a merge, idempotent,
-    dry-run by default.
+    only from an explicit mapping: rename, merge, or **remove** (an empty target `old ->`
+    drops the tag, so the applier can act on the leaked-title tags format-lint flags, not just
+    rename them). Preserves everything else, dedupes on a merge, idempotent, dry-run by default.
   - **`near_miss_of`** — the write-time hook, the *same rule* the detector uses.
 - **`tag_lint.py`** — read-only CLI; prints the report (`--json` too). Always exits 0
   (informational posture) so it is safe to wire into pre-commit/CI without blocking.
