@@ -21,7 +21,7 @@ spec so they cannot drift.
 - Partial-commit index poisoning — the `add_note` content-corruption bug (task #28, fixed; **awaiting review**) → [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)
 - Stale-embedding detection — doctor flags a vector that predates the note's canonical view (task #30, built) → CI gate 11 (`tools/check_doctor_stale.py`)
 - Tag hygiene — deterministic detector + backfill applier + write-time near-miss warning, emitted into every brain (task #32, Stages 1–6 done; CI gate 13 `tools/check_tag_lint.py`; read-only MCP tool deferred) → [docs/tag-hygiene.md](docs/tag-hygiene.md)
-- Claude Desktop e2e — canned prompts + side-effect verifiers, human-driven (task #33, PLANNED; not a CI gate) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
+- Claude Desktop e2e — canned prompts + side-effect verifiers, human-driven (task #33, built at `desktop-e2e/`; not a CI gate) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 - Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
 - Brain README managed block — devkit region + user space (`update_brain.py` splices, built task #9) → [docs/readme-managed-block.md](docs/readme-managed-block.md)

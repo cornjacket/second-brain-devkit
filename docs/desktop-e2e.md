@@ -1,8 +1,11 @@
 # Claude Desktop e2e — canned prompts + side-effect verifiers (task #33)
 
-**Status:** **PLANNED / backlog** (2026-07-16). Design sketch, no code yet. A human-in-the-loop
-release-acceptance ritual, **not** a CI gate — it needs the real Desktop app and a person to
-paste prompts.
+**Status:** **BUILT 2026-07-16** — the suite lives at `desktop-e2e/` (5 pasteable prompts + 5
+side-effect verifiers + `run_all.py` + protocol README). Validated against a simulated fixture:
+the deterministic checks pass on a correct brain and fail when the side effect is absent. It is a
+human-in-the-loop release-acceptance ritual, **not** a CI gate — running it needs the real Desktop
+app and a person to paste the prompts. Devkit-only (outside `tests/golden/`, so no manifest entry
+and no emission).
 
 ## 1. Why — the gap the SDK harness cannot close
 
@@ -36,7 +39,7 @@ reply:
 - **Not assertable:** the exact ranking/prose of a search answer. At most assert "search was
   called and returned known vault paths in the top-k," and only with a fixed backend (below).
 
-## 3. Shape
+## 3. Shape (built)
 
 ```
 desktop-e2e/
