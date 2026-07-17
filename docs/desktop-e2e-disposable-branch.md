@@ -1,7 +1,9 @@
 # Desktop e2e against your real brain — disposable-branch harness (task #34)
 
-**Status:** **PLANNED — ▶▶ next up** (2026-07-17). Extends the #33 suite
-([docs/desktop-e2e.md](desktop-e2e.md)); no code yet.
+**Status:** **BUILT** (2026-07-17) — `desktop-e2e/setup.sh` + `teardown.sh`, README primary path
+updated. Extends the #33 suite ([docs/desktop-e2e.md](desktop-e2e.md)). Smoke-tested end-to-end
+against the real `~/second-brain` (branch create → committed note → teardown → byte-identical
+restore, doctor green); the human-driven Desktop pass is still to run.
 
 ## 1. Why
 
