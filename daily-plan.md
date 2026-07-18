@@ -18,6 +18,9 @@ checkout. Prototyped in the golden, wired into `emit-manifest.toml`, CI 13/13 gr
   `~/second-brain/desktop-e2e/setup.sh` → paste the 5 prompts into Desktop → `run_all.py` →
   `teardown.sh`. First real end-to-end pass in the actual client (needs `update_brain.py` to land
   `desktop-e2e/` in `~/second-brain` first).
+- **#36 pure-client cross-session retrieval test** (planned, doc written): Desktop-only black-box —
+  seed canary values in one chat, delete it, retrieve in a fresh chat (proves retrieval + persistence
+  through the real client, not chat memory). Build the ingest/query prompt pairs when picked up.
 - **Glossary Obsidian hand-test** (carry, needs a human): a glossary term renders as a flashcard and
   shows in the graph view.
 - **#23 plugin research** (if time; notes only, no code): could the brain install as one Claude Code

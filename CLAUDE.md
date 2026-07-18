@@ -24,6 +24,7 @@ spec so they cannot drift.
 - Claude Desktop e2e — canned prompts + side-effect verifiers, human-driven (task #33; not a CI gate) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
 - Desktop e2e against a real brain — disposable-branch setup/teardown so the suite runs against a brain with no Desktop reconfig, then reverts byte-identical (task #34) → [docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md)
 - Desktop e2e **emitted into every brain** — the #33+#34 suite now ships at `<brain>/desktop-e2e/` (prototyped in the golden, `verbatim` in `emit-manifest.toml`, self-targeting the brain it ships in) so a user who generates a brain can self-verify their Claude Desktop connection (task #35, built; smoke-tested on golden + real brain; human Desktop pass still to run) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
+- Pure-client cross-session retrieval test — Desktop-only, no local verifiers: seed canary values in one chat, delete it, retrieve in a fresh chat (rules out conversation memory; targets the right retrieval substrate per [[unfindable-is-not-nonexistent]]) (task #36, planned) → [docs/desktop-e2e-pure-client.md](docs/desktop-e2e-pure-client.md)
 - Retrieval design (planned hybrid search) → [docs/retrieval-quality.md](docs/retrieval-quality.md)
 - Vector-derived Obsidian auto-linking (backlog, task #8) → [docs/auto-linking.md](docs/auto-linking.md)
 - Brain README managed block — devkit region + user space (`update_brain.py` splices, built task #9) → [docs/readme-managed-block.md](docs/readme-managed-block.md)
