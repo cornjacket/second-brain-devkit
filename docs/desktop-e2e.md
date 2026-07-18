@@ -1,11 +1,13 @@
 # Claude Desktop e2e — canned prompts + side-effect verifiers (task #33)
 
-**Status:** **BUILT 2026-07-16** — the suite lives at `desktop-e2e/` (5 pasteable prompts + 5
-side-effect verifiers + `run_all.py` + protocol README). Validated against a simulated fixture:
-the deterministic checks pass on a correct brain and fail when the side effect is absent. It is a
-human-in-the-loop release-acceptance ritual, **not** a CI gate — running it needs the real Desktop
-app and a person to paste the prompts. Devkit-only (outside `tests/golden/`, so no manifest entry
-and no emission).
+**Status:** **BUILT 2026-07-16; EMITTED into every brain 2026-07-17 (task #35).** The suite (5
+pasteable prompts + 5 side-effect verifiers + `run_all.py` + protocol README + the #34
+disposable-branch `setup.sh`/`teardown.sh`) now ships **inside each generated brain** at
+`<brain>/desktop-e2e/`, prototyped in the golden and emitted verbatim via `emit-manifest.toml`. It
+remains a human-in-the-loop release/installation-acceptance ritual, **not** a CI gate — running it
+needs the real Desktop app and a person to paste the prompts. (Originally built devkit-only; #35
+moved it into the golden so a user who generates a brain can self-verify their Desktop connection —
+see [desktop-e2e-disposable-branch.md](desktop-e2e-disposable-branch.md).)
 
 ## 1. Why — the gap the SDK harness cannot close
 
@@ -56,8 +58,10 @@ desktop-e2e/
     ...
 ```
 
-Emission: **devkit-only** (a dev/release artifact, like the bench corpus) — never emitted into a
-brain. Lives outside `tests/golden/`, so no manifest entry.
+Emission (updated by #35): **emitted into every brain** at `<brain>/desktop-e2e/` — prototyped in
+the golden, listed `verbatim` in `emit-manifest.toml`, productized to target the brain it ships in
+(verifiers default `--brain` to the enclosing brain; `setup.sh`/`teardown.sh` self-detect the
+brain root). No CI gate (still needs a human at Desktop).
 
 ## 4. A concrete scenario (ties to #32)
 

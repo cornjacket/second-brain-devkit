@@ -13,10 +13,10 @@ Expected in Desktop's reply:
   should report it cannot read outside the brain, not paste the file.
 
 This scenario is **human-observed**: a refused read leaves no side effect for a script to check.
-(The deterministic version of this guard is already covered by CI gate G6,
-`tools/check_mcp_server.py`, which asserts the refusal against the stdio server directly.)
+(The server enforces the same refusal directly — this scenario confirms it also holds through the
+real Desktop client.)
 
 Verify (prints the manual checklist only):
 ```
-python3 desktop-e2e/verify/verify_04_path_traversal.py --brain /tmp/e2e-brain
+python3 desktop-e2e/verify/verify_04_path_traversal.py
 ```

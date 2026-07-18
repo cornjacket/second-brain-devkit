@@ -1,9 +1,11 @@
 # Desktop e2e against your real brain — disposable-branch harness (task #34)
 
-**Status:** **BUILT** (2026-07-17) — `desktop-e2e/setup.sh` + `teardown.sh`, README primary path
-updated. Extends the #33 suite ([docs/desktop-e2e.md](desktop-e2e.md)). Smoke-tested end-to-end
-against the real `~/second-brain` (branch create → committed note → teardown → byte-identical
-restore, doctor green); the human-driven Desktop pass is still to run.
+**Status:** **BUILT + EMITTED** (2026-07-17). `setup.sh` + `teardown.sh` extend the #33 suite
+([docs/desktop-e2e.md](desktop-e2e.md)) and, via **task #35**, now **ship inside every generated
+brain** at `<brain>/desktop-e2e/` (prototyped in the golden, `verbatim` in `emit-manifest.toml`,
+self-targeting the brain they ship in). Smoke-tested end-to-end against both the real
+`~/second-brain` (ollama backend) and the golden (test backend): branch create → committed note →
+teardown → byte-identical restore, doctor green. The human-driven Desktop pass is still to run.
 
 ## 1. Why
 
@@ -67,8 +69,9 @@ the real brain on the branch unchanged. The near-miss scenario is actually **str
   available and better for certifying the generator's output). Both are valid; this one fits
   running **without reconfiguring Desktop**.
 - Requires a **clean `main`** before setup — uncommitted work would be carried onto the branch.
-- Devkit-only tooling (bash + the existing `desktop-e2e/verify/` scripts); **not emitted** into a
-  brain, no `emit-manifest` entry, no CI gate (it needs a human at Desktop, like #33).
+- ~~Devkit-only tooling; not emitted.~~ **Superseded by #35:** the suite (bash + `verify/`) is now
+  **emitted into every brain** (`verbatim` in `emit-manifest.toml`), so it self-targets the brain it
+  ships in. Still **no CI gate** — it needs a human at Desktop, like #33.
 
 ## 6. Deliverables
 

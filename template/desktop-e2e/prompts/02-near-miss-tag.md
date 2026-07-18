@@ -9,7 +9,7 @@ Paste into Claude Desktop:
 Use the add_note tool to create a note.
 Title: Reactive agents
 PARA root: resources
-Body: A note about reactive agents, written for the desktop e2e fixture.
+Body: A note about reactive agents, written for the Desktop e2e test.
 Tags: ai-agent, planning
 ```
 
@@ -24,5 +24,5 @@ round-trip even though the server emits it.
 
 Verify:
 ```
-python3 desktop-e2e/verify/verify_02_near_miss.py --brain /tmp/e2e-brain
+python3 desktop-e2e/verify/verify_02_near_miss.py
 ```

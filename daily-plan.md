@@ -7,28 +7,27 @@ the generator and the features every generated brain inherits. The rhythm is alw
 prototype a feature by hand in the sibling `second-brain-test/`, copy it in, and prove it with one
 command — `python3 tools/ci.py` (13 automated gates).
 
-**Where we left off:** the last push shipped two things into every brain — **tag hygiene** (tools that
-find and fix a messy tag vocabulary, task #32) and a **Claude Desktop end-to-end test kit** (ready-made
-prompts + checker scripts, task #33). CI is green.
+**Where we left off:** shipped **#34** (disposable-branch e2e harness — run the Desktop test suite
+against the real `~/second-brain` on a throwaway branch, revert byte-identical), then **#35**: the
+whole Desktop e2e suite (prompts + verifiers + setup/teardown) now **emits into every generated
+brain**, so a user who creates a brain can self-verify their Claude Desktop connection with no devkit
+checkout. Prototyped in the golden, wired into `emit-manifest.toml`, CI 13/13 green.
 
-**Today — top of the list is building #34, then using it:**
-- **▶▶ Build #34 — the disposable-branch e2e harness** (`desktop-e2e/setup.sh` + `teardown.sh`). It
-  lets the #33 Desktop test kit run against the **real** `~/second-brain` on a throwaway git branch —
-  **no Desktop reconfiguration** — then tear down to a byte-identical brain. This is the blocker:
-  today, running the kit means standing up a fresh brain and re-pointing Desktop at it, which is why
-  it hasn't happened. → [docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md).
-- **Then run the Desktop e2e kit** on the real brain via that branch — paste the 5 prompts in Desktop,
-  run `verify/run_all.py`: the first real end-to-end pass in the actual client.
+**Today — #35 shipped; now use it, then carry-overs:**
+- **▶▶ Run the Desktop e2e kit on the REAL brain** (the human-in-the-loop pass, still not done):
+  `~/second-brain/desktop-e2e/setup.sh` → paste the 5 prompts into Desktop → `run_all.py` →
+  `teardown.sh`. First real end-to-end pass in the actual client (needs `update_brain.py` to land
+  `desktop-e2e/` in `~/second-brain` first).
 - **Glossary Obsidian hand-test** (carry, needs a human): a glossary term renders as a flashcard and
   shows in the graph view.
 - **#23 plugin research** (if time; notes only, no code): could the brain install as one Claude Code
   *plugin* instead of the skill-install + MCP-registration two-step?
 
 ```
- shipped ▶ tag hygiene (#32) + Desktop e2e kit (#33) — CI 13/13 green
+ shipped ▶ #34 disposable-branch harness ─► #35 emit the e2e suite into every brain — CI 13/13 green
               │
               ▼
- today   ▶▶ BUILD #34 (disposable-branch setup/teardown) ──► run the e2e kit on the REAL brain
+ today   ▶▶ RUN the Desktop e2e kit on the REAL brain (human pastes prompts) — first live pass
          └─ carry: glossary Obsidian hand-test · #23 plugin research (notes only)
  guardrail: any code change still goes prototype → vendor → tools/ci.py green
 ```

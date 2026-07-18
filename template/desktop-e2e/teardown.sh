@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Desktop e2e — teardown: delete the disposable branch and restore the brain to a
-# byte-identical state (see docs/desktop-e2e-disposable-branch.md).
+# Desktop e2e — teardown: delete the disposable branch and restore THIS brain to a
+# byte-identical state.
 #
 #   desktop-e2e/teardown.sh [--brain PATH] [--branch NAME]
 #
-# Defaults: --brain ~/second-brain  --branch e2e-run
+# Defaults: --brain = the brain this script ships in  --branch e2e-run
 #
 # The search layer is DERIVED state git does not version: the per-note .embed.json
 # vectors and the data/brain.db index. A branch swap changes the .md files but not
@@ -16,10 +16,11 @@
 #
 # Fails LOUDLY if HEAD moved, the tree is dirty, or the index does not match — it
 # never claims a clean-up it did not achieve. That assertion doubles as a standalone
-# "did it clean up?" check. Devkit tool; never emitted into a brain.
+# "did it clean up?" check.
 set -euo pipefail
 
-BRAIN="$HOME/second-brain"
+# The brain this suite ships in: the directory above this script (the brain root).
+BRAIN="$(cd "$(dirname "$0")/.." && pwd)"
 BRANCH="e2e-run"
 while [ $# -gt 0 ]; do
   case "$1" in

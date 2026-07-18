@@ -45,6 +45,16 @@ Everything a generated brain owns and runs. Lives in the golden at
 | `seed_vault.py` | Seed/reset the PARA vault from the canonical `seeds/` (the generation post-step). |
 | `register.py` | Register a project repo with this brain. |
 
+### Desktop e2e (`desktop-e2e/`) — emitted, human-driven (tasks #33/#34/#35)
+Ships in every brain so a user can confirm their **Claude Desktop** connection reads/writes/searches
+this brain. A human pastes the prompts; scripts assert the deterministic side effects. Not a CI gate.
+| File | Purpose |
+|---|---|
+| `desktop-e2e/README.md` | The human protocol — run on a disposable branch, paste prompts in order, run the verifiers. |
+| `desktop-e2e/setup.sh` / `teardown.sh` | Isolate a write-scenario run on a throwaway git branch (#34) and restore the brain **byte-identical** (drop orphan sidecars + rebuild the index via `doctor --repair`, then assert HEAD/clean/doctor-green). Self-target the brain they ship in. |
+| `desktop-e2e/prompts/NN-*.md` | 5 pasteable scenarios (add_note, near-miss tag, glossary, path-traversal refusal, search). |
+| `desktop-e2e/verify/verify_*.py`, `run_all.py`, `_lib.py` | Side-effect verifiers (`--brain` defaults to the enclosing brain); import the brain's own stdlib modules, so no third-party deps. |
+
 ### Hooks, config, deps
 | File | Purpose |
 |---|---|
@@ -98,6 +108,8 @@ Lives only here, under `tools/`. Never copied into a brain.
 | [`mcp-server.md`](mcp-server.md) | MCP server design, verify recipe (§10), Claude Desktop `outputSchema` gotcha (§11). |
 | [`retrieval-quality.md`](retrieval-quality.md) | Planned hybrid FTS5 search + nomic embedding prefixes. |
 | [`claude-desktop-workflow.md`](claude-desktop-workflow.md) | End-to-end Claude Desktop walk-thru. |
+| [`desktop-e2e.md`](desktop-e2e.md) | Desktop e2e suite design (#33) — assert side effects, not prose; now emitted (#35). |
+| [`desktop-e2e-disposable-branch.md`](desktop-e2e-disposable-branch.md) | Run the suite against a real brain on a throwaway branch (#34), byte-identical restore. |
 | [`remote-backed-brains.md`](remote-backed-brains.md) | Task — connect a new brain to a git remote at creation (`--remote`). |
 | [`big-brain.md`](big-brain.md) | Roadmap — shared brain (git-remote sync, or Postgres/S3/Lambda). |
 | **this file** | What every source file is for. |

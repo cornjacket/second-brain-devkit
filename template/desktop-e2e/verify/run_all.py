@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Run every Desktop e2e verifier against a fixture brain and summarize.
+"""Run every Desktop e2e verifier against this brain and summarize.
 
-    python3 desktop-e2e/verify/run_all.py --brain /tmp/e2e-brain
+    python3 desktop-e2e/verify/run_all.py            # this brain (default)
+    python3 desktop-e2e/verify/run_all.py --brain PATH
 
 Exit 0 iff every DETERMINISTIC check passed. MANUAL items (human-observed in Desktop) are
 printed by each verifier and are NOT reflected in the exit code — confirm them by eye.

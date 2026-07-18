@@ -1,11 +1,12 @@
 """Shared helpers for the Desktop e2e verifiers — brain location + side-effect checks.
 
-The verifiers assert what the fixture brain LOOKS LIKE after a human ran a prompt in Desktop —
+The verifiers assert what THIS brain LOOKS LIKE after a human ran a prompt in Claude Desktop —
 a note that exists with the right frontmatter and is committed. They import the brain's own
-stdlib modules (note_view, tag_hygiene, glossary_new), so they need no third-party packages and
-work against any generated brain.
+stdlib modules (note_view, tag_hygiene, glossary_new), so they need no third-party packages.
 
-Devkit tool; never emitted into a brain.
+``--brain`` defaults to the brain this suite ships inside (the repo two levels up from this
+file: ``<brain>/desktop-e2e/verify/_lib.py``), so from a brain root you can just run
+``python3 desktop-e2e/verify/verify_01_add_note.py``. Pass ``--brain PATH`` to point at another.
 """
 from __future__ import annotations
 
@@ -14,10 +15,14 @@ import subprocess
 import sys
 from pathlib import Path
 
+# <brain>/desktop-e2e/verify/_lib.py -> parents[2] is the brain root this suite ships in.
+DEFAULT_BRAIN = Path(__file__).resolve().parents[2]
+
 
 def brain_from_argv(argv: list[str] | None = None) -> Path:
-    ap = argparse.ArgumentParser(description="Verify a Desktop e2e scenario against a fixture brain.")
-    ap.add_argument("--brain", required=True, type=Path, help="path to the fixture brain")
+    ap = argparse.ArgumentParser(description="Verify a Desktop e2e scenario against this brain.")
+    ap.add_argument("--brain", type=Path, default=DEFAULT_BRAIN,
+                    help="path to the brain (default: the brain this suite ships in)")
     args, _ = ap.parse_known_args(argv)
     brain = args.brain.resolve()
     if not (brain / "vault").is_dir() or not (brain / "scripts").is_dir():

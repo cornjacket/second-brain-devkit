@@ -1,24 +1,24 @@
 #!/usr/bin/env bash
-# Desktop e2e — setup: isolate a run of the #33 suite on a disposable git branch
-# so it can hit your REAL brain with ZERO Claude Desktop reconfiguration, then be
-# torn down to a byte-identical brain (see docs/desktop-e2e-disposable-branch.md).
+# Desktop e2e — setup: isolate a run of the Desktop test suite on a disposable git
+# branch so it can hit THIS brain with your existing Claude Desktop connection (ZERO
+# reconfiguration), then be torn down to a byte-identical brain.
 #
 #   desktop-e2e/setup.sh [--brain PATH] [--branch NAME]
 #
-# Defaults: --brain ~/second-brain  --branch e2e-run
+# Defaults: --brain = the brain this script ships in  --branch e2e-run
 #
-# Desktop's MCP server operates on whatever is checked out in the brain directory,
-# so a fresh branch IS the throwaway brain: every note the scenarios create commits
-# onto that branch, never onto your base branch. A fresh branch has no upstream, so
-# add_note's push step fails harmlessly — the note is created locally, nothing
-# reaches the remote.
+# Claude Desktop's MCP server operates on whatever is checked out in this brain, so a
+# fresh branch IS a throwaway brain: every note the scenarios create commits onto that
+# branch, never onto your working branch. A fresh branch has no upstream, so add_note's
+# push step fails harmlessly — the note is created locally, nothing reaches the remote.
 #
-# This asserts a known-good baseline before branching (clean tree + doctor green) so
-# a later teardown failure can never be blamed on pre-existing drift, and records the
-# base branch + HEAD for teardown to restore to. Devkit tool; never emitted into a brain.
+# This asserts a known-good baseline before branching (clean tree + doctor green) so a
+# later teardown failure can never be blamed on pre-existing drift, and records the base
+# branch + HEAD for teardown to restore to.
 set -euo pipefail
 
-BRAIN="$HOME/second-brain"
+# The brain this suite ships in: the directory above this script (the brain root).
+BRAIN="$(cd "$(dirname "$0")/.." && pwd)"
 BRANCH="e2e-run"
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -72,10 +72,10 @@ cat <<EOF
 
 setup: ready. On disposable branch '$BRANCH' (base '$BASE_BRANCH' @ ${BASE_HEAD:0:7}).
 
-Now, with NO Desktop reconfiguration:
+Now, with NO Desktop reconfiguration (your Desktop is already connected to this brain):
   1. Paste the prompts from desktop-e2e/prompts/NN-*.md into Claude Desktop, in order.
-  2. Verify:   python3 desktop-e2e/verify/run_all.py --brain "$BRAIN"
-  3. Tear down: desktop-e2e/teardown.sh --brain "$BRAIN"
+  2. Verify:   python3 desktop-e2e/verify/run_all.py
+  3. Tear down: desktop-e2e/teardown.sh
 
 Every note the scenarios write commits onto '$BRANCH'; teardown deletes it and
 rebuilds the index so '$BASE_BRANCH' comes back byte-identical.

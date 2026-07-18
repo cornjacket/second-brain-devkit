@@ -3,7 +3,7 @@
 
 Search ranking is non-deterministic (and backend-dependent), so this script asserts nothing
 about order or scores. It confirms the seed notes the query should surface actually exist in the
-fixture, then leaves the ranking judgement to the human.
+brain, then leaves the ranking judgement to the human.
 """
 from __future__ import annotations
 

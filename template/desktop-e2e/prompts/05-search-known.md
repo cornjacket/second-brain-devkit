@@ -7,7 +7,7 @@ Search the second brain for: how do vector databases work?
 ```
 
 Expected in Desktop's reply:
-- the top hits include the seed notes on **sqlite-vec** and/or **embeddings** — the fixture's
+- the top hits include the seed notes on **sqlite-vec** and/or **embeddings** — this brain's
   vector-database material.
 
 This scenario is **human-observed**: search *ranking* is non-deterministic (and with a real
@@ -18,5 +18,5 @@ setup).
 
 Verify (prints the manual checklist only):
 ```
-python3 desktop-e2e/verify/verify_05_search.py --brain /tmp/e2e-brain
+python3 desktop-e2e/verify/verify_05_search.py
 ```
