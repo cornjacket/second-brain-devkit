@@ -21,12 +21,12 @@ ran live 4/4 against the real `~/second-brain`. Today we folded its two findings
   remote too; setup.sh's wrong comment corrected; yesterday's orphaned `origin/e2e-run` removed.
 
 **Postponed — queued for a later session:**
+- **Carry:** glossary Obsidian hand-test (flashcard + graph view); **#23** plugin research (notes
+  only) — brain-as-one-Claude-Code-plugin vs the skill-install + MCP-registration two-step.
 - **▶ Task: Run Suite A live on the real brain** (the 5-scenario script-verified kit) — the remaining
   human Desktop pass: `~/second-brain/desktop-e2e/setup.sh` → paste `prompts/01..05` → `run_all.py`
   → `teardown.sh`. Proves the write path + tool surface (incl. the #32 near-miss TAG HINT) through
   the real client.
-- **Carry:** glossary Obsidian hand-test (flashcard + graph view); **#23** plugin research (notes
-  only) — brain-as-one-Claude-Code-plugin vs the skill-install + MCP-registration two-step.
 
 ```
  shipped ▶ #34 harness · #35 emit · #36 pure-client — Suite B ran LIVE 4/4 on the real brain
@@ -35,6 +35,6 @@ ran live 4/4 against the real `~/second-brain`. Today we folded its two findings
  today   ✅ folded in Suite B findings: list_tags match filter · disposable-branch push leak fixed
               │
               ▼
- postponed ▶ run Suite A live on the real brain  ·  carry: glossary Obsidian test · #23 plugin research
+ postponed ▶ carry: glossary Obsidian test · #23 plugin research  →  run Suite A live on the real brain (last)
  guardrail: any code change still goes prototype → vendor → tools/ci.py green
 ```
