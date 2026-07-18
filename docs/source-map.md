@@ -54,6 +54,7 @@ this brain. A human pastes the prompts; scripts assert the deterministic side ef
 | `desktop-e2e/setup.sh` / `teardown.sh` | Isolate a write-scenario run on a throwaway git branch (#34) and restore the brain **byte-identical** (drop orphan sidecars + rebuild the index via `doctor --repair`, then assert HEAD/clean/doctor-green). Self-target the brain they ship in. |
 | `desktop-e2e/prompts/NN-*.md` | 5 pasteable scenarios (add_note, near-miss tag, glossary, path-traversal refusal, search). |
 | `desktop-e2e/verify/verify_*.py`, `run_all.py`, `_lib.py` | Side-effect verifiers (`--brain` defaults to the enclosing brain); import the brain's own stdlib modules, so no third-party deps. |
+| `desktop-e2e/pure-client/` (#36) | Pure black-box cross-session test — **no** verifier scripts. `README.md` + `ingest-01..03` + `query-01..04`: seed canary values in one Desktop chat, delete it, retrieve in a fresh chat (human reads the reply). Each query targets its seed's substrate (search / glossary lookup / tag list) + a never-seeded negative control. |
 
 ### Hooks, config, deps
 | File | Purpose |

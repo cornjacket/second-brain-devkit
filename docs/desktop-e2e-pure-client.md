@@ -1,7 +1,10 @@
 # Pure-client cross-session retrieval test — Desktop only, no local verifiers (task #36)
 
-**Status:** **PLANNED — ▶▶ proposed** (2026-07-17). Complements the #33/#34/#35 suite
-([desktop-e2e.md](desktop-e2e.md)); no code yet.
+**Status:** **BUILT + EMITTED** (2026-07-17). Ships in every brain at
+`<brain>/desktop-e2e/pure-client/` (prototyped in the golden, `verbatim` in `emit-manifest.toml`) —
+a README protocol + 3 ingest + 4 query prompt files. Complements the #33/#34/#35 suite
+([desktop-e2e.md](desktop-e2e.md)). Not a CI gate (human-driven). The live Desktop pass is still to
+run.
 
 ## 1. Why — the two things the existing suite cannot prove
 
@@ -83,11 +86,11 @@ and they are cleanup, not verification.
 
 - Human-driven **release/installation acceptance**, **not** a CI gate (no API drives Desktop's
   GUI, and the oracle is a human reading replies).
-- Deliverables: ingestion + query **prompt pairs** with embedded canaries and a short human
-  checklist — likely `desktop-e2e/pure-client/` (ingest-NN / query-NN prompt files + README).
-- **Open — emit it too?** Like #35, this could ship inside every brain so a user can self-verify
-  retrieval, not just the write path. Decide when building: emit (prototype in the golden,
-  `verbatim` in `emit-manifest.toml`) vs keep devkit-only.
-- **Open — canary hygiene across runs.** Reusing the same canary token risks a later run "finding"
-  a leftover from an earlier one. Either vary the token per run (a date/word suffix the human picks)
-  or rely on teardown to remove the seed notes each time.
+- Deliverables (built): `desktop-e2e/pure-client/` — `README.md` + `ingest-01..03` +
+  `query-01..04` (note/search, glossary/lookup, tag/list, and a never-seeded negative control).
+- **Emit it too? RESOLVED → yes.** Emitted into every brain (like #35), so a user can self-verify
+  retrieval, not just the write path — single-sourced in the golden, `verbatim` in the manifest.
+- **Canary hygiene across runs? RESOLVED → rely on teardown.** The run happens on the #34
+  disposable branch, whose teardown deletes the seed notes and rebuilds the index, so each run
+  starts clean and fixed canary tokens are safe to reuse. (The negative-control token is never
+  seeded by design.)
