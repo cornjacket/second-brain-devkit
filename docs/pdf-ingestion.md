@@ -1,8 +1,8 @@
 # PDF ingestion — chunk-and-embed long documents (task #7)
 
-**Status:** Design (M0, written 2026-07-18). **Not started.** This is the agreed blueprint from a
-design walkthrough; the milestones (§4) are settled, the detailed step list (§5) is still under
-review. Nothing here is built yet.
+**Status:** Design (M0) locked 2026-07-19. **M1 in progress.** This is the agreed blueprint from a
+design walkthrough; the milestones (§5) and the detailed step list (§6) are settled. Building has
+started at M1 (`chunker.py` + `pdf_extract.py` + a fixture PDF), prototyped in the golden.
 
 ## TL;DR
 
@@ -165,7 +165,7 @@ The exact table layout (whether the vector table carries `chunk_id` directly or 
   a new CI gate (deterministic sidecar fixture + opt-in semantic search test), doctor stale-detection
   parity for PDF sidecars, and wiring into `emit-manifest.toml` so every generated brain ships it.
 
-## 6. Implementation steps (draft — under review in the walkthrough)
+## 6. Implementation steps (locked 2026-07-19)
 
 Every step follows the dev loop: **prototype in the golden → `vendor_golden.py` → `build_template.py`
 → `tools/ci.py` green.**

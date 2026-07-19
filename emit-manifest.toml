@@ -159,6 +159,11 @@ paths = [
   "tasks/0003-para-seed-script.md",
   "tasks/0004-sidecar-policy-and-test-tiers.md",
   "tests/test_tag_hygiene.py",
+  "tests/test_chunker.py",
+  "tests/test_pdf_extract.py",
+  "scripts/chunker.py",
+  "scripts/pdf_extract.py",
+  "requirements-pdf.txt",
 ]
 
 [exclude.reasons]
@@ -168,3 +173,8 @@ paths = [
 "PLAN.md" = "the golden's own build tracker — the generator builds the brain instead"
 "tasks/*" = "the golden's task specs — artifacts of hand-building the golden"
 "tests/test_tag_hygiene.py" = "dev-only regression test for the tag-hygiene detector/applier (task #32) — builds fixtures in a tempdir; a brain ships the tools, not their tests. Run in CI against the vendored copy (gate 13)."
+"tests/test_chunker.py" = "dev-only regression test for the PDF chunker (task #7, M1) — stdlib-only, self-contained; a brain ships the tool, not its test."
+"tests/test_pdf_extract.py" = "dev-only regression test for pdf_extract (task #7, M1) — builds a PDF in a tempdir, skips when pypdf is absent; a brain ships the tool, not its test."
+"scripts/chunker.py" = "PDF ingestion (task #7) — built at M1, NOT YET EMITTED. Held out of a brain until M6 wires the whole feature (add_pdf, search, README, CI gate); promote to `verbatim` then. See docs/pdf-ingestion.md §6."
+"scripts/pdf_extract.py" = "PDF ingestion (task #7) — built at M1, NOT YET EMITTED. Held out of a brain until M6 (see docs/pdf-ingestion.md §6); promote to `verbatim` then. Imports the optional pypdf lazily."
+"requirements-pdf.txt" = "PDF ingestion (task #7) optional-dep manifest — built at M1, NOT YET EMITTED. Promote to `verbatim` at M6 when a brain gains the add_pdf command. See docs/pdf-ingestion.md."
