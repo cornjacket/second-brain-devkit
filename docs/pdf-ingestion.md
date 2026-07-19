@@ -1,0 +1,193 @@
+# PDF ingestion — chunk-and-embed long documents (task #7)
+
+**Status:** Design (M0, written 2026-07-18). **Not started.** This is the agreed blueprint from a
+design walkthrough; the milestones (§4) are settled, the detailed step list (§5) is still under
+review. Nothing here is built yet.
+
+## TL;DR
+
+Today a brain ingests only **Markdown notes**, and each note becomes **one vector**. A PDF is long
+and spans many topics, so embedding the whole document into a single vector produces a blurry
+**average** — a query for something on page 12 ranks poorly against that diluted whole-document
+vector. PDF ingestion is therefore **"chunk-and-embed"**: split the PDF's text into passages
+(chunks), embed each passage, and store **many vectors per source file**. A search hit then points at
+*the passage on page 12*, not just "somewhere in this file."
+
+The PDF-reading part is easy. The substance is that this **breaks the brain's "one note = one
+vector" assumption**, and that ripples through the cache schema, the sidecar format, hydration, and
+search. Build it **source-type-agnostic** so very long Markdown notes can reuse the same chunking
+later.
+
+> **Counterpoint worth keeping.** A document's **centroid** (the average of its chunk vectors) *does*
+> carry meaning — it is a fine whole-document *summary*, just a poor *retrieval* target for a
+> specific passage. That summary-vs-retrieval split is why we chunk for search yet can still use the
+> centroid to *characterize* a document. See the meaning-histogram backlog (#37) in
+> [quality-features.md](quality-features.md).
+
+## 1. Locked decisions
+
+1. **Bolt-on, not unify.** Notes stay exactly as they are (one row per note); PDF chunks are added
+   as a **separate, additive** multi-row entry keyed `(source_file, chunk_id)`. Unifying everything
+   under chunking (a short note = a 1-chunk source) is cleaner long-term but forces re-embedding every
+   note and changing the note sidecar format — a big migration that would disturb the byte-exact CI
+   diff. **Bolt-on keeps the note path untouched**, so PDF support cannot break what already works.
+
+2. **PDFs are NOT committed to Git.** Committing binaries is an anti-pattern. The PDF lives **in the
+   vault as-is but git-ignored**, and its derived sidecar is git-ignored too (like every note
+   sidecar). **All PDFs will eventually be tracked via Git-LFS** (large-file storage), later.
+   *Implication:* until LFS lands, a PDF and its searchable content are **local-only** — they do not
+   travel when the brain is cloned to another machine.
+
+3. **Extracted chunk text lives in the git-ignored sidecar, not in Git.** The chunk text must be
+   persisted so the keyword index and result snippets have it without re-opening the PDF — the
+   cheapest, most consistent home is the same derived sidecar that holds the chunk vectors. Committing
+   extracted text would only buy cross-machine portability of PDF *content*, which is exactly what
+   LFS (decision 2) will solve — so keep it derived and git-ignored.
+
+4. **Chunking = fixed token-window with overlap, tracking page + char span.** ~512 tokens per chunk,
+   ~15% overlap so a sentence spanning a boundary is not lost; each chunk records its **page number**
+   and character span so a hit can say "page 12" and the passage can be located. Page-based chunks are
+   uneven (pages vary wildly in length); the window is predictable and tunable. Design it
+   **source-type-agnostic** (text → chunks), so long notes can reuse it.
+
+5. **Parser = `pypdf`, an optional dependency.** Pure-Python, lightweight, permissive license, no
+   system libraries. Shipped in a separate **`requirements-pdf.txt`** (like `requirements-mcp.txt`)
+   so the core and the CI gate stay stdlib-lean. Everything degrades cleanly with a clear
+   "install `requirements-pdf.txt`" message when the parser is absent.
+
+6. **Ingestion trigger: a manual command now; a hook later.** A manual `add_pdf` command for v1;
+   *later* extend the pre-commit hook **for PDF files only**. Wiring PDFs into the auto-hook now would
+   make every commit depend on the optional parser being installed, even when only editing a note.
+
+7. **Configurable result shaping + an intra-document mode.** Fuse the meaning (vector) and keyword
+   (FTS5/BM25) legs with Reciprocal Rank Fusion at the **chunk** grain, then shape results per a
+   config: **`best_per_source`** (one best passage per document, so a big PDF does not flood the
+   top-k) or **`all_chunks`**. Plus a separate **within-one-document** top-k mode ("where in *this*
+   PDF is X").
+
+8. **No commit, no push on PDF ingestion.** Because the PDF and its sidecar are git-ignored
+   (decision 2), the ingestion path just moves a file and builds a local sidecar — **unlike
+   `add_note`, there is no commit and no push**, which sidesteps all the git/push complexity.
+
+9. **Selection is folder-first, in one of two UI modes.** When importing, the **first** question is
+   *which tracked folder* (enumerated from config, priority-ordered), **then** which PDF in that
+   folder, **then** which PARA destination. Because the PDF list depends on the chosen folder, this is
+   **sequential** (folder, then PDFs-in-folder) in either UI mode.
+
+## 2. Desktop / client UI — elicitation with a chat fallback
+
+MCP defines an **elicitation** capability (a server asks the client to render a form and return a
+structured answer), and `enum` fields are supported — so the folder/PDF/destination choices could be
+dropdowns. **But Claude Desktop's Chat surface does not implement elicitation** (it returns an
+immediate *cancelled* response with no UI — Anthropic issue #56243, confirmed 2026-07-18). **Claude
+Code (the CLI) does** support it (since v2.1.76). Desktop's `roots` support is unconfirmed and is not
+relied upon anyway (a local server reads its configured folders directly).
+
+**Design: one shared enumeration core, two presentations, chosen by client capability.**
+
+- **Core (build first):** scan the configured folders, apply the sort + pagination config, build the
+  option lists. Pure logic, UI-agnostic.
+- **Front-end A — chat (baseline, works everywhere incl. Desktop):** the tool *returns the enumerated
+  list as its result*; the user picks in chat (`list_inbox_pdfs()` → "ingest #3 into resources" →
+  `add_pdf(path, para_root)`). The chat turn *is* the selection UI.
+- **Front-end B — elicitation (the experiment; Claude Code CLI today, Desktop if it ever ships):** the
+  same options rendered as an elicitation form.
+
+The server picks the front-end by **capability detection** — MCP clients declare capabilities in the
+opening handshake, so the server uses elicitation only if the client advertised it — and **falls back
+to chat at runtime** on a `decline`/`cancel` (which is what Desktop does). This is the brain's usual
+"detect and adapt, never force" stance; elicitation is a thin, independently-testable add-on over the
+fallback, not a hard dependency. *Watch item:* MCP's File-Uploads Working Group / SEP-1306 ("binary
+mode" elicitation for file uploads) could later enable a true native file picker — not merged yet.
+
+## 3. Config surface
+
+A new `[pdf]` block in `config/features.toml` (read via `scripts/features.py`, same
+`env > config > default` precedence as the existing keys). Proposed keys:
+
+```toml
+[pdf]
+inbox_dirs     = ["vault/inbox", "~/Downloads"]  # source folders, priority order (first shown first)
+list_sort      = "newest"      # how folder contents are ordered: "newest" | "alphabetical"
+list_page_size = 20            # how many entries to enumerate before paginating
+chunk_tokens   = 512           # target chunk size (tokens)
+chunk_overlap  = 0.15          # fractional overlap between adjacent chunks
+result_mode    = "best_per_source"   # "best_per_source" | "all_chunks"
+move_from_inbox = true         # move (vs copy) the file out of a source folder on ingest
+```
+
+Note the parser itself is an **optional pip dependency** (`requirements-pdf.txt`), not a config key.
+
+## 4. Architecture — the bolt-on schema
+
+Today the derived cache (`data/brain.db`) holds, one row per note:
+
+```
+notes      (vec0)  source_file, embedding
+notes_fts  (fts5)  source_file, body, tags
+```
+
+PDF support is **additive parallel tables** — the note tables are **untouched** (that is the bolt-on
+promise, and what keeps the note path byte-exact for CI):
+
+```
+pdf_chunks       (vec0)  embedding                          ← one row per chunk
+pdf_chunks_meta          source_file, chunk_id, page, char_start, char_end, text
+pdf_chunks_fts   (fts5)  source_file, chunk_id, text        ← lexical leg, per chunk
+```
+
+- `hydrate_cache.py` (full rebuild) and `update_cache.py` (single source) learn to load a PDF's
+  **multi-chunk** sidecar into these tables, in the same pass that builds the note tables.
+- `search_vault.search()` runs the vector + FTS legs over **both** the note tables and the PDF-chunk
+  tables, fuses all candidates with RRF, then applies the `result_mode` collapse (best-chunk-per-
+  source / all-chunks) and returns source + page + snippet for PDF hits.
+
+The exact table layout (whether the vector table carries `chunk_id` directly or via a rowid join to
+`pdf_chunks_meta`) is finalized in milestone M3.
+
+## 5. Milestones
+
+- **M0 — Lock the design in writing** *(this document)*.
+- **M1 — Turn a PDF into clean chunks, provably.** `pdf_extract.py` (pypdf → text + page map) and a
+  source-type-agnostic `chunker.py` (text → overlapping token-window chunks with page/char spans).
+  Deterministic, model-free, tested against a tiny fixture PDF.
+- **M2 — Sidecar format for a chunked source.** A PDF's `.embed.json` holds a *list* of chunks, each
+  with `{chunk_id, page, char_start, char_end, text, vector}`, embedded `task="document"`.
+  Deterministic on the `test` backend, so a committed fixture sidecar byte-diffs in CI.
+- **M3 — Cache schema + hydrate/update for chunks.** The additive parallel tables (§4); hydrate/update
+  load PDF sidecars while the note path stays byte-identical.
+- **M4 — Search returns a passage.** Chunk-grain RRF, `result_mode` shaping, the within-one-document
+  mode, and source + page + snippet in results.
+- **M5 — Ingestion + Desktop path.** `add_pdf` (folder-first selection, move/copy, extract → chunk →
+  embed) and the two-mode selection UI (§2): the `list_inbox_pdfs`/`add_pdf` chat pattern as baseline,
+  elicitation as the capability-gated enhancement; a passage-fetch tool for Desktop parity.
+- **M6 — Docs, CI, emission, doctor.** "Add a PDF" section in the brain README, `requirements-pdf.txt`,
+  a new CI gate (deterministic sidecar fixture + opt-in semantic search test), doctor stale-detection
+  parity for PDF sidecars, and wiring into `emit-manifest.toml` so every generated brain ships it.
+
+## 6. Implementation steps (draft — under review in the walkthrough)
+
+Every step follows the dev loop: **prototype in the golden → `vendor_golden.py` → `build_template.py`
+→ `tools/ci.py` green.**
+
+1. Write this doc + a CLAUDE.md pointer. *(M0 — done)*
+2. `chunker.py` — pure-stdlib text→chunks (window + overlap, page/char spans) + unit tests. *(M1)*
+3. `pdf_extract.py` — pypdf behind the optional dep, graceful "install requirements-pdf.txt" when
+   absent; tiny fixture PDF. *(M1)*
+4. Chunk-list sidecar writer (`embed_pdf.py` or a generalized embed path); commit a `test`-backend
+   fixture sidecar. *(M2)*
+5. Schema + hydrate/update for the parallel PDF tables; prove the note path stays byte-exact. *(M3)*
+6. Search: chunk-grain RRF, `result_mode`, within-document mode, page/snippet rendering. *(M4)*
+7. `add_pdf` + folder-first selection + the dual-mode (chat / elicitation) UI + passage-fetch tool.
+   Confirm the FastMCP elicitation API (`ctx.elicit`) + capability detection at build time. *(M5)*
+8. README "Add a PDF", `requirements-pdf.txt`, CI gate, doctor parity, emit-manifest wiring. *(M6)*
+
+## Open items / risks
+
+- **Binary bloat** until Git-LFS lands (decision 2); many PDFs will grow the working tree.
+- **Optional-dep + CI** — extraction never runs in CI (test backend, no pypdf); coverage is the
+  deterministic sidecar fixture + an opt-in semantic test. Confirm "pypdf missing" degrades cleanly
+  everywhere.
+- **Note-path byte-exactness** through the schema change — the bolt-on promise must be proven, not
+  assumed, by the structural-diff gate.
+- **FastMCP elicitation + capability-detection API** — verify against the installed version at M5.
