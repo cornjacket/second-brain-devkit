@@ -29,6 +29,7 @@ Every feature is one of two kinds, and the distinction drives how the ablation r
 | Vector post-processing | Whitening / isotropy to sharpen closely-related topics | index-time (post) | `whiten` | candidate ([embedding-separation §3](embedding-separation.md)) |
 | Chunking + multi-vector | Long notes / PDFs → many vectors per source | index-time | `chunking` | planned (#7) |
 | Clustering-purpose embedding | A second embedding (`clustering:` prefix) for the graph only | index-time (analysis) | `graph_embedding` | candidate |
+| Meaning histogram / topic distribution | Cluster the embeddings, label each cluster, chart topic-by-frequency | offline (analysis) | `meaning_histogram` | candidate (#37) |
 | Note-hygiene line-count guard | Nudge over-long notes at author time | author-time | `max_note_lines` | candidate |
 
 ## Feature detail (tutorial-ready)
@@ -114,6 +115,32 @@ graph / topic map; search keeps `search_document:`/`search_query:` (same-scheme 
 ### 10. Note-hygiene line-count guard — *candidate, author-time*
 **Mechanism:** warn when a note exceeds a line budget, nudging the author to split it (better
 one-note-one-vector granularity). Author-time only; no index or query effect.
+
+### 11. Meaning histogram / topic distribution — *candidate (#37), offline analysis-only*
+**Idea (from a 2026-07-18 design chat):** visualize *what a brain (or one document) is about* as a
+distribution over topics — horizontal axis = discrete meanings, vertical axis = how many embeddings
+fall under each. Same family as the clustering-lens (#9): it is a **measurement/visualization layer,
+never the retrieval path**, and should embed with the `clustering:` prefix, kept separate from the
+search vectors.
+
+**Mechanism:** (1) **cluster** the chunk/note embeddings — partition the N-dimensional space into
+groups of near points (e.g. `k-means` Voronoi cells, or a density method); each group's **centroid**
+(mean vector) is its "meaning". (2) **Count** the population of each group → bar heights. (3) **Order**
+the horizontal axis by a deliberate choice: sort by population (a topic-frequency / Pareto chart) or
+project the clusters to 1-D (a "meaning spectrum" where adjacent bars are related). This is the shape
+tools like BERTopic use (embed → cluster → label).
+
+**The load-bearing subtlety:** an embedding is **one-way** — text → vector is easy, vector → text is
+not. So a cluster **cannot be labelled from its raw centroid**; label it from the **representative
+chunks nearest the centroid**, handed to the model to name the common theme. Design the labeler around
+example text, not the average vector.
+
+**Dependencies / synergy:** a *per-document* histogram is only meaningful once a source is **many**
+embeddings, so **chunking (#7) is the prerequisite** for the single-PDF version (chunk first, and the
+histogram falls out as analysis on top). Reconciles with #9's `clustering:` prefix. Main tuning knob:
+the number of partitions (cluster granularity) — too few blurs every bar into "tech", too many is
+noise. Also note the counterpoint that seeded the idea: a document's **centroid does carry meaning** —
+it is a fine *summary* of the whole, just a poor *retrieval* target for a specific passage.
 
 ## Config surface (for #12)
 
