@@ -11,7 +11,7 @@ command — `python3 tools/ci.py` (13 automated gates).
 disposable-branch harness (#34) and the pure-client cross-session test (#36). Suite B (pure-client)
 ran live 4/4 against the real `~/second-brain`. Today we folded its two findings back into the kit.
 
-**Today — folded in the Suite B findings (done); Suite A + carries postponed to the end:**
+**Today — cleared the coding backlog:**
 - **✅ Finding 2a — `list_tags` cap robustness.** The pure-client tag query now calls
   `list_tags` with `match="zephyr"`, so the count-1 canary tag survives on a brain with a large
   vocabulary (the filter runs before the 50-item cap). Prototyped → vendored → CI 13/13 green.
@@ -19,22 +19,23 @@ ran live 4/4 against the real `~/second-brain`. Today we folded its two findings
   runs `git push origin <branch>`, which needs no upstream, so the disposable `e2e-run` branch was
   really pushed to the real remote and orphaned there. Fix: teardown now deletes the branch on the
   remote too; setup.sh's wrong comment corrected; yesterday's orphaned `origin/e2e-run` removed.
+- **✅ #23 plugin research — CLOSED.** Verdict: a Claude Code plugin can't collapse the skill + MCP
+  two-step (its MCP server never reaches the Desktop **Chat** tab where a brain is used) and is
+  Claude-only, so it fragments Gemini. Plugin route **declined**; `.mcpb`/Connector Desktop
+  extension **deferred** behind a trigger (first external Desktop user). → `docs/plugin-packaging.md`.
 
-**Postponed — queued for a later session:**
-- **Carry:** glossary Obsidian hand-test (flashcard + graph view); **#23** plugin research (notes
-  only) — brain-as-one-Claude-Code-plugin vs the skill-install + MCP-registration two-step.
-- **▶ Task: Run Suite A live on the real brain** (the 5-scenario script-verified kit) — the remaining
-  human Desktop pass: `~/second-brain/desktop-e2e/setup.sh` → paste `prompts/01..05` → `run_all.py`
-  → `teardown.sh`. Proves the write path + tool surface (incl. the #32 near-miss TAG HINT) through
-  the real client.
+**Deferred — human-driven, no Claude work available:**
+- **Glossary Obsidian hand-test** (flashcard + graph view) — a manual in-Obsidian check. *Deferred.*
+- **Run Suite A live on the real brain** (the 5-scenario script-verified kit) — needs a human
+  pasting `prompts/01..05` into Claude Desktop. *Deferred.*
 
 ```
  shipped ▶ #34 harness · #35 emit · #36 pure-client — Suite B ran LIVE 4/4 on the real brain
               │
               ▼
- today   ✅ folded in Suite B findings: list_tags match filter · disposable-branch push leak fixed
+ today   ✅ Suite B findings folded in (list_tags filter · push-leak fix) · ✅ #23 plugin research CLOSED
               │
               ▼
- postponed ▶ carry: glossary Obsidian test · #23 plugin research  →  run Suite A live on the real brain (last)
+ deferred ▶ glossary Obsidian hand-test · Suite A live Desktop pass  (both human-driven — no Claude work left)
  guardrail: any code change still goes prototype → vendor → tools/ci.py green
 ```
