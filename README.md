@@ -78,6 +78,27 @@ vectors — mismatched models yield incomparable results.
 > for a single brain's PARA layout, sidecar schema, embedding contract, cache
 > DDL, search CLI, and `register`. Details below are summaries — defer to those.
 
+### Search — hybrid lexical + semantic (FTS5 + RRF)
+
+A brain finds a note **two complementary ways** and fuses the results, so every generated
+brain gets robust retrieval out of the box:
+
+- **Semantic** (dense vector, `sqlite-vec`) — nearest-by-cosine over `nomic-embed-text`
+  vectors. Strong at meaning and paraphrase, weak at exact tokens (error codes, identifiers,
+  rare acronyms).
+- **Lexical** (SQLite **FTS5** / BM25) — literal keyword matching, the exact complement.
+  FTS5 ships inside SQLite, so it's a second table in the *same* `data/brain.db`, hydrated by
+  the same commit hooks — **no new dependency, no new file**.
+
+The two rankings merge with **Reciprocal Rank Fusion** (`score = Σ 1 / (rrf_k + rank)`),
+which needs only each hit's *rank* in each list — sidestepping the incomparable cosine and
+BM25 scores. The fusion lives in the one shared `search()`, so the CLI, the AI skill, and the
+MCP server all inherit it. It is *situational* (helps a topically dense brain, slightly hurts
+a far-apart one), so it ships as a `config/features.toml` toggle (`hybrid_search`, `rrf_k`),
+defaulted on. Notes and queries also carry `nomic-embed-text` task prefixes
+(`search_document:` / `search_query:`). Design + evidence:
+[docs/retrieval-quality.md](docs/retrieval-quality.md).
+
 ### Glossary — the controlled-vocabulary layer (PARA(G))
 
 Every generated brain ships a **glossary**: `vault/glossary/`, a typed **non-PARA
