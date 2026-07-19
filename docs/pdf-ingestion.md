@@ -120,21 +120,86 @@ Note the parser itself is an **optional pip dependency** (`requirements-pdf.txt`
 
 ## 4. Architecture — the bolt-on schema
 
-Today the derived cache (`data/brain.db`) holds, one row per note:
+The whole design is one picture: the PDF side **mirrors the note side, but at *chunk* grain**, and
+the note tables are left exactly as they are. Everything above the divider already exists today;
+PDF support is purely the block below it.
 
 ```
-notes      (vec0)  source_file, embedding
-notes_fts  (fts5)  source_file, body, tags
+┌──────────────────────── NOTE PATH — UNTOUCHED ────────────────────────┐
+│                                                                        │
+│   notes  (vec0)                    notes_fts  (fts5)                    │
+│   ┌───────────────────────────┐    ┌───────────────────────────┐       │
+│   │ source_file  TEXT  ⚷ PK   │    │ source_file  UNINDEXED    │       │
+│   │ embedding    FLOAT[768]   │    │ body                      │       │
+│   │              cosine       │    │ tags                      │       │
+│   └───────────────────────────┘    └───────────────────────────┘       │
+│                                                                        │
+│        one note  ─────────────►  exactly ONE row in each               │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────── PDF PATH — NEW, ADDITIVE ───────────────────────┐
+│                                                                        │
+│   pdf_chunks  (vec0)          ← the meaning leg, one row per chunk      │
+│   ┌───────────────────────────────────────────┐                        │
+│   │ rowid = chunk_rowid   ◄───────────┐        │                        │
+│   │ embedding    FLOAT[768]  cosine   │        │                        │
+│   └───────────────────────────────────┼────────┘                        │
+│                                        │ joined by the SAME rowid        │
+│   pdf_chunks_meta  (plain table)       │  ← the human-facing columns     │
+│   ┌───────────────────────────────────┼────────┐                        │
+│   │ rowid = chunk_rowid   ◄───────────┤        │                        │
+│   │ source_file  TEXT     (which PDF) │        │                        │
+│   │ chunk_id     INT      (0, 1, 2 …) │        │                        │
+│   │ page         INT                  │        │  ← straight from        │
+│   │ char_start   INT                  │        │    chunker.Chunk        │
+│   │ char_end     INT                  │        │                        │
+│   │ text         TEXT                 │        │                        │
+│   └───────────────────────────────────┼────────┘                        │
+│                                        │ joined by the SAME rowid        │
+│   pdf_chunks_fts  (fts5)               │  ← the keyword leg, per chunk   │
+│   ┌───────────────────────────────────┼────────┐                        │
+│   │ rowid = chunk_rowid   ◄───────────┘        │                        │
+│   │ source_file  UNINDEXED                     │                        │
+│   │ chunk_id     UNINDEXED                     │                        │
+│   │ text                                       │                        │
+│   └────────────────────────────────────────────┘                        │
+│                                                                        │
+│        one PDF  ─────────────►  MANY chunk rows (grouped by source_file)│
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-PDF support is **additive parallel tables** — the note tables are **untouched** (that is the bolt-on
-promise, and what keeps the note path byte-exact for CI):
+**How to read it**
+
+- **The split down the middle is the bolt-on promise.** The note tables' DDL does not change; PDF
+  support is only the additive block. That is what keeps the note path byte-exact for CI.
+- **A shared `rowid` stitches the three PDF tables into one logical chunk.** Both `vec0` and `fts5`
+  tables are keyed by an integer `rowid` and neither holds arbitrary columns well, so chunk *N* of a
+  document is its vector in `pdf_chunks`, its metadata + text in `pdf_chunks_meta`, and its
+  searchable text in `pdf_chunks_fts` — **all at the same `rowid`**. Search fuses hits from the two
+  legs, then looks up page/text by that `rowid`.
+- **`source_file` groups a document's chunks.** One PDF fans out to many rows; `WHERE source_file =
+  '…'` gives the whole document, which is exactly what the `best_per_source` collapse and the
+  within-one-document mode need.
+- **`page / char_start / char_end / text` come straight off `chunker.Chunk`** (the M1 output), so M3
+  is really "persist what M1 already produces, plus the vector M2 adds."
+- **`UNINDEXED` on the FTS columns is deliberate** — `source_file` and `chunk_id` are *stored so a
+  hit can be identified, grouped, and deleted*, but are **not tokenized**, so a query term can never
+  match a path or an id and skew BM25. Only `text` is searched. (Same rule as `notes_fts`, whose
+  `source_file` is UNINDEXED for exactly this reason.)
+
+Concretely, `report.pdf` split into 3 passages lands as three rows in `pdf_chunks_meta` (with three
+matching vectors in `pdf_chunks` and three matching text rows in `pdf_chunks_fts`, all at the same
+rowids):
 
 ```
-pdf_chunks       (vec0)  embedding                          ← one row per chunk
-pdf_chunks_meta          source_file, chunk_id, page, char_start, char_end, text
-pdf_chunks_fts   (fts5)  source_file, chunk_id, text        ← lexical leg, per chunk
+ rowid │ source_file │ chunk_id │ page │ char_start │ char_end │ text
+ ──────┼─────────────┼──────────┼──────┼────────────┼──────────┼──────────────
+   41  │ report.pdf  │    0     │  1   │     0      │   2130   │ "Executive…"
+   42  │ report.pdf  │    1     │  1   │    1980    │   4025   │ "…continued…"
+   43  │ report.pdf  │    2     │  2   │    3900    │   6010   │ "Methods…"
 ```
+
+**Load and search wiring:**
 
 - `hydrate_cache.py` (full rebuild) and `update_cache.py` (single source) learn to load a PDF's
   **multi-chunk** sidecar into these tables, in the same pass that builds the note tables.
@@ -142,8 +207,9 @@ pdf_chunks_fts   (fts5)  source_file, chunk_id, text        ← lexical leg, per
   tables, fuses all candidates with RRF, then applies the `result_mode` collapse (best-chunk-per-
   source / all-chunks) and returns source + page + snippet for PDF hits.
 
-The exact table layout (whether the vector table carries `chunk_id` directly or via a rowid join to
-`pdf_chunks_meta`) is finalized in milestone M3.
+The diagram shows the **rowid-join** option (thin `vec0` table; columns live in `pdf_chunks_meta`),
+the natural `sqlite-vec` pattern and the leading choice. The exact layout — this, versus carrying
+`chunk_id` directly in the vector table — is finalized in milestone M3.
 
 ## 5. Milestones
 
