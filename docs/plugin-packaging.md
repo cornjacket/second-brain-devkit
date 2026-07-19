@@ -1,6 +1,17 @@
-# Plugin packaging — one Claude Code plugin vs. the skill + MCP two-step (task #23)
+# Plugin packaging — one Claude Code plugin vs. the skill + MCP two-step (task #23, CLOSED)
 
-**Verdict up front: a single Claude Code plugin cannot collapse the current two-step, because
+**Decision (2026-07-18):**
+- **Claude Code plugin → DECLINED.** It cannot collapse the two-step (wrong surface — see below),
+  it is Claude-only so it would fragment the Gemini path, and the one thing it tidies (the skill
+  install) is already a single command. Not deferred — closed, so the settled answer is not
+  re-litigated.
+- **Desktop extension (`.mcpb`/Connector) → DEFERRED behind a concrete trigger:** the first time we
+  onboard *another person* to a brain on Claude Desktop. Until then the payoff is ~zero (the only
+  Desktop user is already set up), so it is speculative work. This is the only route with real
+  future value, because it targets the step that actually hurts.
+- **Current two-step stays as-is** — fine for a solo, already-configured user.
+
+**Verdict that drove it: a single Claude Code plugin cannot collapse the current two-step, because
 the two steps serve two different surfaces and a plugin reaches only one of them.** The plugin
 can tidy the *CLI* half (which is already a one-liner) but does nothing for the half that
 actually hurts — registering the MCP server for Claude **Desktop's Chat tab**, which is where a
@@ -72,22 +83,22 @@ plugins** and is the correct thing to research if reducing Desktop onboarding fr
 > not a settled fact. There is no prior decision on any of this in the second brain — this is new
 > ground.
 
-## Recommendation
+## Recommendation (adopted — see the Decision block at the top)
 
-- **Do not** repackage the brain as a Claude Code plugin to unify onboarding — it cannot, because
-  the hard step lives on a surface (Desktop Chat) that plugins do not serve, and it would risk the
-  Gemini skill path.
-- **A plugin is still worth a small, separate look** for one narrow win: distributing the **skill**
-  (plus hooks/agents) to Claude Code users via a marketplace `/plugin install` instead of the
-  `install_skill.py` symlink — purely a nicer CLI install, not a consolidation of the two-step. Low
-  priority; the current script already works and covers Gemini too.
-- **The real Desktop-onboarding win is `.mcpb`/Connectors**, tracked as a follow-up. That is where
-  the "one-click, no config edit" outcome actually lives.
+- **Do not** repackage the brain as a Claude Code plugin. It cannot unify onboarding (the hard step
+  lives on a surface — Desktop Chat — that plugins do not serve), and it would fragment the Gemini
+  skill path. Even the narrow "nicer CLI install via `/plugin install`" win is not worth it: the
+  `install_skill.py` symlink is already one command *and* covers Gemini, which a plugin cannot. This
+  route is **closed**, not parked.
+- **The real Desktop-onboarding win is `.mcpb`/Connectors**, and it is **deferred behind a trigger**:
+  the first external Desktop user. That is where the "one-click, no config edit" outcome actually
+  lives, but it has ~zero payoff until someone other than the (already-configured) author needs to
+  set up Desktop.
 
-## Open follow-ups
+## Reopen trigger
 
-- Verify the current `.mcpb` / Desktop Extension format and whether it can wrap this brain's stdio
-  MCP server (interpreter + `mcp_server.py`) into a one-click Desktop install, and whether it solves
-  the absolute-interpreter-path gotcha.
-- Decide whether a Claude-Code-marketplace skill distribution is worth adding **alongside** (not
-  replacing) `install_skill.py`, given it drops Gemini.
+Only revisit this when **onboarding another person to a brain on Claude Desktop** becomes real. At
+that point, research the current `.mcpb` / Desktop Extension format: whether it can wrap this brain's
+stdio MCP server (interpreter + `mcp_server.py`) into a one-click Desktop install, and whether it
+solves the absolute-interpreter-path gotcha. The Claude Code plugin question does **not** reopen with
+it — that answer is settled.
