@@ -154,7 +154,6 @@ paths = [
   ".claude/hooks/check-daily-plan.py",
   ".claude/settings.json",
   "PLAN.md",
-  "daily-plan.md",
   "tasks/0001-migrate-to-vault-rooted-layout.md",
   "tasks/0002-markdown-line-count-guard.md",
   "tasks/0003-para-seed-script.md",
@@ -167,6 +166,5 @@ paths = [
 ".claude/hooks/check-daily-plan.py" = "ai-project-status daily-plan SessionStart hook — dev-process only"
 ".claude/settings.json" = "wires the SessionStart daily-plan hook — dev-process only"
 "PLAN.md" = "the golden's own build tracker — the generator builds the brain instead"
-"daily-plan.md" = "ai-project-status forward-plan — dev-process only"
 "tasks/*" = "the golden's task specs — artifacts of hand-building the golden"
 "tests/test_tag_hygiene.py" = "dev-only regression test for the tag-hygiene detector/applier (task #32) — builds fixtures in a tempdir; a brain ships the tools, not their tests. Run in CI against the vendored copy (gate 13)."

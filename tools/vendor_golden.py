@@ -7,9 +7,11 @@ external golden. This tool snapshots the live golden (``../second-brain-test``)
 into a devkit-tracked ``tests/golden/`` tree that the harness diffs against.
 
 It copies **only the golden's git-tracked files** (``git ls-files``) — so no
-``.git``, no git-ignored live-vault sidecars, no ``__pycache__``. Symlinks
-(``GEMINI.md`` → ``CLAUDE.md``) and executable bits are preserved. The dest is
-wiped and rebuilt each run, so a deleted golden file disappears from the snapshot.
+``.git``, no git-ignored live-vault sidecars, no ``__pycache__`` — **minus a small
+``VENDOR_IGNORE`` set** of per-repo dev artifacts (e.g. ``daily-plan.md``) that must
+never enter the snapshot. Symlinks (``GEMINI.md`` → ``CLAUDE.md``) and executable
+bits are preserved. The dest is wiped and rebuilt each run, so a deleted golden file
+disappears from the snapshot.
 
 **This is a dev-machine step, run by hand when the live golden changes — CI never
 runs it.** The committed ``tests/golden/`` snapshot is what CI diffs against. As a
@@ -34,14 +36,22 @@ LIVE_GOLDEN = REPO_ROOT.parent / "second-brain-test"
 VENDORED = REPO_ROOT / "tests" / "golden"
 PARTITION = REPO_ROOT / "tools" / "check_manifest_partition.py"
 
+# Per-repo dev-process artifacts the golden tracks for its OWN development but which
+# are NOT part of a generated brain and must never enter the regression snapshot.
+# Distinct from the manifest's `exclude` bucket (files vendored-but-not-emitted): these
+# are never vendored at ALL. Their content is unique to whichever repo they live in —
+# an ai-project-status daily-plan is dated and repo-specific — so snapshotting them
+# would only churn tests/golden and couple the two repos' plans. Keep this minimal.
+VENDOR_IGNORE = {"daily-plan.md"}
+
 
 def tracked_files(golden: Path) -> list[str]:
-    """Golden-relative POSIX paths of every git-tracked file in the live golden."""
+    """Golden-relative POSIX paths of every git-tracked file, minus VENDOR_IGNORE."""
     out = subprocess.run(
         ["git", "-C", str(golden), "ls-files"],
         capture_output=True, text=True, check=True,
     ).stdout
-    return [line for line in out.splitlines() if line]
+    return [line for line in out.splitlines() if line and line not in VENDOR_IGNORE]
 
 
 def vendor(src_root: Path, dst_root: Path, rels: list[str]) -> int:
