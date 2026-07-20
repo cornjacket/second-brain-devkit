@@ -196,20 +196,29 @@ def step_tag_lint() -> bool:
     return _run([PY, str(TOOLS / "check_tag_lint.py")])
 
 
+def step_pdf() -> bool:
+    # Byte-diffing proves the PDF modules were copied; this proves they still WORK — it runs
+    # the vendored PDF suites (chunk, extract, sidecar, bolt-on cache, passage search, ingest,
+    # MCP tools) against the vendored bytes. The optional pypdf/mcp paths skip cleanly, so it
+    # stays hermetic (stdlib + sqlite-vec + the vendored tree). Task #7.
+    return _run([PY, str(TOOLS / "check_pdf.py")])
+
+
 STEPS = [
-    ("1/13 manifest partition", step_partition),
-    ("2/13 template in sync with golden", step_template_in_sync),
-    ("3/13 emitted scripts compile", step_py_compile),
-    ("4/13 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/13 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/13 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/13 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/13 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/13 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/13 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/13 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/13 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/13 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("1/14 manifest partition", step_partition),
+    ("2/14 template in sync with golden", step_template_in_sync),
+    ("3/14 emitted scripts compile", step_py_compile),
+    ("4/14 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/14 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/14 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/14 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/14 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/14 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/14 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/14 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/14 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/14 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/14 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
 ]
 
 
