@@ -1,6 +1,21 @@
 # Auto-linking — vector-derived note links in Obsidian frontmatter
 
-**Status:** backlog / design-only — nothing built. Task #8. A feature that lets the
+**Status:** **engine BUILT** — `scripts/autolink.py` (emitted into every brain, CI gate 4)
+already does the whole write path: KNN off the stored vectors, top-N ∩ `t_max` ∩ mutual-KNN
+selection, and an idempotent namespace-partitioned `related_auto:` frontmatter block, with
+`--calibrate` / dry-run / `--apply` modes. Task #8, now tracked as **two logically-separate
+subtasks**:
+
+- **#8a (Track A) — turn it on.** Run `--apply` on a real brain and commit the graph edges.
+  *Ready now*; the §2.1 finding is that mutual-KNN carries link quality at small scale, so it
+  does not wait on a diverse corpus. Delivers the end-user value.
+- **#8b (Track B) — the calibration deriver + hysteresis.** Turn `--calibrate` from a distance
+  dump into a real `t_max` deriver with a separation/confidence score (§2.2–§2.3), persist it in
+  an `[autolink]` config block with an embedding-fingerprint, and add the `t_hi`/`t_lo`
+  hysteresis band (§2). **Gated on the #12/#13/#15 diverse corpus** — a distributional threshold
+  cannot be calibrated on one homogeneous cluster. Lower priority.
+
+A feature that lets the
 brain **materialize** its vector-space neighborhoods as **Obsidian-visible links**, so a
 human opening the vault sees machine-made clustering in the graph view — while any link a
 human (or an AI, by hand) sets stays sticky and is never re-adjusted by the auto-pass.

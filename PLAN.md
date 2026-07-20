@@ -114,9 +114,11 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   term render as a card, and add the graph colour group — settling which query actually works
   (`path:glossary/` vs `tag:#glossary`; the docs currently contradict each other, which is proof
   nobody has run it). Blocked on a human, not on code.
-- **Then:** **#23** (investigate shipping the brain as a Claude Code *plugin* — one installable unit
-  instead of the skill install + print-and-instruct MCP registration), or **#8** auto-link `--apply`
-  calibration on the real brain (cheap; the threshold is already known).
+- **▶▶ NEXT (Claude-actionable) — #8a, turn on auto-linking.** The engine is built + CI-guarded;
+  run `autolink.py --apply` on a real brain and commit the `related_auto:` graph edges. Ready now
+  (mutual-KNN carries link quality at small scale — no diverse corpus needed). Dry-run re-verified
+  2026-07-20 on `~/second-brain` (13 notes → 12 blocks). Its sibling **#8b** (the calibration
+  deriver + hysteresis) stays parked behind the #12/#13/#15 corpus. (#23 plugin route is CLOSED.)
 - **Done 2026-07-13 — the note-quality gate reaches Claude Desktop (follow-on to #5).** `add_note`
   made notes cheap to add, which is exactly how a brain fills with things nobody will ever search
   for — and the rules for *what earns a note* lived only in `CLAUDE.md`, which is unembedded **and**
@@ -1399,10 +1401,21 @@ requirement**); they also produce the material for a future GitHub tutorial.
       edit no longer churns the index. Stored in the sidecar (local gate) not frontmatter —
       frontmatter placement (cross-machine, big-brain A) deferred to dodge the §7 pre-commit
       write-back tension; recorded in [docs/auto-linking.md §4](docs/auto-linking.md). CI 7/7.
-      **Still to do:** (1) **hysteresis** in `select_links` (add `t_hi`/drop `t_lo` band, needs
-      the note's prior link set — deferred, lower priority); (2) final `t_max`/hysteresis
-      calibration once the #12/#13/#15 corpus
-      exists. Design detail:
+      **Remaining work — split into two logically-separate subtasks:**
+      - **#8a (Track A) — turn it on.** The engine is built and CI-guarded; the only step left
+        is to run `autolink.py --apply` on a real brain and commit the `related_auto:` graph
+        edges. **Ready now** — the §2.1 finding is that mutual-KNN carries link quality at small
+        scale, so it does *not* wait on the diverse corpus; it delivers the end-user value (a
+        self-organising Obsidian graph). Dry-run re-verified 2026-07-20 on `~/second-brain`
+        (13 notes → 12 `related_auto:` blocks; `magic-number` correctly pruned to none).
+      - **#8b (Track B) — the calibration deriver + hysteresis.** Upgrade `--calibrate` from a
+        distance dump into a real threshold deriver (background-null / gap-elbow / 2-component
+        mixture, unified via a single-linkage sweep that also reports a topic count + separation
+        score), persist it in an `[autolink]` config block with an embedding-fingerprint that
+        invalidates on any index-time change, and add the `t_hi`/`t_lo` hysteresis band in
+        `select_links`. **Gated on the #12/#13/#15 diverse corpus** — a distributional `t_max`
+        cannot be calibrated or validated on one homogeneous topical cluster. Lower priority.
+      Design detail:
 - [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in
       `data/brain.db` — no re-embed to link) and writes them into a **managed frontmatter
