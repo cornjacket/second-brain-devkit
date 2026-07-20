@@ -1,8 +1,10 @@
 # PDF ingestion — interactive selection via MCP elicitation (task #7 follow-up)
 
-**Status:** Built 2026-07-19. A guided, form-driven PDF picker for clients that support MCP
-**elicitation** — today that means the **Claude Code CLI**, not Claude Desktop's chat surface.
-Emitted into every brain; falls back to the chat-baseline tools when elicitation is unsupported.
+**Status:** Built 2026-07-19; **live pass CONFIRMED on the Claude Code CLI 2.1.215 (2026-07-20)** —
+`add_pdf_guided` completed the folder → PDF → PARA picks and ingested a real PDF, no fallback. A
+guided, form-driven PDF picker for clients that support MCP **elicitation** — the **Claude Code
+CLI** does, Claude Desktop's chat surface does not. Emitted into every brain; falls back to the
+chat-baseline tools when elicitation is unsupported.
 
 ## TL;DR
 
@@ -47,18 +49,21 @@ Three things follow:
   primary source, and it is inconsistent with #2799 closing on 2026-04-25. Moot in practice: the
   observed fallback below happened on **2.1.215**, far past any candidate version.
 
-### The unexplained fallback (open — task #40)
+### The fallback, explained and resolved (task #40 → live pass 2026-07-20)
 
-On 2026-07-20, `add_pdf_guided` fell back to the chat flow on **Claude Code CLI 2.1.215**, with
-#2799 closed as completed. That contradicts the table above, and **we cannot yet say why**:
-`_elicit_choice` catches every exception and treats every non-`accept` action alike, so
-"unsupported", "you cancelled", and "the request errored" are one indistinguishable outcome. The
-fallback string asserts the *first* of those, which is a guess the code is not entitled to make.
+The earlier fallback was a **stale-subprocess artefact, not a capability gap.** On 2026-07-20
+`add_pdf_guided` first fell back to the chat flow on **Claude Code CLI 2.1.215** even though #2799
+was closed as completed — the contradiction the NEXT ACTION block was written to resolve. It is now
+resolved: after restarting the CLI (so the MCP server subprocess ran the current, task-#40 code),
+the **same CLI version 2.1.215** rendered the picks and ingested the file end-to-end. The picker
+works on the CLI; the original fallback happened because the running session still held old server
+code in memory (the MCP server is spawned once at session start — see the restart step below).
 
-Compounding it, a client lacking the capability returns a synthetic `{"action":"cancel"}` — byte
--identical to a human pressing Escape. So guessing is unavoidable *unless the server checks the
-declared capability first*, which it does not. **Task #40 fixes the diagnostics; until it lands,
-a live CLI pass cannot be interpreted** — a genuine failure and a stray Escape look the same.
+Task #40 made this diagnosable in the first place: before it, `_elicit_choice` caught every
+exception and treated every non-`accept` action alike, so "unsupported", "you cancelled", and "the
+request errored" were one indistinguishable outcome (a client lacking the capability even returns a
+synthetic `{"action":"cancel"}` byte-identical to a human pressing Escape). With #40 shipped, a
+successful run is unambiguous — and that is what was observed.
 
 ## Design
 
@@ -98,42 +103,21 @@ three-step flow and asserts it ingests the chosen file; a fake `ctx` whose `elic
 raises) asserts the fallback message and that nothing is ingested. `add_pdf.add_pdf` is stubbed so
 the flow test needs no pypdf. (`tests/test_mcp_pdf.py`, gate 14.)
 
-## ▶ NEXT ACTION — run the live diagnosis (ready as of 2026-07-20)
+## ✅ Live diagnosis — DONE (2026-07-20)
 
-**Everything is in place; this needs a human at an interactive CLI and takes two minutes.**
-Task #40 shipped, so a fallback now says *why*. `~/second-brain` was upgraded to carry it
-(`update_brain.py --apply`, brain commit `6943494`).
+**The live pass ran and passed.** After restarting the CLI, *"add a PDF using the guided picker"*
+called `add_pdf_guided` on **Claude Code CLI 2.1.215**, which walked the folder → PDF → PARA picks
+and ingested `vault/resources/Agent Quality.pdf` (51 pages, 23 chunks now searchable) — **no
+fallback**. This is the top row of the old outcome table: *elicitation works on this surface.* The
+#7 follow-up is closed.
 
-**Steps**
-
-1. **Restart Claude Code.** Non-negotiable and easy to forget: the MCP server is a subprocess
-   spawned at session start, so an already-running session still holds the *old* code in memory
-   and will reproduce the old uninformative message.
-2. **Put a PDF in `~/second-brain/vault/inbox`** — drag it there in Finder. (`~/Downloads` is no
-   longer a source folder, and macOS would not let the server read it anyway; see
-   [pdf-ingestion.md §3.1](pdf-ingestion.md).) Without a PDF the run stops at "No PDFs in …"
-   before any form appears, which proves nothing.
-3. **Ask for the guided picker** — e.g. *"add a PDF using the guided picker"*, which calls
-   `add_pdf_guided`.
-
-**Read the result — each outcome is now conclusive**
-
-| What appears | Verdict | Then |
-| --- | --- | --- |
-| A **form** to pick a folder | Elicitation works on this surface | Finish the three picks; the live pass is **done**, close the #7 follow-up |
-| "*…did not declare MCP elicitation support*" + client name/version | The surface genuinely lacks it | Record the client name here; it is the parity fact the docs have been guessing at |
-| "*…failed at the 'source folder' step — `<error>`*" | A **bug**, not a capability gap | The error text is the lead; file it |
-| "*Selection cancelled…*" (and you did not cancel) | Client declared support then sent a **synthetic cancel** | This is the #56243 shape appearing on the CLI — worth reporting upstream |
-
-**Why this is worth doing rather than dropping:** on 2026-07-20 the picker fell back on Claude
-Code CLI **2.1.215**, while upstream [#2799](https://github.com/anthropics/claude-code/issues/2799)
-(CLI elicitation support) is closed as completed and #56243's own body states the CLI renders
-forms correctly. Those cannot all be true. One run now resolves it.
+The one step that mattered, kept here because it is the reason a fresh session was needed: **the MCP
+server is a subprocess spawned once at session start.** The earlier fallback on this same CLI
+version was the pre-restart session running old server code; the restart is what made the current
+task-#40 code the code actually serving the tool call.
 
 ## Open items
 
-- **Live pass on the Claude Code CLI** — see the NEXT ACTION block above; it is a *diagnosis*,
-  not a formality, because the 2026-07-20 fallback happened on a CLI that should support this.
 - **Desktop, if it ever ships elicitation** — the same tool lights up with zero changes. Do not
   watch #56243 (closed as a duplicate and locked); there is no live upstream issue tracking the
   Desktop form-mode gap. SEP-1306 (binary-mode elicitation, for a true native file picker) is
