@@ -64,8 +64,11 @@ paths = [
   "desktop-e2e/verify/verify_05_search.py",
   "requirements.txt",
   "requirements-mcp.txt",
+  "requirements-pdf.txt",
+  "scripts/add_pdf.py",
   "scripts/autolink.py",
   "scripts/check_line_count.py",
+  "scripts/chunker.py",
   "scripts/db.py",
   "scripts/doctor.py",
   "scripts/embed_staged.py",
@@ -80,6 +83,11 @@ paths = [
   "scripts/marked_block.py",
   "scripts/mcp_server.py",
   "scripts/note_view.py",
+  "scripts/pdf_cache.py",
+  "scripts/pdf_config.py",
+  "scripts/pdf_extract.py",
+  "scripts/pdf_search.py",
+  "scripts/embed_pdf.py",
   "scripts/search_vault.py",
   "scripts/seed_vault.py",
   "scripts/self_test.py",
@@ -166,14 +174,6 @@ paths = [
   "tests/test_pdf_search.py",
   "tests/test_add_pdf.py",
   "tests/fixtures/pdf/sample.embed.json",
-  "scripts/chunker.py",
-  "scripts/pdf_extract.py",
-  "scripts/embed_pdf.py",
-  "scripts/pdf_cache.py",
-  "scripts/pdf_search.py",
-  "scripts/pdf_config.py",
-  "scripts/add_pdf.py",
-  "requirements-pdf.txt",
 ]
 
 [exclude.reasons]
@@ -190,11 +190,4 @@ paths = [
 "tests/test_pdf_cache.py" = "dev-only regression test for the M3 bolt-on cache tables + loader (task #7) — builds tables in-memory and hydrates a temp vault; proves the note path is unchanged. A brain ships the tool, not its test."
 "tests/test_pdf_search.py" = "dev-only regression test for M4 passage search (task #7) — loads two docs into a temp cache and asserts fusion, best_per_source vs all_chunks, and the within-document scope. A brain ships the tool, not its test."
 "tests/test_add_pdf.py" = "dev-only regression test for the M5 ingest engine (task #7) — folder-first selection (pypdf-free) plus an end-to-end ingest that builds a PDF and skips when pypdf is absent. A brain ships the tool, not its test."
-"scripts/chunker.py" = "PDF ingestion (task #7) — built at M1, NOT YET EMITTED. Held out of a brain until M6 wires the whole feature (add_pdf, search, README, CI gate); promote to `verbatim` then. See docs/pdf-ingestion.md §6."
-"scripts/pdf_extract.py" = "PDF ingestion (task #7) — built at M1, NOT YET EMITTED. Held out of a brain until M6 (see docs/pdf-ingestion.md §6); promote to `verbatim` then. Imports the optional pypdf lazily."
-"scripts/embed_pdf.py" = "PDF ingestion (task #7) — the M2 chunk-list sidecar writer, NOT YET EMITTED. Held out of a brain until M6 (see docs/pdf-ingestion.md §6); promote to `verbatim` then. pypdf-free (takes extracted text)."
-"scripts/pdf_cache.py" = "PDF ingestion (task #7) — the M3 bolt-on cache tables (pdf_chunks/_meta/_fts) + loader, NOT YET EMITTED. hydrate_cache.py imports it defensively, so a brain without it skips PDF loading and its note path is byte-identical. Promote to `verbatim` at M6. See docs/pdf-ingestion.md §4."
-"scripts/pdf_search.py" = "PDF ingestion (task #7) — the M4 chunk-grain passage search (RRF fusion, best_per_source/all_chunks, within-document) + M5 get_passage fetch, NOT YET EMITTED. Standalone from search_vault so the note path is untouched; unified into the MCP surface at M6. Promote to `verbatim` then. See docs/pdf-ingestion.md §5."
-"scripts/pdf_config.py" = "PDF ingestion (task #7) — the M5 [pdf] config accessors (inbox_dirs, sort, chunk params, result_mode, move), NOT YET EMITTED. Reads config/features.toml [pdf] if present, else defaults; the block is added to the emitted config at M6. Promote to `verbatim` then. See docs/pdf-ingestion.md §3."
-"scripts/add_pdf.py" = "PDF ingestion (task #7) — the M5 ingest engine (folder-first selection + move/copy + extract/chunk/embed/load, no commit/push), NOT YET EMITTED. CLI-usable now; the MCP tool surface is registered at M6. Promote to `verbatim` then. See docs/pdf-ingestion.md §5."
 "requirements-pdf.txt" = "PDF ingestion (task #7) optional-dep manifest — built at M1, NOT YET EMITTED. Promote to `verbatim` at M6 when a brain gains the add_pdf command. See docs/pdf-ingestion.md."

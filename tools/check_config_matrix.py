@@ -59,9 +59,17 @@ def _run(cmd: list[str], cwd: Path, env: dict) -> subprocess.CompletedProcess:
 
 
 def declared_toggles() -> dict[str, str]:
-    """key -> default, parsed from the emitted config/features.toml (the real toggle space)."""
+    """key -> default, parsed from the emitted config/features.toml (the real toggle space).
+
+    Only the **top-level** feature toggles are the matrix's remit: parsing stops at the first
+    ``[section]`` header. A nested table (e.g. ``[pdf]``) is not a boolean toggle exercised by
+    generate-and-search — its parameters (chunk size, sort, paths) need PDF ingestion to exercise
+    and are covered by their own gate (the PDF suite, tools/check_pdf.py), not this one.
+    """
     out: dict[str, str] = {}
     for line in FEATURES.read_text(encoding="utf-8").splitlines():
+        if re.match(r"^\s*\[", line):
+            break  # first [section] — nested tables are not feature toggles (see docstring)
         m = re.match(r"^\s*([a-z_]+)\s*=\s*(\S+)\s*$", line)
         if m:
             out[m.group(1)] = m.group(2)
