@@ -1,14 +1,16 @@
 # PDF ingestion — chunk-and-embed long documents (task #7)
 
-**Status:** Design (M0) locked 2026-07-19. **M1–M4 done; M5 next.** This is the agreed blueprint
+**Status:** Design (M0) locked 2026-07-19. **M1–M5 done; M6 next.** This is the agreed blueprint
 from a design walkthrough; the milestones (§5) and the detailed step list (§6) are settled. Built so
 far, prototyped in the golden: M1 (`chunker.py` + `pdf_extract.py`), M2 (`embed_pdf.py`, the
 chunk-list sidecar writer, with a byte-exact `test`-backend fixture), M3 (`pdf_cache.py`, the
 bolt-on `pdf_chunks`/`_meta`/`_fts` tables + loader, wired into `hydrate_cache.py` behind a
-defensive import so a brain's note path stays byte-identical), and M4 (`pdf_search.py`, chunk-grain
-RRF passage search with `best_per_source`/`all_chunks` shaping and a within-document mode, returning
-source + page + snippet). M5 (`add_pdf` + the Desktop selection UI, unifying passage search into the
-MCP/CLI surface) is next.
+defensive import so a brain's note path stays byte-identical), M4 (`pdf_search.py`, chunk-grain
+RRF passage search with `best_per_source`/`all_chunks` shaping and a within-document mode), and M5
+(`add_pdf.py`, the CLI ingest engine — folder-first selection + move/copy + extract → chunk → embed
+→ load, no commit/push — plus `pdf_config.py` and `pdf_search.get_passage`). **The MCP tool surface
+(chat + capability-gated elicitation) is folded into M6**, since it edits the emitted `mcp_server.py`
+and the whole feature emits together then. M6 (emit + Desktop surface + docs + CI + doctor) is next.
 
 ## TL;DR
 
@@ -230,12 +232,16 @@ the natural `sqlite-vec` pattern and the leading choice. The exact layout — th
   load PDF sidecars while the note path stays byte-identical.
 - **M4 — Search returns a passage.** Chunk-grain RRF, `result_mode` shaping, the within-one-document
   mode, and source + page + snippet in results.
-- **M5 — Ingestion + Desktop path.** `add_pdf` (folder-first selection, move/copy, extract → chunk →
-  embed) and the two-mode selection UI (§2): the `list_inbox_pdfs`/`add_pdf` chat pattern as baseline,
-  elicitation as the capability-gated enhancement; a passage-fetch tool for Desktop parity.
-- **M6 — Docs, CI, emission, doctor.** "Add a PDF" section in the brain README, `requirements-pdf.txt`,
-  a new CI gate (deterministic sidecar fixture + opt-in semantic search test), doctor stale-detection
-  parity for PDF sidecars, and wiring into `emit-manifest.toml` so every generated brain ships it.
+- **M5 — Ingestion engine (CLI).** `add_pdf` — folder-first selection (`inbox_folders`/`list_pdfs`),
+  move/copy into `vault/<para>/`, extract → chunk → embed → load the cache, **no commit/push** — plus
+  the `[pdf]` config accessors (`pdf_config`) and the passage-fetch (`pdf_search.get_passage`).
+  CLI-usable and tested. The MCP/Desktop surface is emitted with the feature at M6 (below).
+- **M6 — Emit + Desktop surface + docs + CI + doctor.** Promote the PDF modules `exclude` → `verbatim`;
+  register the MCP tools (`list_inbox_pdfs` / `add_pdf` / passage search / passage-fetch) with the chat
+  baseline + capability-gated elicitation (§2), and unify passage search into `search_second_brain`;
+  add the `[pdf]` block to the emitted `config/features.toml`; an "Add a PDF" README section;
+  `requirements-pdf.txt`; a new CI gate (deterministic sidecar fixture + opt-in semantic test); and
+  doctor stale-detection parity for PDF sidecars.
 
 ## 6. Implementation steps (locked 2026-07-19)
 
@@ -250,9 +256,11 @@ Every step follows the dev loop: **prototype in the golden → `vendor_golden.py
    fixture sidecar. *(M2)*
 5. Schema + hydrate/update for the parallel PDF tables; prove the note path stays byte-exact. *(M3)*
 6. Search: chunk-grain RRF, `result_mode`, within-document mode, page/snippet rendering. *(M4)*
-7. `add_pdf` + folder-first selection + the dual-mode (chat / elicitation) UI + passage-fetch tool.
-   Confirm the FastMCP elicitation API (`ctx.elicit`) + capability detection at build time. *(M5)*
-8. README "Add a PDF", `requirements-pdf.txt`, CI gate, doctor parity, emit-manifest wiring. *(M6)*
+7. `add_pdf` engine — folder-first selection + move/copy + extract→chunk→embed→load, `pdf_config`,
+   and `pdf_search.get_passage`; CLI + tests. *(M5)*
+8. Emit (`exclude`→`verbatim`) + MCP tools (chat baseline + capability-gated elicitation, confirm
+   `ctx.elicit`) + unify passage search into `search_second_brain` + `[pdf]` config block + README
+   "Add a PDF" + `requirements-pdf.txt` + CI gate + doctor parity. *(M6)*
 
 ## Open items / risks
 
