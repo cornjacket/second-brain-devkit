@@ -9,7 +9,17 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-20)
-- **▶▶ NEXT — #38, a source folder you cannot read is reported as empty.** `add_pdf.list_pdfs`
+- **Done 2026-07-20 — #38, a source folder you cannot read is no longer reported as empty.**
+  Fixed everywhere it surfaces: `list_pdfs` raises instead of returning `[]`, a new
+  `folder_readable()` answers the question cheaply, `list_inbox_pdfs` reports `readable`
+  alongside `exists` and raises a `ValueError` that *tells the model not to call it empty*, the
+  CLI explains the denial and exits nonzero, `add_pdf_guided` stops offering folders it cannot
+  read, and `doctor.py` gained `check_pdf_sources` (informational — a protected folder is a local
+  setup fact, not a broken brain). Verified end-to-end against the real TCC-denied `~/Downloads`.
+  **Negative-tested:** the old expression was confirmed to return `[]` on the same fixture the new
+  test raises on, so the test discriminates rather than merely passing. Golden `d5fb3e6`;
+  62 golden tests + 14 CI gates green. *Original description below.*
+- **~~▶▶ NEXT~~ — #38, a source folder you cannot read is reported as empty.** `add_pdf.list_pdfs`
   tests `folder.is_dir()` (true) and then `folder.glob("*.pdf")` — which **swallows
   `PermissionError` and returns `[]`** — so "denied" and "empty" are the same answer, in the
   function, in the `list_inbox_pdfs` MCP tool, and in that tool's `"exists": true` field. Found by
