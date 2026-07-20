@@ -1,16 +1,16 @@
 # PDF ingestion — chunk-and-embed long documents (task #7)
 
-**Status:** Design (M0) locked 2026-07-19. **M1–M5 done; M6 next.** This is the agreed blueprint
-from a design walkthrough; the milestones (§5) and the detailed step list (§6) are settled. Built so
-far, prototyped in the golden: M1 (`chunker.py` + `pdf_extract.py`), M2 (`embed_pdf.py`, the
-chunk-list sidecar writer, with a byte-exact `test`-backend fixture), M3 (`pdf_cache.py`, the
-bolt-on `pdf_chunks`/`_meta`/`_fts` tables + loader, wired into `hydrate_cache.py` behind a
-defensive import so a brain's note path stays byte-identical), M4 (`pdf_search.py`, chunk-grain
-RRF passage search with `best_per_source`/`all_chunks` shaping and a within-document mode), and M5
-(`add_pdf.py`, the CLI ingest engine — folder-first selection + move/copy + extract → chunk → embed
-→ load, no commit/push — plus `pdf_config.py` and `pdf_search.get_passage`). **The MCP tool surface
-(chat + capability-gated elicitation) is folded into M6**, since it edits the emitted `mcp_server.py`
-and the whole feature emits together then. M6 (emit + Desktop surface + docs + CI + doctor) is next.
+**Status:** Design (M0) locked 2026-07-19. **M1–M6 done — PDF ingestion shipped.** Every generated
+brain now ingests and searches PDFs end to end. Built, prototyped in the golden, emitted, and gated:
+M1 (`chunker.py` + `pdf_extract.py`), M2 (`embed_pdf.py`, chunk-list sidecar, byte-exact fixture),
+M3 (`pdf_cache.py`, the bolt-on `pdf_chunks`/`_meta`/`_fts` tables + loader wired into
+`hydrate_cache.py` so the note path stays byte-identical), M4 (`pdf_search.py`, chunk-grain RRF
+passage search + shaping + within-document + `get_passage`), M5 (`add_pdf.py`, the ingest engine +
+`pdf_config.py`), and M6 (all seven modules promoted to `verbatim`; the `[pdf]` config block; the
+four MCP tools `list_inbox_pdfs`/`add_pdf`/`search_pdf_passages`/`get_pdf_passage`; the "Add a PDF"
+README section; `requirements-pdf.txt`; CI gate 14; and doctor PDF parity). **Deferred:** MCP
+*elicitation* (a client-rendered selection form) — Claude Desktop's chat surface does not implement
+it (§2), and chat selection works everywhere, so it is a future enhancement, not a blocker.
 
 ## TL;DR
 
