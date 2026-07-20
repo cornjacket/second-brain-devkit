@@ -115,7 +115,7 @@ A new `[pdf]` block in `config/features.toml` (read via `scripts/features.py`, s
 
 ```toml
 [pdf]
-inbox_dirs     = ["vault/inbox", "~/Downloads"]  # source folders, priority order (first shown first)
+inbox_dirs     = ["vault/inbox"]  # source folders, priority order (first shown first)
 list_sort      = "newest"      # how folder contents are ordered: "newest" | "alphabetical"
 list_page_size = 20            # how many entries to enumerate before paginating
 chunk_tokens   = 512           # target chunk size (tokens)
@@ -125,6 +125,30 @@ move_from_inbox = true         # move (vs copy) the file out of a source folder 
 ```
 
 Note the parser itself is an **optional pip dependency** (`requirements-pdf.txt`), not a config key.
+
+### 3.1 `~/Downloads` is deliberately not a default (task #38, 2026-07-20)
+
+`inbox_dirs` originally shipped as `["vault/inbox", "~/Downloads"]`. Downloads is where a user
+*actually* has PDFs, so it looked like the helpful default. It was removed, for a reason worth
+recording because it will recur for any folder we are tempted to add:
+
+**macOS gates `~/Downloads`, `~/Desktop` and `~/Documents` behind per-app consent (TCC), and the
+consent dialog can only be presented to a GUI app with bundle identity.** Our scripts — the CLI,
+the MCP server, anything launched from a terminal or by `launchd` — are plain processes. They
+inherit whatever the parent was granted and cannot trigger a prompt of their own, so on a machine
+where the terminal lacks the grant, the folder is refused outright with `EPERM` and **no dialog
+the user could ever say yes to**. The user sees a source folder that reports nothing, and nothing
+tells them why.
+
+That combined with the #38 bug (a denial read as an empty folder) made this the worst kind of
+default: it pointed at the right place, failed silently, and blamed nothing. #38 fixed the
+silence; removing the default fixes the **false promise**. `vault/inbox` lives inside the brain,
+is not TCC-protected, and always works.
+
+The lesson generalizes: **do not ship a default that depends on a permission the software cannot
+request.** A user can add `~/Downloads` back by hand — and if they do, `doctor.py` reports it as
+unreadable and listing it raises, so the failure is now legible. Finder holds the grant and the
+user is the consenting party, so *moving the file* is the reliable path, not *reaching for it*.
 
 ## 4. Architecture — the bolt-on schema
 
