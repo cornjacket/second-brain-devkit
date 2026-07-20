@@ -175,6 +175,7 @@ paths = [
   "tests/test_add_pdf.py",
   "tests/test_mcp_pdf.py",
   "tests/test_doctor_pdf.py",
+  "tests/test_pdf_gitignore.py",
   "tests/fixtures/pdf/sample.embed.json",
 ]
 
@@ -194,4 +195,5 @@ paths = [
 "tests/test_add_pdf.py" = "dev-only regression test for the M5 ingest engine (task #7) — folder-first selection (pypdf-free) plus an end-to-end ingest that builds a PDF and skips when pypdf is absent. A brain ships the tool, not its test."
 "tests/test_mcp_pdf.py" = "dev-only regression test for the M6 PDF MCP tools (task #7) — the ingest security boundary plus an end-to-end list/add/search/fetch flow; skips without mcp/pypdf. A brain ships the tools, not their test."
 "tests/test_doctor_pdf.py" = "dev-only regression test for doctor's M6 PDF parity (task #7) — a PDF sidecar is never mis-flagged in the note pass, and a consistent PDF scans clean. A brain ships the tool, not its test."
+"tests/test_pdf_gitignore.py" = "dev-only guard that an ingested PDF is genuinely git-ignored, not merely untracked (task #39) — asks `git check-ignore` rather than grepping the file, so a rule that is present but wrong still fails. A brain ships the .gitignore, not its test."
 "requirements-pdf.txt" = "PDF ingestion (task #7) optional-dep manifest — built at M1, NOT YET EMITTED. Promote to `verbatim` at M6 when a brain gains the add_pdf command. See docs/pdf-ingestion.md."

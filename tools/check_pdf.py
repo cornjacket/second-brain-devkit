@@ -36,6 +36,7 @@ SUITES = [
     "test_add_pdf.py",      # M5 — selection + end-to-end ingest (ingest skips w/o pypdf)
     "test_mcp_pdf.py",      # M6 — MCP tools (skips w/o mcp/pypdf)
     "test_doctor_pdf.py",   # M6 — doctor PDF parity (no mis-flag; stale check w/ pypdf)
+    "test_pdf_gitignore.py",  # #39 — an ingested PDF is ignored, not merely untracked
 ]
 
 
