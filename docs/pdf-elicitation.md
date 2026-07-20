@@ -98,13 +98,42 @@ three-step flow and asserts it ingests the chosen file; a fake `ctx` whose `elic
 raises) asserts the fallback message and that nothing is ingested. `add_pdf.add_pdf` is stubbed so
 the flow test needs no pypdf. (`tests/test_mcp_pdf.py`, gate 14.)
 
+## ▶ NEXT ACTION — run the live diagnosis (ready as of 2026-07-20)
+
+**Everything is in place; this needs a human at an interactive CLI and takes two minutes.**
+Task #40 shipped, so a fallback now says *why*. `~/second-brain` was upgraded to carry it
+(`update_brain.py --apply`, brain commit `6943494`).
+
+**Steps**
+
+1. **Restart Claude Code.** Non-negotiable and easy to forget: the MCP server is a subprocess
+   spawned at session start, so an already-running session still holds the *old* code in memory
+   and will reproduce the old uninformative message.
+2. **Put a PDF in `~/second-brain/vault/inbox`** — drag it there in Finder. (`~/Downloads` is no
+   longer a source folder, and macOS would not let the server read it anyway; see
+   [pdf-ingestion.md §3.1](pdf-ingestion.md).) Without a PDF the run stops at "No PDFs in …"
+   before any form appears, which proves nothing.
+3. **Ask for the guided picker** — e.g. *"add a PDF using the guided picker"*, which calls
+   `add_pdf_guided`.
+
+**Read the result — each outcome is now conclusive**
+
+| What appears | Verdict | Then |
+| --- | --- | --- |
+| A **form** to pick a folder | Elicitation works on this surface | Finish the three picks; the live pass is **done**, close the #7 follow-up |
+| "*…did not declare MCP elicitation support*" + client name/version | The surface genuinely lacks it | Record the client name here; it is the parity fact the docs have been guessing at |
+| "*…failed at the 'source folder' step — `<error>`*" | A **bug**, not a capability gap | The error text is the lead; file it |
+| "*Selection cancelled…*" (and you did not cancel) | Client declared support then sent a **synthetic cancel** | This is the #56243 shape appearing on the CLI — worth reporting upstream |
+
+**Why this is worth doing rather than dropping:** on 2026-07-20 the picker fell back on Claude
+Code CLI **2.1.215**, while upstream [#2799](https://github.com/anthropics/claude-code/issues/2799)
+(CLI elicitation support) is closed as completed and #56243's own body states the CLI renders
+forms correctly. Those cannot all be true. One run now resolves it.
+
 ## Open items
 
-- **Task #40 first — make the failure legible.** Blocks the live pass below: today a genuine
-  "unsupported" and a stray Escape produce the same message, so a run cannot be interpreted.
-- **Live pass on the Claude Code CLI** — the form UX itself can only be confirmed against a real
-  elicitation-capable client; add it to the Desktop-e2e-style manual checklist. Note the observed
-  2026-07-20 fallback happened on the CLI, so this is now a *diagnosis*, not a formality.
+- **Live pass on the Claude Code CLI** — see the NEXT ACTION block above; it is a *diagnosis*,
+  not a formality, because the 2026-07-20 fallback happened on a CLI that should support this.
 - **Desktop, if it ever ships elicitation** — the same tool lights up with zero changes. Do not
   watch #56243 (closed as a duplicate and locked); there is no live upstream issue tracking the
   Desktop form-mode gap. SEP-1306 (binary-mode elicitation, for a true native file picker) is
