@@ -1,8 +1,10 @@
 # PDF ingestion — chunk-and-embed long documents (task #7)
 
-**Status:** Design (M0) locked 2026-07-19. **M1 in progress.** This is the agreed blueprint from a
-design walkthrough; the milestones (§5) and the detailed step list (§6) are settled. Building has
-started at M1 (`chunker.py` + `pdf_extract.py` + a fixture PDF), prototyped in the golden.
+**Status:** Design (M0) locked 2026-07-19. **M1 + M2 done; M3 next.** This is the agreed blueprint
+from a design walkthrough; the milestones (§5) and the detailed step list (§6) are settled. Built so
+far, prototyped in the golden: M1 (`chunker.py` + `pdf_extract.py`) and M2 (`embed_pdf.py`, the
+chunk-list sidecar writer, with a byte-exact `test`-backend fixture). M3 (cache schema +
+hydrate/update) is next.
 
 ## TL;DR
 
