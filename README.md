@@ -121,6 +121,32 @@ marked `type: glossary`. The scheme is advertised as **PARA(G)** — an orthogon
 - **Built prototype-first** in the golden, like every feature. Design + rationale:
   [docs/glossary.md](docs/glossary.md); per-brain contract in the product spec §2.1.
 
+### PDF ingestion — make a long document searchable by passage
+
+Notes are the core, but a brain can also ingest a **PDF** and make it searchable *by passage*:
+the document is split into overlapping chunks, each embedded, so a hit points at *the passage on
+page 12* — not "somewhere in this file." This deliberately breaks the "one note = one vector"
+rule (many chunk-vectors per source), solved as a **bolt-on** so the note path stays
+byte-identical.
+
+- **Local and git-ignored.** The PDF lands in the vault but is never committed (nor its search
+  index), so ingesting one costs no commit and no push — a binary stays local until Git-LFS
+  lands. `pypdf` is an optional dependency (`requirements-pdf.txt`); a brain without it still
+  works, PDFs just stay unavailable.
+- **One ingest step, immediately searchable.** `add_pdf` extracts → chunks → embeds → loads the
+  cache in one move; passages are queryable at once via a dedicated CLI and four MCP tools
+  (`list_inbox_pdfs` / `add_pdf` / `search_pdf_passages` / `get_pdf_passage`), kept separate from
+  note search so each stays clean. On an elicitation-capable client (the Claude Code CLI),
+  `add_pdf_guided` walks folder → PDF → PARA as interactive forms.
+- **Honest about source folders.** A source folder the process cannot read (macOS keeps
+  `~/Downloads`/`~/Desktop`/`~/Documents` behind per-app consent a plain script can't obtain) no
+  longer masquerades as *empty*: listing fails loudly and `doctor.py` names it unreadable, so a
+  permission problem never looks like "no PDFs here." The one folder configured out of the box,
+  `vault/inbox`, lives inside the brain and is always readable.
+- **Built prototype-first** in the golden, with `doctor.py` PDF parity (stale / orphaned chunk
+  detection). Design + rationale: [docs/pdf-ingestion.md](docs/pdf-ingestion.md); the interactive
+  picker in [docs/pdf-elicitation.md](docs/pdf-elicitation.md).
+
 ## The Kit's Mission
 
 This repository is a **generator**. Spinning up a new Second Brain with it should
