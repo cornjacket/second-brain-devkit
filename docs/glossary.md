@@ -1,12 +1,12 @@
 # Glossary — a controlled-vocabulary layer for the brain
 
 **Status:** **increment 1 BUILT 2026-07-12** — the namespace + convention emit into every brain:
-`vault/glossary/` (non-PARA sibling) with `glossary/README.md`,
+`vault/glossary/` (non-PARA sibling) with a root-level `GLOSSARY.md` guide,
 `type: glossary` marker, `scripts/glossary_new.py` (dedup-checked term scaffolder; the term shape
 is **embedded in the script** — the tool owns the shape it produces, so it survives the
 `update_brain.py` path, which re-emits tooling but never the vault — see §7.1),
-embedding-exclusion (verified — falls out of PARA-scoping for free), and dual-README + SPEC §2.1
-docs (PARA → PARA(G)). Unblocks #20/#21. **Increment 2 BUILT 2026-07-12** — `scripts/glossary_scan.py`,
+embedding-exclusion (verified — falls out of PARA-scoping for free), and `GLOSSARY.md` + brain-README
++ SPEC §2.1 docs (PARA → PARA(G)). Unblocks #20/#21. **Increment 2 BUILT 2026-07-12** — `scripts/glossary_scan.py`,
 the on-demand body-link pass: report by default / `--apply` inserts `[[term]]` at the first unlinked
 occurrence per note, **idempotent** (skips already-linked terms), skips text inside existing
 wikilinks; verified in the golden (report → apply → no-op re-run). **Remaining:** the flashcard/graph
@@ -182,12 +182,12 @@ system.
   `tag:#glossary` colors every glossary node as a group **out of the box**, no custom tool.
   Per-*term* highlighting would need a plugin; **defer it**.
   **The query is settled — use the tag, not the folder.** `path:glossary/` was the documented
-  alternative and is wrong on two counts, both decidable without opening Obsidian: it also
-  matches `vault/glossary/README.md`, which is documentation rather than a term (the acceptance
-  bar is "glossary notes *and only* glossary notes"), and `path:` is relative to the vault root,
-  so it silently breaks depending on whether the user opens the vault at the brain root or at
-  `vault/`. Every term carries `tags: [glossary]` from `glossary_new.py`, so the tag query is
-  exact and root-independent.
+  alternative and is wrong because `path:` is relative to the vault root, so it silently breaks
+  depending on whether the user opens the vault at the brain root or at `vault/`. (It once had a
+  second problem too — it also matched the in-folder `glossary/README.md`, documentation rather
+  than a term — but that guide has since moved out of the vault to a root-level `GLOSSARY.md`, so
+  the folder now holds terms only; the root-dependence argument alone still settles it.) Every term
+  carries `tags: [glossary]` from `glossary_new.py`, so the tag query is exact and root-independent.
 
 **Both are hand-tested before they are documented.** Each depends on a third party we do not
 control — the *Spaced Repetition* plugin's card parser and Obsidian's graph-query syntax — and
@@ -206,14 +206,14 @@ the tool owns the shape — rather than working around it in prose. See the #19 
 Order by value / cost; earlier items must earn the later ones:
 
 1. **Convention** — `vault/glossary/` folder + `type: glossary` marker + the "link on
-   (second) use" rule + a starter `glossary/README.md` + the **term shape** (the flashcard
+   (second) use" rule + a root-level `GLOSSARY.md` guide + the **term shape** (the flashcard
    form: `Term ? <definition>` + `#flashcards/…` deck tag). **Decision (2026-07-12):** the shape
    is **embedded in `glossary_new.py`**, not a separate `templates/glossary-term.md` file. A
    vault template would be seeded only at *create* time and stranded on the `update_brain.py`
    path (which never writes the vault), breaking the scaffolder on an upgraded brain; and reading
    it back from `seeds/` is semantically wrong (that's the generation baseline, not a runtime
    resource, and it would ignore user edits). The tool owning its output shape is the single
-   source of truth; `glossary/README.md` documents the same shape for hand-authors.
+   source of truth; the root-level `GLOSSARY.md` documents the same shape for hand-authors.
 2. **New-term helper** — `glossary_new.py <term>`: slugify, **dedup-check** (refuse if the term
    exists, printing its path), else scaffold from the **built-in** shape, print the path
    (never open/overwrite — detect-and-instruct). Guarantees every card is plugin-valid; its value
@@ -224,9 +224,9 @@ Order by value / cost; earlier items must earn the later ones:
 5. **Flashcards** — free once the note structure is consistent.
 6. **Plugin / per-term graph coloring** — last, if ever.
 
-Generated brains ship the **empty** `glossary/` folder + its README + the scanner + the
-embed-exclusion — **not** pre-filled terms (the vocabulary is the user's to curate). The
-brain README documents the convention and the scan command.
+Generated brains ship the **empty** `glossary/` folder (a `.gitkeep`) + a root-level `GLOSSARY.md`
+guide + the scanner + the embed-exclusion — **not** pre-filled terms (the vocabulary is the user's
+to curate). The brain README documents the convention and the scan command, and links to `GLOSSARY.md`.
 
 ## 8. Candidate seed terms (from the design conversation)
 

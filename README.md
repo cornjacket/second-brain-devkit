@@ -111,7 +111,7 @@ marked `type: glossary`. The scheme is advertised as **PARA(G)** — an orthogon
   the `[[term]]` link graph (the *symbolic* layer), not vector proximity. This needs **no
   exclusion code** — every embed/cache/`doctor` path already scopes to
   `PARA_ROOTS = (projects, areas, resources, archive)`, and `glossary/` simply isn't one.
-- **Emitted, not pre-filled.** Brains ship the empty folder + `glossary/README.md` +
+- **Emitted, not pre-filled.** Brains ship the empty folder + a root-level `GLOSSARY.md` guide +
   `scripts/glossary_new.py` (dedup-checked term scaffolder — the term shape is embedded in
   the script, so it survives `update_brain.py`, which re-emits tooling but never the vault;
   it also links the new term where it already appears) + `scripts/glossary_scan.py` (on-demand,
