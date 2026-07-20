@@ -35,6 +35,7 @@ SUITES = [
     "test_pdf_search.py",   # M4 — chunk-grain passage search + shaping
     "test_add_pdf.py",      # M5 — selection + end-to-end ingest (ingest skips w/o pypdf)
     "test_mcp_pdf.py",      # M6 — MCP tools (skips w/o mcp/pypdf)
+    "test_doctor_pdf.py",   # M6 — doctor PDF parity (no mis-flag; stale check w/ pypdf)
 ]
 
 
