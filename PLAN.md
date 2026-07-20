@@ -8,7 +8,18 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-13)
+## ▶ Next up (2026-07-20)
+- **▶▶ NEXT — #38, a source folder you cannot read is reported as empty.** `add_pdf.list_pdfs`
+  tests `folder.is_dir()` (true) and then `folder.glob("*.pdf")` — which **swallows
+  `PermissionError` and returns `[]`** — so "denied" and "empty" are the same answer, in the
+  function, in the `list_inbox_pdfs` MCP tool, and in that tool's `"exists": true` field. Found by
+  **dogfooding, not by a test**: ingesting a real PDF hit macOS TCC on `~/Downloads`, which is
+  both a default source folder and protected by default on macOS, so this is on the **happy
+  path** for any Mac user. The failure is silent — a CLI/daemon process gets no consent prompt,
+  just `EPERM`. Fix: distinguish the two in `list_pdfs`, surface a `readable` signal on
+  `list_inbox_pdfs`, and preflight source folders in `doctor.py`. **The fixture worth building is
+  a folder the test process genuinely cannot read** — a test that only covers "empty" reproduces
+  the bug's own blind spot. Prototype in the golden → vendor → template → `tools/ci.py`.
 - **▶▶ NEXT — #34, Desktop e2e against your real brain (disposable-branch harness).** The #33 suite
   assumes a throwaway fixture brain, but Desktop is configured to point at the real `~/second-brain`,
   so a fresh brain means reconfiguring Desktop every run. Instead run the scenarios on a **disposable
@@ -1506,11 +1517,19 @@ requirement**); they also produce the material for a future GitHub tutorial.
                     scaffold in `glossary_new.py`, don't paper over it in the README.
         - [ ] **Graph colour.** Document the native Obsidian graph-view colour group that makes
               glossary terms visually distinct from PARA notes (no plugin needed).
+              - [x] **Query settled 2026-07-20 — `tag:#glossary`, decided from the repo.** The docs
+                    disagreed (`path:glossary/` vs `tag:#glossary`) and this was filed as needing a
+                    human at a graph view, but only half of it did. The folder query is wrong on two
+                    counts, both checkable without Obsidian: it also matches
+                    `vault/glossary/README.md` (documentation, not a term — violating the "*only*
+                    glossary notes" bar), and `path:` is relative to the vault root, so it breaks
+                    depending on where the user opens the vault. Every term carries
+                    `tags: [glossary]` from `glossary_new.py`. The folder alternative is no longer
+                    mentioned in any doc.
               - [ ] **Manual test (acceptance):** add the colour group in Obsidian's graph view and
-                    confirm glossary notes — and *only* glossary notes — pick up the colour. **Settle
-                    the query while doing it:** `path:glossary/` (folder) vs `tag:#glossary` (tag) are
-                    both plausible and the docs currently disagree; test both, document the one that
-                    actually works, and make the other stop being mentioned.
+                    confirm glossary notes — and *only* glossary notes — pick up the colour. Now a
+                    yes/no confirmation that Obsidian's colour group accepts `tag:#glossary`, not a
+                    comparison of two candidates.
         A per-term-colouring plugin is last, if ever. Sequence: convention → embed-exclusion →
         scanner → flashcards → graph colour. Not started.
 

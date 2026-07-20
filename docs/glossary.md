@@ -179,15 +179,24 @@ system.
   plugin can generate cards directly — no bespoke tooling. The only requirement on us is
   structural consistency (don't retrofit 50 notes later).
 - **Graph highlighting.** Obsidian's graph view has **native color groups by query** —
-  `tag:#glossary` (or `path:glossary/`) colors every glossary node as a group **out of the
-  box**, no custom tool. Per-*term* highlighting would need a plugin; **defer it**.
+  `tag:#glossary` colors every glossary node as a group **out of the box**, no custom tool.
+  Per-*term* highlighting would need a plugin; **defer it**.
+  **The query is settled — use the tag, not the folder.** `path:glossary/` was the documented
+  alternative and is wrong on two counts, both decidable without opening Obsidian: it also
+  matches `vault/glossary/README.md`, which is documentation rather than a term (the acceptance
+  bar is "glossary notes *and only* glossary notes"), and `path:` is relative to the vault root,
+  so it silently breaks depending on whether the user opens the vault at the brain root or at
+  `vault/`. Every term carries `tags: [glossary]` from `glossary_new.py`, so the tag query is
+  exact and root-independent.
 
 **Both are hand-tested before they are documented.** Each depends on a third party we do not
 control — the *Spaced Repetition* plugin's card parser and Obsidian's graph-query syntax — and
 neither is reachable from `tools/ci.py`, which never opens Obsidian. So there is no automated
 evidence to be had here and inspection is not evidence: "the shape looks like what the plugin
-wants" is a guess until a card is actually reviewed in a real vault, and the two graph queries
-above cannot *both* be right. Exercise each in Obsidian, document what actually worked (with the
+wants" is a guess until a card is actually reviewed in a real vault. The graph query no longer
+needs a comparison — the folder alternative was ruled out from the repo (see above), so what is
+left is a yes/no: confirm Obsidian's color group accepts `tag:#glossary`. Exercise both in
+Obsidian, document what actually worked (with the
 plugin version), and if the term shape turns out to need a tweak, fix it in `glossary_new.py` —
 the tool owns the shape — rather than working around it in prose. See the #19 subtasks in
 [PLAN.md](../PLAN.md).
