@@ -20,9 +20,45 @@ same emitted tool is safe on Claude Desktop (chat) and richer on Claude Code (fo
 
 MCP defines an elicitation capability (the server asks the client to render a form and return a
 structured answer). **Claude Desktop's Chat surface does not implement it** — it returns an
-immediate *cancelled* (Anthropic issue #56243). **Claude Code (the CLI) does** (since v2.1.76). So
-elicitation is the "good experiment" for the CLI; Desktop keeps the chat baseline. See
+immediate *cancelled*. **Claude Code (the CLI) is believed to implement it.** So elicitation is
+the "good experiment" for the CLI; Desktop keeps the chat baseline. See
 [pdf-ingestion.md §2](pdf-ingestion.md).
+
+### Upstream status — rechecked 2026-07-20
+
+The earlier citation of a single issue number was misleading; here is what the tracker actually
+says, and what remains unknown.
+
+| Issue | Subject | State |
+| --- | --- | --- |
+| [#2799](https://github.com/anthropics/claude-code/issues/2799) | Add support for MCP elicitation (the CLI) | **CLOSED / COMPLETED** 2026-04-25 |
+| [#56243](https://github.com/anthropics/claude-code/issues/56243) | Desktop chat returns `cancel` without rendering; CLI works | **CLOSED as DUPLICATE** of #48164, then locked — *never fixed* |
+| [#48164](https://github.com/anthropics/claude-code/issues/48164) | **URL-mode** elicitation not supported in the CLI | **OPEN** (reopened) |
+
+Three things follow:
+
+- **The Desktop gap is real but effectively untracked upstream.** #56243 was auto-closed as a
+  duplicate of #48164 by a bot, and the two are not the same bug — #56243 is *form*-mode in
+  Desktop, #48164 is *URL*-mode in the CLI. Do not read "closed" as "fixed"; nothing in the
+  thread claims a fix. Cite it as history, not as a live tracking issue.
+- **#48164 does not apply to us.** We use form mode (a one-field schema with a `Literal` enum),
+  not URL mode. Its being open is not a blocker for this design.
+- **The "since v2.1.76" version claim has been removed** — it could not be corroborated from a
+  primary source, and it is inconsistent with #2799 closing on 2026-04-25. Moot in practice: the
+  observed fallback below happened on **2.1.215**, far past any candidate version.
+
+### The unexplained fallback (open — task #40)
+
+On 2026-07-20, `add_pdf_guided` fell back to the chat flow on **Claude Code CLI 2.1.215**, with
+#2799 closed as completed. That contradicts the table above, and **we cannot yet say why**:
+`_elicit_choice` catches every exception and treats every non-`accept` action alike, so
+"unsupported", "you cancelled", and "the request errored" are one indistinguishable outcome. The
+fallback string asserts the *first* of those, which is a guess the code is not entitled to make.
+
+Compounding it, a client lacking the capability returns a synthetic `{"action":"cancel"}` — byte
+-identical to a human pressing Escape. So guessing is unavoidable *unless the server checks the
+declared capability first*, which it does not. **Task #40 fixes the diagnostics; until it lands,
+a live CLI pass cannot be interpreted** — a genuine failure and a stray Escape look the same.
 
 ## Design
 
@@ -64,7 +100,12 @@ the flow test needs no pypdf. (`tests/test_mcp_pdf.py`, gate 14.)
 
 ## Open items
 
+- **Task #40 first — make the failure legible.** Blocks the live pass below: today a genuine
+  "unsupported" and a stray Escape produce the same message, so a run cannot be interpreted.
 - **Live pass on the Claude Code CLI** — the form UX itself can only be confirmed against a real
-  elicitation-capable client; add it to the Desktop-e2e-style manual checklist.
-- **Desktop, if it ever ships elicitation** — the same tool lights up with zero changes; watch
-  issue #56243 and SEP-1306 (binary-mode elicitation for a true native file picker).
+  elicitation-capable client; add it to the Desktop-e2e-style manual checklist. Note the observed
+  2026-07-20 fallback happened on the CLI, so this is now a *diagnosis*, not a formality.
+- **Desktop, if it ever ships elicitation** — the same tool lights up with zero changes. Do not
+  watch #56243 (closed as a duplicate and locked); there is no live upstream issue tracking the
+  Desktop form-mode gap. SEP-1306 (binary-mode elicitation, for a true native file picker) is
+  separate and still of interest.

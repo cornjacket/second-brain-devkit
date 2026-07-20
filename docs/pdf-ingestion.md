@@ -86,10 +86,12 @@ later.
 
 MCP defines an **elicitation** capability (a server asks the client to render a form and return a
 structured answer), and `enum` fields are supported — so the folder/PDF/destination choices could be
-dropdowns. **But Claude Desktop's Chat surface does not implement elicitation** (it returns an
-immediate *cancelled* response with no UI — Anthropic issue #56243, confirmed 2026-07-18). **Claude
-Code (the CLI) does** support it (since v2.1.76). Desktop's `roots` support is unconfirmed and is not
-relied upon anyway (a local server reads its configured folders directly).
+dropdowns. **Claude Desktop's Chat surface does not implement elicitation** (it returns an immediate
+*cancelled* response with no UI). **Claude Code (the CLI) is believed to** support it — but a
+fallback was observed there on 2026-07-20 and remains unexplained; the client-support table and the
+open question live in [pdf-elicitation.md](pdf-elicitation.md), which is authoritative for this.
+Desktop's `roots` support is unconfirmed and is not relied upon anyway (a local server reads its
+configured folders directly).
 
 **Design: one shared enumeration core, two presentations, chosen by client capability.**
 
