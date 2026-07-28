@@ -1,4 +1,4 @@
-# Daily plan — 2026-07-27
+# Daily plan — 2026-07-28
 
 **What this repo is (for a newcomer):** `second-brain-devkit` is a *generator*. It builds a personal
 "second brain" — a plain-Markdown notes vault a human edits in Obsidian, plus a local SQLite
