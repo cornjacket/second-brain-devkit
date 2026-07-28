@@ -42,7 +42,9 @@ PARTITION = REPO_ROOT / "tools" / "check_manifest_partition.py"
 # are never vendored at ALL. Their content is unique to whichever repo they live in —
 # an ai-project-status daily-plan is dated and repo-specific — so snapshotting them
 # would only churn tests/golden and couple the two repos' plans. Keep this minimal.
-VENDOR_IGNORE = {"daily-plan.md"}
+# `project-status-guide.md` is the same class: installed and overwritten in place by the
+# tracker in every repo it monitors, so it belongs to no single one of them.
+VENDOR_IGNORE = {"daily-plan.md", "project-status-guide.md"}
 
 
 def tracked_files(golden: Path) -> list[str]:

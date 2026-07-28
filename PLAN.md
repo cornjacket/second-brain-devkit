@@ -8,8 +8,24 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-20)
-- [ ] **▶▶ NEXT — #39, an embed-excluded block so decorative text (ASCII diagrams) stays in a note without polluting its vector.** A note can carry visual, non-semantic content — an ASCII roadmap, a box-drawn diagram — that a *reader* wants but the *embedder* should never see. Two problems today: (1) `canonical_body()` keeps everything except frontmatter + wikilink markup, so the art is embedded, **diluting the semantic vector** with tokens that carry no meaning; and (2) box-drawing/table characters are brutally token-dense, so a note **well under the 300-line guideline can still overflow nomic-embed's 2048-token context** and fail to embed at all (`{"error":"the input length exceeds the context length"}`). **Found by dogfooding, not a test:** adding `projects/career-plan.md` to the real brain (2026-07-20) — a 148-line note with one ASCII roadmap — 500'd on commit; the art had to be stripped by hand to ingest. **Line-count is the wrong proxy for the embed budget** — measure tokens, not lines. Fix: a marker convention (reuse `scripts/marked_block.py` from task #10) fences the decorative region; `canonical_body()` strips it **before embedding** — the same view the content hash / stale-embedding detector (task #30) reads, so editing the art must **not** re-embed or flag the vector stale. Note the design choice: the answer is to *exclude* the block, **not** to raise `num_ctx` — even if a bigger context fit the art, embedding decorative box-art degrades retrieval quality. The marker must be Obsidian-benign (renders as a normal code block for the human). Prototype in the golden → vendor → template → CI gate. → new `docs/embed-excluded-block.md`.
+## ▶ Next up (2026-07-28)
+- **Done 2026-07-28 — #39, an embed-excluded block so decorative text stays in a note
+  without polluting its vector.** A region fenced between
+  `<!-- second-brain:no-embed:begin -->` and `<!-- second-brain:no-embed:end -->` is cut from
+  `canonical_body()`, so it leaves the embedding, the content hash, and the FTS body together —
+  which is what makes **redrawing a diagram free**: no re-embed, no `doctor` staleness. HTML-comment
+  markers (Obsidian hides them, so the art renders exactly as written), same
+  `second-brain:<feature>:begin/end` shape as the other marked blocks; `marked_block.py` gained a
+  *total* read side (`remove_all_blocks` / `unpaired_markers`) because a projection must not throw
+  on the malformed note `doctor` is trying to explain. Two **advisory** pre-commit warnings — an
+  unpaired marker excludes nothing; a canonical view near the context budget — where
+  `estimate_tokens` measures the right thing (**tokens, not lines**: the reconstructed motivating
+  note is 50 lines and ~1882 tokens, 10 once fenced). Rejected raising `num_ctx`: art that *fits*
+  still degrades the vector. The **unmarked** path is bit-identical and pinned twice, so no existing
+  brain reads as stale. Ships in every brain (incl. a `self_test` invariant and an `add_note`
+  docstring for the Desktop write path); dev-only `tests/test_note_view.py` (21 tests) + **CI gate
+  15**. → [docs/embed-excluded-block.md](docs/embed-excluded-block.md)
+- [x] **#39 spec (kept for provenance)** — A note can carry visual, non-semantic content — an ASCII roadmap, a box-drawn diagram — that a *reader* wants but the *embedder* should never see. Two problems today: (1) `canonical_body()` keeps everything except frontmatter + wikilink markup, so the art is embedded, **diluting the semantic vector** with tokens that carry no meaning; and (2) box-drawing/table characters are brutally token-dense, so a note **well under the 300-line guideline can still overflow nomic-embed's 2048-token context** and fail to embed at all (`{"error":"the input length exceeds the context length"}`). **Found by dogfooding, not a test:** adding `projects/career-plan.md` to the real brain (2026-07-20) — a 148-line note with one ASCII roadmap — 500'd on commit; the art had to be stripped by hand to ingest. **Line-count is the wrong proxy for the embed budget** — measure tokens, not lines. Fix: a marker convention (reuse `scripts/marked_block.py` from task #10) fences the decorative region; `canonical_body()` strips it **before embedding** — the same view the content hash / stale-embedding detector (task #30) reads, so editing the art must **not** re-embed or flag the vector stale. Note the design choice: the answer is to *exclude* the block, **not** to raise `num_ctx` — even if a bigger context fit the art, embedding decorative box-art degrades retrieval quality. The marker must be Obsidian-benign (renders as a normal code block for the human). Prototype in the golden → vendor → template → CI gate. → new `docs/embed-excluded-block.md`.
 - **Done 2026-07-20 — #38, a source folder you cannot read is no longer reported as empty.**
   Fixed everywhere it surfaces: `list_pdfs` raises instead of returning `[]`, a new
   `folder_readable()` answers the question cheaply, `list_inbox_pdfs` reports `readable`

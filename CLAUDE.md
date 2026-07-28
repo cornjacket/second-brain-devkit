@@ -20,6 +20,7 @@ spec so they cannot drift.
 - MCP hardening — nothing may hang the server (task #24, done; CI gate 12) → [docs/mcp-hardening.md](docs/mcp-hardening.md)
 - Partial-commit index poisoning — the `add_note` content-corruption bug (task #28, fixed; **awaiting review**) → [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)
 - Stale-embedding detection — doctor flags a vector that predates the note's canonical view (task #30, built) → CI gate 11 (`tools/check_doctor_stale.py`)
+- Embed-excluded block — decorative regions (ASCII art, diagrams) fenced in `<!-- second-brain:no-embed:begin/end -->` are cut from `canonical_body()`, so they leave **both** the embedding and the content hash (task #39, built; CI gate 15 `tools/check_embed_excluded.py`). Line count is the wrong proxy for the embed budget — the budget is tokens. → [docs/embed-excluded-block.md](docs/embed-excluded-block.md)
 - Tag hygiene — deterministic detector + backfill applier + write-time near-miss warning, emitted into every brain (task #32, Stages 1–6 done; CI gate 13 `tools/check_tag_lint.py`; read-only MCP tool deferred) → [docs/tag-hygiene.md](docs/tag-hygiene.md)
 - Claude Desktop e2e — canned prompts + side-effect verifiers, human-driven (task #33; not a CI gate) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
 - Desktop e2e against a real brain — disposable-branch setup/teardown so the suite runs against a brain with no Desktop reconfig, then reverts byte-identical (task #34) → [docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md)
