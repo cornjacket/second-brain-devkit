@@ -5,24 +5,23 @@
 semantic-search index an AI reads — and ships it as a ready-to-run repo. Every change goes
 prototype → vendor → one command, `python3 tools/ci.py` (15 automated gates).
 
-**Last implemented:** #39 — the *embed-excluded block* — shipped 2026-07-28. Decorative regions
-fenced in `<!-- second-brain:no-embed:begin/end -->` are cut from `canonical_body()`, so they leave
-the embedding **and** the content hash together; redrawing a diagram now costs no re-embed and no
-`doctor` staleness. Two advisory pre-commit warnings (unpaired marker, near the context budget)
-measure **tokens, not lines**. CI gate 15 added; all 15 green.
+**Last implemented:** #8a — auto-linking is on across the whole vault of `~/second-brain` (16 new
+`related_auto:` blocks, 7 revised, re-run clean, **zero** re-embeds). Earlier today #39 shipped the
+*embed-excluded block* and was dogfooded on the same brain: the exiled `career-plan.roadmap.txt`
+diagram is back inside its note, fenced.
 
 **Focus / plan:**
-- **Done:** #39 end-to-end — golden prototype → `vendor_golden.py` → `build_template.py` →
-  `tools/ci.py` 15/15 → `docs/embed-excluded-block.md`.
-- **Pick the next build** from PLAN.md — #8a (turn auto-linking on via `--apply` against a real
-  brain) is the one marked *ready now*.
-- Parked (human, unchanged): `add_pdf_guided` CLI form pass; Suite A Desktop; glossary Obsidian
-  hand-test.
+- **Done:** #39 (embed-excluded block, CI gate 15) · brain upgraded to devkit `9d2f255` ·
+  #40 filed (an upgraded brain never receives a documentation update) · #8a (auto-link refresh).
+- **Next candidate:** #40 — it now has a concrete reproduction from the #39 upgrade, and the
+  task-#9 README managed-block pattern is the proposed fix.
+- Parked: #8b (calibration deriver + hysteresis) behind the #12/#13/#15 corpus — now with real
+  evidence, an edge that dissolved as the corpus grew. Human-gated: `add_pdf_guided` CLI form
+  pass; Suite A Desktop; glossary Obsidian hand-test.
 
 ```
- shipped ▶ #39 embed-excluded block
-   golden prototype ──▶ vendor_golden.py ──▶ build_template.py ──▶ tools/ci.py 15/15
-   guardrail held: the block leaves BOTH the embedding and the content hash;
-                   the UNMARKED path is bit-identical, so no existing brain reads stale
- next ▶ choose from PLAN.md (#8a autolink --apply is ready now)
+ shipped ▶ #39 embed-excluded block ──▶ dogfooded on ~/second-brain (roadmap restored)
+ shipped ▶ #8a auto-link refresh ──▶ 29 notes, mutual-KNN alone chose every link
+             t_max never fired · clusters stayed disjoint · 23 edits moved 0 vectors
+ filed   ▶ #40 upgraded brains get the code but never the prose that says it exists
 ```

@@ -152,11 +152,25 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   gate 9's equality check should extend to the upgrade path. Acceptance: upgrade a brain whose
   `CLAUDE.md` carries user edits, assert the directives land, the user's text is untouched, the
   splice is idempotent, and gate 9 still holds afterwards.
-- **▶▶ NEXT (Claude-actionable) — #8a, turn on auto-linking.** The engine is built + CI-guarded;
-  run `autolink.py --apply` on a real brain and commit the `related_auto:` graph edges. Ready now
-  (mutual-KNN carries link quality at small scale — no diverse corpus needed). Dry-run re-verified
-  2026-07-20 on `~/second-brain` (13 notes → 12 blocks). Its sibling **#8b** (the calibration
-  deriver + hysteresis) stays parked behind the #12/#13/#15 corpus. (#23 plugin route is CLOSED.)
+- **Done 2026-07-28 — #8a, auto-linking is on across the whole vault.** `autolink.py --apply` run
+  on `~/second-brain` (29 notes): **16** notes gained a `related_auto:` block, **7** had theirs
+  revised, **5** came out byte-identical, and a re-run reports 0 changes — the idempotence the
+  managed block exists for. Committed `bd74fe7` in the brain.
+  **Framing correction:** #8a was *not* a first turn-on. An earlier apply (`d7467ed`) had already
+  linked the 12-note tech cluster; the 17 college/career notes added since had never been linked.
+  So the real deliverable was a **refresh over a grown corpus**, and that is the mode the feature
+  will actually live in.
+  Findings worth keeping: (a) **`t_max` never fired** — every one of the 145 directed distances
+  fell under the 0.45 default (max 0.4287), so **mutual-KNN alone selected every link**, confirming
+  §2.1 on real data; (b) it held the two topic clusters **disjoint** — no college note linked a
+  tech note; (c) **the embed invariant paid off visibly** — 23 edited files moved **zero** vectors
+  (the pre-commit hook printed `skip (substance unchanged)` for all 23) and `doctor` stayed green,
+  because `related_auto:` lives in frontmatter, which the canonical view excludes.
+  **New evidence for #8b:** links *dissolve* as the corpus grows — `knowledge-management` lost its
+  only edge because it fell out of `second-brain`'s top-5 and the mutual condition broke. That is
+  exactly the churn the `t_hi`/`t_lo` hysteresis band is meant to damp, and it now has a concrete
+  reproduction rather than a hypothesis. **#8b** stays parked behind the #12/#13/#15 corpus.
+  (#23 plugin route is CLOSED.)
 - **Done 2026-07-13 — the note-quality gate reaches Claude Desktop (follow-on to #5).** `add_note`
   made notes cheap to add, which is exactly how a brain fills with things nobody will ever search
   for — and the rules for *what earns a note* lived only in `CLAUDE.md`, which is unembedded **and**

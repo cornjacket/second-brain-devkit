@@ -6,9 +6,13 @@ selection, and an idempotent namespace-partitioned `related_auto:` frontmatter b
 `--calibrate` / dry-run / `--apply` modes. Task #8, now tracked as **two logically-separate
 subtasks**:
 
-- **#8a (Track A) — turn it on.** Run `--apply` on a real brain and commit the graph edges.
-  *Ready now*; the §2.1 finding is that mutual-KNN carries link quality at small scale, so it
-  does not wait on a diverse corpus. Delivers the end-user value.
+- **#8a (Track A) — turn it on. DONE 2026-07-28.** Applied across `~/second-brain` (29 notes →
+  16 new blocks, 7 revised, 5 byte-identical, re-run clean). §2.1 confirmed on real data:
+  **`t_max` never fired** — all 145 directed distances sat under the 0.45 default, so mutual-KNN
+  alone chose every link, and it kept two disjoint topic clusters from cross-linking. The
+  frontmatter placement proved out end to end: 23 edited notes, **zero** re-embeds. Live evidence
+  for #8b's hysteresis band — an edge *dissolved* when its note fell out of the other's top-N as
+  the corpus grew.
 - **#8b (Track B) — the calibration deriver + hysteresis.** Turn `--calibrate` from a distance
   dump into a real `t_max` deriver with a separation/confidence score (§2.2–§2.3), persist it in
   an `[autolink]` config block with an embedding-fingerprint, and add the `t_hi`/`t_lo`
