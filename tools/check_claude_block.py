@@ -46,7 +46,7 @@ PY = sys.executable
 # Single source of truth for the markers and the adoption rule: import from the tool under
 # test so this gate can never drift from it.
 sys.path.insert(0, str(TOOLS))
-from update_brain import ADOPTABLE, BEGIN, CLAUDE, END, _managed_body  # noqa: E402
+from update_brain import ADOPTABLE, BEGIN, CLAUDE, END, README, _managed_body  # noqa: E402
 
 GIT_IDENTITY = {
     "GIT_AUTHOR_NAME": "devkit-ci",
@@ -141,7 +141,7 @@ def run_checks() -> None:
         out = _update(brain)
         _require("CLAUDE.md" in out and "--adopt" in out,
                  f"a marker-less CLAUDE.md was not reported with the --adopt remedy:\n{out}")
-        _require("will NOT reach this brain" in out,
+        _require("will NOT reach it" in out,
                  f"the report does not say the directives will not arrive:\n{out}")
         _require(claude.read_text() == legacy,
                  "a marker-less CLAUDE.md was modified WITHOUT --adopt")
@@ -184,6 +184,25 @@ def run_checks() -> None:
         _require("one marker without its partner" in out,
                  f"a half-marked CLAUDE.md was not reported:\n{out}")
         print("  ok    a half-marked CLAUDE.md is reported and left untouched")
+
+        # 6b. the README is adoptable on the same terms -----------------------------------
+        # Adoption was first built for CLAUDE.md only, on the theory that a stale README is at
+        # least visible to its reader. That theory was wrong: the real brain's README was
+        # missing a whole feature section, and absence is invisible to a reader too. Same
+        # mechanism, same consent flag — asserted here so the two files cannot drift apart.
+        _require(README in ADOPTABLE, "README.md is not adoptable — it must be, per #40 §6")
+        readme = brain / README
+        plain = "# My brain\n\nJust my own words, no markers anywhere.\n"
+        readme.write_text(plain)
+        _commit_all(brain, "a README that predates the managed block")
+        out = _update(brain)
+        _require(readme.read_text() == plain, "a marker-less README changed WITHOUT --adopt")
+        _require("--adopt" in out, f"adoption was not offered for the README:\n{out}")
+        _update(brain, "--apply", "--adopt")
+        got = readme.read_text()
+        _require(got.startswith(BEGIN), "README adoption did not put the devkit block first")
+        _require(plain.strip() in got, "README adoption dropped the user's previous file")
+        print("  ok    a marker-less README is adoptable on the same terms as CLAUDE.md")
 
         # 7. the note-template drift an upgrade cannot fix is REPORTED --------------------
         # vault/templates/new-note.md carries the note gate that gate 9 requires to match

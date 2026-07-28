@@ -6,15 +6,17 @@ semantic-search index an AI reads — and ships it as a ready-to-run repo. Every
 prototype → vendor → one command, `python3 tools/ci.py` (16 automated gates).
 
 **Last implemented:** #40 — an upgraded brain now receives its *documentation*, not just its code.
-`CLAUDE.md` is a managed block like the README; a brain that predates the markers is named loudly
-and adoptable via `--adopt`, which keeps the old file verbatim. Dogfooded on `~/second-brain`,
-where adoption surfaced a local `task-system` block a wholesale replace would have deleted.
+`CLAUDE.md` and `README.md` are both managed blocks now; a brain that predates the markers is
+named loudly and adoptable via `--adopt`, which keeps the old file verbatim. Dogfooded on
+`~/second-brain`: adoption surfaced a local `task-system` block a wholesale replace would have
+deleted, and the README turned out to be 142 lines behind — which is what corrected the design.
+**"A human will notice" guards against wrong content, never against missing content.**
 
 **Focus / plan (all three shipped today):**
 - **#39** embed-excluded block → CI gate 15; dogfooded (the exiled `career-plan.roadmap.txt`
   diagram is back inside its note, fenced).
 - **#8a** auto-link refresh across all 29 notes → 16 new blocks, 7 revised, **zero** re-embeds.
-- **#40** managed `CLAUDE.md` + `--adopt` → CI gate 16.
+- **#40** managed `CLAUDE.md` **and `README.md`** + `--adopt` → CI gate 16.
 
 **Next candidates:**
 - **Re-examine whether #8b is still blocked.** It is parked behind the "#12/#13/#15 diverse

@@ -133,12 +133,19 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   nobody has run it). Blocked on a human, not on code.
 - **Done 2026-07-28 — #40, an upgraded brain now receives its documentation, not just its code.**
   `CLAUDE.md` joins `README.md` as a managed block: same markers, same splice, user space
-  outside preserved byte-for-byte. The one deliberate divergence is the **marker-less** case —
-  README stays SKIP (a human can *see* a stale README), `CLAUDE.md` is **adoptable**, because
-  the only reader who would notice its directives had gone stale is an agent, which has no
-  other copy to compare against. `--adopt` stays opt-in (a personalised file is
-  indistinguishable from an untouched one), writes the devkit block **first** (agents read
-  top-down), and keeps the previous file verbatim below a prune notice.
+  outside preserved byte-for-byte. A **marker-less** file (a brain older than the markers) is
+  no longer skipped in silence: it is named on every run and **adoptable** via an opt-in
+  `--adopt`, which writes the devkit block **first** (agents read top-down) and keeps the
+  previous file verbatim below a prune notice. The flag is the consent — a marker-less file
+  cannot be told from one whose owner deliberately deleted the markers, so the report names
+  both readings rather than guessing.
+  **Course correction, same day:** the first cut made only `CLAUDE.md` adoptable, on the theory
+  that a stale README is at least *visible* to its human reader. Dogfooding killed that — the
+  real brain's README was 142 lines behind and missing an entire feature section (#39's own).
+  **"A human will notice" guards against wrong content, never against missing content:** you
+  cannot see prose that was never written. Both files are adoptable on the same terms
+  (`55fae4b` adopt, `a15e389` prune — the pruned copy still called hybrid search "not yet
+  built", years after it shipped).
   **Dogfooded on `~/second-brain`** (`77f2ce7` adopt, `04a35a3` prune): adoption surfaced a
   `<!-- task-system:begin -->` block the devkit body knows nothing about — **a wholesale
   replace would have deleted it silently**, which is the case that justifies preserve-don't-

@@ -144,7 +144,13 @@ def run_checks() -> None:
         _require("SKIP" in out and "README.md" in out and "user-owned" in out,
                  f"a marker-less README should be reported SKIP, got:\n{out}")
         _require(readme.read_bytes() == before, "a user-owned README must be left byte-unchanged")
-        print("  ok: marker-less README is left to the user (SKIP, unchanged)")
+        # Deleting the markers is a deliberate opt-out, so WITHOUT --adopt nothing may change
+        # — but the report must still say updates have stopped arriving, and offer the way
+        # back. Silence here is the #40 bug; nagging someone who meant it is why the message
+        # also says to ignore it. Adoption itself is covered by gate 16.
+        _require("--adopt" in out and "ignore this" in out,
+                 f"the SKIP does not offer adoption (or the opt-out): \n{out}")
+        print("  ok: marker-less README is left to the user (SKIP, unchanged, adoption offered)")
 
         # 5. one marker only -> SKIP (malformed) --------------------------------------
         readme.write_text(README_BEGIN + "\n" + nomarkers)  # begin, no end
