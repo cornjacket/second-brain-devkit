@@ -204,6 +204,16 @@ def step_pdf() -> bool:
     return _run([PY, str(TOOLS / "check_pdf.py")])
 
 
+def step_claude_block() -> bool:
+    # An UPGRADED brain must receive documentation updates, not just code (#40). CLAUDE.md is
+    # now a managed block like the README, plus --adopt for a brain that predates the markers.
+    # New brains always looked fine (both files are emitted), which is what hid this — so the
+    # gate drives the upgrade path specifically, incl. the note-template drift report that
+    # keeps gate 9's invariant honest after an update. Hermetic (git + stdlib).
+    env = {**os.environ, **{k: v for k, v in GIT_IDENTITY.items() if k not in os.environ}}
+    return _run([PY, str(TOOLS / "check_claude_block.py")], env=env)
+
+
 def step_embed_excluded() -> bool:
     # The no-embed block must be cut from the embed input AND from the content hash — the
     # same view, or the two disagree and a redrawn diagram both re-embeds and reads stale
@@ -213,21 +223,22 @@ def step_embed_excluded() -> bool:
 
 
 STEPS = [
-    ("1/15 manifest partition", step_partition),
-    ("2/15 template in sync with golden", step_template_in_sync),
-    ("3/15 emitted scripts compile", step_py_compile),
-    ("4/15 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/15 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/15 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/15 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/15 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/15 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/15 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/15 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/15 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/15 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/15 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/15 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("1/16 manifest partition", step_partition),
+    ("2/16 template in sync with golden", step_template_in_sync),
+    ("3/16 emitted scripts compile", step_py_compile),
+    ("4/16 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/16 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/16 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/16 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/16 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/16 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/16 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/16 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/16 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/16 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/16 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/16 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/16 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
 ]
 
 

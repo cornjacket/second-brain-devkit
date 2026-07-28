@@ -131,7 +131,27 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   term render as a card, and add the graph colour group — settling which query actually works
   (`path:glossary/` vs `tag:#glossary`; the docs currently contradict each other, which is proof
   nobody has run it). Blocked on a human, not on code.
-- [ ] **#40 — an existing brain never receives a documentation update.** `update_brain.py`
+- **Done 2026-07-28 — #40, an upgraded brain now receives its documentation, not just its code.**
+  `CLAUDE.md` joins `README.md` as a managed block: same markers, same splice, user space
+  outside preserved byte-for-byte. The one deliberate divergence is the **marker-less** case —
+  README stays SKIP (a human can *see* a stale README), `CLAUDE.md` is **adoptable**, because
+  the only reader who would notice its directives had gone stale is an agent, which has no
+  other copy to compare against. `--adopt` stays opt-in (a personalised file is
+  indistinguishable from an untouched one), writes the devkit block **first** (agents read
+  top-down), and keeps the previous file verbatim below a prune notice.
+  **Dogfooded on `~/second-brain`** (`77f2ce7` adopt, `04a35a3` prune): adoption surfaced a
+  `<!-- task-system:begin -->` block the devkit body knows nothing about — **a wholesale
+  replace would have deleted it silently**, which is the case that justifies preserve-don't-
+  replace. Two smaller findings: the sign-off was lying (reporting the gap then printing
+  `✅ already up to date` restores the very silence the task exists to end — now a warning,
+  asserted by the gate), and the emitted template must be a **fixed point of its own splice**
+  (a blank line added for readability made a *pristine* brain report CHANGED forever; gate 8
+  caught it). **Still open:** `vault/templates/new-note.md` duplicates the note gate that gate
+  9 keeps in sync with `CLAUDE.md` but lives under the preserved `vault/` — `update_brain` now
+  *reports* the drift rather than writing into the vault; promoting it to a managed file (or
+  extending gate 9 to the upgrade path) is the follow-on. **CI gate 16**
+  (`tools/check_claude_block.py`, 9 checks). → [docs/readme-managed-block.md §6](docs/readme-managed-block.md)
+- [x] **#40 spec (kept for provenance)** — `update_brain.py`
   refreshes tooling but lists `CLAUDE.md` in `PRESERVE_FILES` and skips a marker-less
   `README.md`, so a brain created before a feature gets the *code* and never the *prose that
   says the code exists*. New brains are fine (both files are emitted — `CLAUDE.md` is a

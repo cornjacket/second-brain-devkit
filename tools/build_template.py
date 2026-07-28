@@ -99,6 +99,12 @@ def clean_claude(text: str) -> str:
     )
     # 4. Remove the whole ai-project-status managed block (commit-schema +
     #    daily-plan live inside the begin/end markers).
+    # "\n" and NOT "\n\n", even though a blank line would read better: this block sits
+    # immediately before the managed-block END marker (#40), and `splice_block` regenerates
+    # that region as `…body…\nEND`, with no blank line. Emit a blank one here and the
+    # template stops being a fixed point of its own splice — update_brain would report a
+    # pristine, freshly generated brain as CHANGED forever. The emitted README has the same
+    # shape for the same reason. Caught by gate 8.
     text = sub_once(
         text,
         r"\n*<!-- ai-project-status:begin -->.*?<!-- ai-project-status:end -->\n*",

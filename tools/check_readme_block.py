@@ -43,7 +43,7 @@ PY = sys.executable
 # check can never drift from the tool it exercises (or from template/README.md, which
 # update_brain asserts carries the same markers).
 sys.path.insert(0, str(TOOLS))
-from update_brain import README_BEGIN, README_END, _managed_body  # noqa: E402
+from update_brain import BEGIN as README_BEGIN, END as README_END, _managed_body  # noqa: E402
 
 GIT_IDENTITY = {
     "GIT_AUTHOR_NAME": "devkit-ci",
