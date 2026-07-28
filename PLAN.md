@@ -131,6 +131,27 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   term render as a card, and add the graph colour group — settling which query actually works
   (`path:glossary/` vs `tag:#glossary`; the docs currently contradict each other, which is proof
   nobody has run it). Blocked on a human, not on code.
+- [ ] **#40 — an existing brain never receives a documentation update.** `update_brain.py`
+  refreshes tooling but lists `CLAUDE.md` in `PRESERVE_FILES` and skips a marker-less
+  `README.md`, so a brain created before a feature gets the *code* and never the *prose that
+  says the code exists*. New brains are fine (both files are emitted — `CLAUDE.md` is a
+  `cleaned` manifest entry), which is what makes this **invisible**: every generated-from-scratch
+  check passes, and only a real, upgraded brain is missing the docs. **Found by dogfooding #39:**
+  `~/second-brain` took the tooling cleanly, then needed its `CLAUDE.md` and vault note template
+  hand-edited to learn the no-embed convention — and a feature nobody is told about does not get
+  used, which is the whole failure mode.
+  **Fix:** apply the task-#9 pattern already proven on the README — a devkit-owned marked block
+  inside a user-owned file (`scripts/marked_block.py`, `docs/readme-managed-block.md`) — to
+  `CLAUDE.md`, so `update_brain` splices the directives while personal notes outside the markers
+  survive byte-for-byte. Two wrinkles the README case did not have: (a) an **existing** brain's
+  `CLAUDE.md` has no markers yet, so the first upgrade must *adopt* the file (insert the block)
+  rather than skip it, and skipping is what the README does today — decide deliberately which
+  behaviour is right for each; (b) `vault/templates/new-note.md` lives under the preserved
+  `vault/`, and it duplicates the CLAUDE.md note-gate under **CI gate 9**, so leaving it stale
+  makes an upgraded brain violate an invariant the devkit enforces at build time. Consider whether
+  gate 9's equality check should extend to the upgrade path. Acceptance: upgrade a brain whose
+  `CLAUDE.md` carries user edits, assert the directives land, the user's text is untouched, the
+  splice is idempotent, and gate 9 still holds afterwards.
 - **▶▶ NEXT (Claude-actionable) — #8a, turn on auto-linking.** The engine is built + CI-guarded;
   run `autolink.py --apply` on a real brain and commit the `related_auto:` graph edges. Ready now
   (mutual-KNN carries link quality at small scale — no diverse corpus needed). Dry-run re-verified
