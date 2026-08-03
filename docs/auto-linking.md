@@ -226,8 +226,33 @@ positive claim about `top-N` is a single sweep on one corpus.
 
 ### 2.2 What `t_max` is, and how to calibrate it
 
-**What `t_max` represents.** `t_max` is the **relatedness cutoff** — the *maximum cosine
-distance* at which two notes are still considered related enough to link. Vectors are
+**The plain version.** Every note is a 768-number vector. The **distance** between two notes
+says how *unrelated* they are:
+
+```
+0.0   identical meaning
+0.2   clearly the same topic
+0.4   loosely related
+1.0   nothing in common
+```
+
+A link is kept only if it clears **three** filters: (1) is this note in my **top-N** nearest?
+(2) is the distance under **`t_max`**? (3) is it **mutual** — am I in *its* top-N too?
+
+Filter 2 is the one that never fires. Real measurements: worst neighbour distance **0.38** on
+a 29-note personal vault, **0.3848** on the 200-note diverse corpus — both under the 0.45
+default, so the check passes every time. **`t_max` is a fence set wider than the field.**
+
+And it does **not** start binding as a vault grows — it binds *less*. `t_max` only ever sees
+your top-N nearest neighbours, never the far ones; add more notes and those nearest few get
+**closer**, not further. The distances shrink and the fence recedes.
+
+Which leaves one case where it genuinely earns its keep: a **true orphan** — a note on a topic
+nothing else in the vault touches. Its "nearest" neighbour is still far away, and `t_max` is
+what stops a meaningless link. Cheap insurance worth keeping; just not worth a tuner (§2.1b).
+
+**What `t_max` represents (precisely).** `t_max` is the **relatedness cutoff** — the *maximum
+cosine distance* at which two notes are still considered related enough to link. Vectors are
 L2-normalized, so cosine distance = `1 − cosine_similarity`, ranging **0** (identical
 direction) → **1** (orthogonal, unrelated) → **2** (opposite). A candidate neighbour at
 distance `d` becomes a link **only when `d < t_max`**. So `t_max ≈ 0.45` means "link notes
