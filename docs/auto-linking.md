@@ -13,11 +13,17 @@ subtasks**:
   frontmatter placement proved out end to end: 23 edited notes, **zero** re-embeds. Live evidence
   for #8b's hysteresis band — an edge *dissolved* when its note fell out of the other's top-N as
   the corpus grew.
-- **#8b (Track B) — the calibration deriver + hysteresis.** Turn `--calibrate` from a distance
-  dump into a real `t_max` deriver with a separation/confidence score (§2.2–§2.3), persist it in
-  an `[autolink]` config block with an embedding-fingerprint, and add the `t_hi`/`t_lo`
-  hysteresis band (§2). **Gated on the #12/#13/#15 diverse corpus** — a distributional threshold
-  cannot be calibrated on one homogeneous cluster. Lower priority.
+- **#8b (Track B) — the calibration deriver + hysteresis. PREMISE REFUTED 2026-08-02; needs
+  rescoping before any build.** It was parked behind the #12/#13/#15 diverse corpus on the
+  theory that a distributional `t_max` merely needed better data. The corpus was run (§2.1b):
+  **every** neighbour distance falls under the current default, so `t_max` never binds, and
+  tightening it destroys 60% of the links without improving precision. **There is nothing to
+  derive.** The deriver half should be closed, not built. The hysteresis half survives but
+  targets the wrong quantity: the churn seen in #8a — an edge dissolving as the corpus grew —
+  came from a note falling out of the other's **top-N**, a *rank/membership* change, not a
+  distance crossing a band. A band on a threshold that never binds damps nothing. Rescope as
+  **membership hysteresis on top-N**, which §2.1b also identifies as the parameter that
+  actually moves the graph.
 
 A feature that lets the
 brain **materialize** its vector-space neighborhoods as **Obsidian-visible links**, so a
@@ -162,6 +168,61 @@ Findings that shape the threshold design:
   the larger, more *topically diverse* dataset that the ablation-benchmark work (PLAN tasks
   #12/#13) will build. Provisional starting point to **recalibrate at scale**: `t_max ≈ 0.45`,
   `top-N = 3–5`, mutual-KNN on.
+
+### 2.1b The recalibration-at-scale, run at last (2026-08-02, bench corpus, 200 notes, 10 domains)
+
+§2.1 deferred a real `t_max` to "the larger, topically diverse dataset". That dataset (#15)
+has existed since 2026-07-10, so this ran it: a throwaway brain seeded with
+`--seed-bench-corpus`, embedded on **real Ollama**, hydrated, then swept.
+
+**The premise did not survive the experiment. `t_max` does no useful work at any scale.**
+
+| `t_max` | links | cross-domain | rate | isolated notes |
+|---|---|---|---|---|
+| 0.45 (default) | 636 | 10 | 1.6% | 11 |
+| 0.35 | 636 | 10 | 1.6% | 11 |
+| 0.30 | 636 | 10 | 1.6% | 11 |
+| 0.26 | 584 | 8 | 1.4% | 15 |
+| 0.22 | 360 | 6 | 1.7% | 57 |
+| 0.20 | 252 | 6 | 2.4% | 94 |
+
+Every neighbour distance in the corpus (max **0.3848**) already sits under the 0.45 default,
+so the threshold never binds. Tightening it does not trade recall for precision — it costs
+**60% of the links** while the cross-domain rate *rises* and 94 notes go isolated. There is
+no setting that improves the graph, which means **there is nothing for a deriver to derive.**
+
+**And the 1.6% "errors" are not errors.** All ten cross-domain links, inspected:
+
+```
+acting ↔ dancing            teaching-improv-yes-and ↔ teaching-improvisation
+                            teaching-listening      ↔ teaching-improvisation
+                            teaching-on-camera      ↔ teaching-stage-presence
+law    ↔ personal-finance    property-law           ↔ estate-planning
+                            property-law           ↔ mortgages
+```
+
+Every one is a genuine cross-disciplinary connection — precisely what a second brain should
+surface. The domain label is a **corpus artifact, not ground truth**, so "cross-domain rate"
+turns out to be a poor proxy for link quality in the one direction that mattered.
+
+**`top-N` is the real lever** (`t_max = 0.45`, mutual-KNN on):
+
+| top-N | links | cross-domain | rate | isolated | max degree |
+|---|---|---|---|---|---|
+| 3 | 348 | 4 | 1.1% | 25 | 3 |
+| 5 | 636 | 10 | 1.6% | 11 | 5 |
+| 8 | 1078 | 18 | 1.7% | 0 | 8 |
+| 12 | 1802 | 46 | 2.6% | 0 | 12 |
+
+It moves both graph density and precision monotonically, and it directly bounds node degree —
+the thing that actually determines whether an Obsidian graph is legible. `top-N = 5` is a
+reasonable default; `8` is the point where no note is left isolated.
+
+**Caveats, so this is not over-read:** the corpus is synthetic and cleanly partitioned, which
+is what made the domain-label proxy available *and* what limits it; only mutual-KNN was
+exercised; and no human judged link quality beyond the labels. The negative result about
+`t_max` is robust (it is arithmetic — the threshold is above the data's maximum); the
+positive claim about `top-N` is a single sweep on one corpus.
 
 ### 2.2 What `t_max` is, and how to calibrate it
 

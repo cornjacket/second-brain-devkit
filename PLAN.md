@@ -1487,13 +1487,22 @@ requirement**); they also produce the material for a future GitHub tutorial.
         scale, so it does *not* wait on the diverse corpus; it delivers the end-user value (a
         self-organising Obsidian graph). Dry-run re-verified 2026-07-20 on `~/second-brain`
         (13 notes → 12 `related_auto:` blocks; `magic-number` correctly pruned to none).
-      - **#8b (Track B) — the calibration deriver + hysteresis.** Upgrade `--calibrate` from a
-        distance dump into a real threshold deriver (background-null / gap-elbow / 2-component
-        mixture, unified via a single-linkage sweep that also reports a topic count + separation
-        score), persist it in an `[autolink]` config block with an embedding-fingerprint that
-        invalidates on any index-time change, and add the `t_hi`/`t_lo` hysteresis band in
-        `select_links`. **Gated on the #12/#13/#15 diverse corpus** — a distributional `t_max`
-        cannot be calibrated or validated on one homogeneous topical cluster. Lower priority.
+      - **#8b (Track B) — PREMISE REFUTED 2026-08-02. Do not build as specified.** It was parked
+        behind the #12/#13/#15 diverse corpus on the theory that a distributional `t_max` just
+        needed better data. The corpus has existed since 2026-07-10; running it settles the
+        question the other way. On 200 notes across 10 domains, embedded on real Ollama, the
+        **largest neighbour distance is 0.3848** — under the 0.45 default — so `t_max` never
+        binds, and tightening it to 0.20 destroys **60% of the links**, leaves 94 notes isolated,
+        and *raises* the cross-domain rate (1.6% → 2.4%). **There is nothing for a deriver to
+        derive**, so the deriver half is closed rather than built. The 1.6% cross-domain links
+        were also inspected and are all *correct* (acting↔dancing on teaching improvisation;
+        law↔personal-finance on property law ↔ estate planning) — the domain label is a corpus
+        artifact, not ground truth. **`top-N` is the real lever**: 3→12 moves links 348→1802,
+        isolation 25→0, and max node degree with it. The hysteresis half survives but was aimed
+        at the wrong quantity — #8a's dissolving edge was a **top-N membership** change, not a
+        distance crossing a band, so a band on a non-binding threshold damps nothing. **Rescope
+        as membership hysteresis on top-N** before any implementation. Full sweep tables +
+        caveats in [docs/auto-linking.md §2.1b](docs/auto-linking.md).
       Design detail:
 - [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in
