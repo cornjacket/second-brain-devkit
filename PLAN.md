@@ -197,10 +197,11 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   tech note; (c) **the embed invariant paid off visibly** — 23 edited files moved **zero** vectors
   (the pre-commit hook printed `skip (substance unchanged)` for all 23) and `doctor` stayed green,
   because `related_auto:` lives in frontmatter, which the canonical view excludes.
-  **New evidence for #8b:** links *dissolve* as the corpus grows — `knowledge-management` lost its
+  **Churn note (fed #8b, now closed):** links *dissolve* as the corpus grows — `knowledge-management` lost its
   only edge because it fell out of `second-brain`'s top-5 and the mutual condition broke. That is
   exactly the churn the `t_hi`/`t_lo` hysteresis band is meant to damp, and it now has a concrete
-  reproduction rather than a hypothesis. **#8b** stays parked behind the #12/#13/#15 corpus.
+  reproduction rather than a hypothesis. **#8b was CLOSED 2026-08-03** — the corpus was finally
+  run and refuted its premise; see the Track-B entry below.
   (#23 plugin route is CLOSED.)
 - **Done 2026-07-13 — the note-quality gate reaches Claude Desktop (follow-on to #5).** `add_note`
   made notes cheap to add, which is exactly how a brain fills with things nobody will ever search
@@ -1491,7 +1492,7 @@ requirement**); they also produce the material for a future GitHub tutorial.
         scale, so it does *not* wait on the diverse corpus; it delivers the end-user value (a
         self-organising Obsidian graph). Dry-run re-verified 2026-07-20 on `~/second-brain`
         (13 notes → 12 `related_auto:` blocks; `magic-number` correctly pruned to none).
-      - **#8b (Track B) — PREMISE REFUTED 2026-08-02. Do not build as specified.** It was parked
+      - **#8b (Track B) — CLOSED 2026-08-03, premise refuted. Will not be built.** It was parked
         behind the #12/#13/#15 diverse corpus on the theory that a distributional `t_max` just
         needed better data. The corpus has existed since 2026-07-10; running it settles the
         question the other way. On 200 notes across 10 domains, embedded on real Ollama, the
@@ -1504,9 +1505,13 @@ requirement**); they also produce the material for a future GitHub tutorial.
         artifact, not ground truth. **`top-N` is the real lever**: 3→12 moves links 348→1802,
         isolation 25→0, and max node degree with it. The hysteresis half survives but was aimed
         at the wrong quantity — #8a's dissolving edge was a **top-N membership** change, not a
-        distance crossing a band, so a band on a non-binding threshold damps nothing. **Rescope
-        as membership hysteresis on top-N** before any implementation. Full sweep tables +
-        caveats in [docs/auto-linking.md §2.1b](docs/auto-linking.md).
+        distance crossing a band, so a band on a non-binding threshold damps nothing. **Closed rather than
+        rescoped:** the surviving idea — membership hysteresis on top-N — is a *speculative* fix
+        for churn nobody has complained about, on a feature switched on six days ago. Reopen it
+        if link churn is actually reported after a few real refresh cycles; that evidence does
+        not exist yet, and building against a hypothesis is what put this task in limbo the
+        first time. Full sweep tables + caveats in
+        [docs/auto-linking.md §2.1b](docs/auto-linking.md).
       Design detail:
 - [ ] **(design, unchanged below)** A pass
       computes each note's nearest neighbors (KNN over the vectors already in

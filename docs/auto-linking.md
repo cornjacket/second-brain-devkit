@@ -3,27 +3,29 @@
 **Status:** **engine BUILT** — `scripts/autolink.py` (emitted into every brain, CI gate 4)
 already does the whole write path: KNN off the stored vectors, top-N ∩ `t_max` ∩ mutual-KNN
 selection, and an idempotent namespace-partitioned `related_auto:` frontmatter block, with
-`--calibrate` / dry-run / `--apply` modes. Task #8, now tracked as **two logically-separate
-subtasks**:
+`--calibrate` / dry-run / `--apply` modes. Task #8 ran as **two logically-separate subtasks**
+and **both are now closed** — #8a shipped, #8b refuted:
 
 - **#8a (Track A) — turn it on. DONE 2026-07-28.** Applied across `~/second-brain` (29 notes →
   16 new blocks, 7 revised, 5 byte-identical, re-run clean). §2.1 confirmed on real data:
   **`t_max` never fired** — all 145 directed distances sat under the 0.45 default, so mutual-KNN
   alone chose every link, and it kept two disjoint topic clusters from cross-linking. The
-  frontmatter placement proved out end to end: 23 edited notes, **zero** re-embeds. Live evidence
-  for #8b's hysteresis band — an edge *dissolved* when its note fell out of the other's top-N as
-  the corpus grew.
-- **#8b (Track B) — the calibration deriver + hysteresis. PREMISE REFUTED 2026-08-02; needs
-  rescoping before any build.** It was parked behind the #12/#13/#15 diverse corpus on the
-  theory that a distributional `t_max` merely needed better data. The corpus was run (§2.1b):
-  **every** neighbour distance falls under the current default, so `t_max` never binds, and
-  tightening it destroys 60% of the links without improving precision. **There is nothing to
-  derive.** The deriver half should be closed, not built. The hysteresis half survives but
+  frontmatter placement proved out end to end: 23 edited notes, **zero** re-embeds. An edge
+  *dissolved* when its note fell out of the other's top-N as the corpus grew — the observation
+  that fed #8b's hysteresis case, now closed (below).
+- **#8b (Track B) — the calibration deriver + hysteresis. CLOSED 2026-08-03, premise refuted.**
+  It was parked behind the #12/#13/#15 diverse corpus on the theory that a distributional
+  `t_max` merely needed better data. The corpus was run (§2.1b): **every** neighbour distance
+  falls under the current default, so `t_max` never binds, and tightening it destroys 60% of
+  the links without improving precision. **There is nothing to derive**, so the deriver half
+  is closed rather than built. The hysteresis half survives but
   targets the wrong quantity: the churn seen in #8a — an edge dissolving as the corpus grew —
   came from a note falling out of the other's **top-N**, a *rank/membership* change, not a
-  distance crossing a band. A band on a threshold that never binds damps nothing. Rescope as
-  **membership hysteresis on top-N**, which §2.1b also identifies as the parameter that
-  actually moves the graph.
+  distance crossing a band. A band on a threshold that never binds damps nothing. The
+  rescoped version — membership hysteresis on top-N — is left **unbuilt on purpose**: it is a
+  speculative fix for churn nobody has reported, on a feature turned on days earlier. Reopen
+  only if real refresh cycles produce complaints. Building against a hypothesis is what parked
+  this task for a month the first time.
 
 A feature that lets the
 brain **materialize** its vector-space neighborhoods as **Obsidian-visible links**, so a
