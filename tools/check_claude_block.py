@@ -204,22 +204,33 @@ def run_checks() -> None:
         _require(plain.strip() in got, "README adoption dropped the user's previous file")
         print("  ok    a marker-less README is adoptable on the same terms as CLAUDE.md")
 
-        # 7. the note-template drift an upgrade cannot fix is REPORTED --------------------
+        # 7. the note template is REFRESHED, closing the gate-9 hole ----------------------
         # vault/templates/new-note.md carries the note gate that gate 9 requires to match
-        # CLAUDE.md, but it lives under the preserved vault/. Silence here means an upgraded
-        # brain can violate a build-time invariant with nothing to notice it.
+        # CLAUDE.md. It lives in the vault only because that is where Obsidian's Templates
+        # plugin can reach it — so it is the one named exception to "never write into vault/".
+        # Left frozen, an upgraded brain could violate a build-time invariant.
         note_tpl = brain / "vault" / "templates" / "new-note.md"
         _require(note_tpl.is_file(), "the brain has no vault/templates/new-note.md")
-        note_tpl.write_text(note_tpl.read_text() + "\nstale drift\n")
+        note_tpl.write_text("stale drift\n")
         _commit_all(brain, "let the vault note template drift from the seed")
         out = _update(brain)
         _require("vault/templates/new-note.md" in out,
-                 f"note-template drift was not reported:\n{out}")
-        _require("get_note_template" in out,
-                 f"the drift report does not explain why the template matters:\n{out}")
-        _require("stale drift" in note_tpl.read_text(),
-                 "update_brain wrote into the preserved vault/")
-        print("  ok    note-template drift is reported, and vault/ is still never written")
+                 f"the drifted note template was not picked up:\n{out}")
+        _update(brain, "--apply")
+        got = note_tpl.read_text()
+        _require("stale drift" not in got, "the drifted note template was not refreshed")
+        _require(got == (brain / "seeds" / "templates" / "new-note.md").read_text(),
+                 "the refreshed note template does not match the emitted seed")
+        print("  ok    the devkit-owned note template is refreshed from the seed")
+
+        # ...and that exception is exactly ONE file. A real note must survive untouched.
+        canary = brain / "vault" / "resources" / "my-own-note.md"
+        canary.write_text("---\ntags: [mine]\n---\n\n# Mine\n\nDo not touch.\n")
+        _commit_all(brain, "a user note in the vault")
+        _update(brain, "--apply")
+        _require(canary.read_text().endswith("Do not touch.\n"),
+                 "update_brain wrote into a user's note — the vault carve-out is too wide")
+        print("  ok    ...and it is the ONLY file written inside vault/")
 
     finally:
         shutil.rmtree(parent, ignore_errors=True)

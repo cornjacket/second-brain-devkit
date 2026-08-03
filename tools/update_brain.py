@@ -27,9 +27,13 @@ What it does:
     rather than guesses. A marker-less README stays SKIP — a human can see a stale README.
   • **Never touches your data:** ``vault/`` (notes), ``data/`` (cache), ``config/``
     (backend choice), or your space outside the managed markers — and never rewrites
-    history. It *reports* one thing it will not fix: a ``vault/templates/new-note.md``
-    that has fallen behind the emitted seed (it carries the note gate CI keeps in sync
-    with ``CLAUDE.md``, but it lives in the vault, which is yours).
+    history. **One named exception** (``VAULT_OWNED``): ``vault/templates/new-note.md`` is
+    devkit-owned in everything but location — it sits in the vault only because that is
+    where Obsidian's Templates plugin can reach it, and it is not a note (``templates/``
+    is not a PARA root, so it is never embedded or searched). It also carries the note
+    gate CI keeps in sync with ``CLAUDE.md``, so freezing it let an upgraded brain violate
+    a build-time invariant. Named as one path rather than by relaxing the ``vault/`` rule,
+    so the promise stays auditable.
   • **Dry-run by default** (shows NEW / CHANGED / preserved). ``--apply`` writes the
     files and records a single, git-revertable commit in the brain's own repo.
 
@@ -101,7 +105,27 @@ ADOPTABLE = (CLAUDE, README)
 MANAGED = (README, CLAUDE)
 
 
+# The ONE exception to "never write into vault/" — dest (brain-relative) → src (template-relative).
+#
+# `vault/templates/new-note.md` is devkit-owned in everything but location. It has to live
+# inside the vault because that is the only place Obsidian's Templates plugin can insert from;
+# moving it out would break the editor workflow it exists for. But it is also **not** a note —
+# `templates/` is not a PARA root, so it is never embedded, never searched, never returned by
+# `get_note`. And it carries the "what earns a note" gate that CI (gate 9) requires to match
+# `CLAUDE.md` byte-for-byte, so leaving it frozen let an upgraded brain quietly violate a
+# build-time invariant.
+#
+# Named as a single path rather than by lifting the `vault/` rule. The promise stays auditable —
+# "this tool writes exactly one file inside your vault, and here it is" — instead of degrading
+# to "it might write anywhere in there". Overwritten wholesale like any other emitted file: a
+# user is not expected to customise it, and if they have, the dry run reports it CHANGED before
+# anything is written, which is the same protection every other tooling file gets.
+VAULT_OWNED = {"vault/templates/new-note.md": "seeds/templates/new-note.md"}
+
+
 def _is_preserved(rel: str) -> bool:
+    if rel in VAULT_OWNED:
+        return False
     return rel in PRESERVE_FILES or rel.startswith(PRESERVE_DIRS)
 
 
@@ -240,30 +264,19 @@ def plan(brain: Path, adopt: bool = False) -> tuple[list[str], list[str], list[t
             new.append(rel)
         elif verdict == "changed":
             changed.append(rel)
+
+    # The vault-owned exception: sourced from a DIFFERENT template path than where it lands
+    # (the vault is generated from seeds/), so it cannot come out of the walk above.
+    for dest, source in VAULT_OWNED.items():
+        src = TEMPLATE / source
+        if not src.is_file():
+            continue
+        verdict = _differs(src, brain / dest)
+        if verdict == "new":
+            new.append(dest)
+        elif verdict == "changed":
+            changed.append(dest)
     return new, changed, skipped
-
-
-def _note_template_drift(brain: Path) -> str | None:
-    """Report (never fix) a stale ``vault/templates/new-note.md``.
-
-    The note template is the copy a writer starts from **and** the copy Claude Desktop reads
-    via ``get_note_template()``. It lives under the preserved ``vault/``, so an update
-    refreshes ``seeds/templates/new-note.md`` beside it and leaves the vault copy on the old
-    text. That is not merely stale docs: the template carries the "what earns a note" gate
-    that **CI gate 9** requires to match ``CLAUDE.md`` byte-for-byte, so an upgraded brain
-    can silently violate an invariant the devkit enforces at build time.
-
-    Reported rather than written, because a brain owner may have deliberately customised
-    their template, and ``vault/`` is the one place this tool has promised never to touch.
-    """
-    seed = brain / "seeds" / "templates" / "new-note.md"
-    live = brain / "vault" / "templates" / "new-note.md"
-    if not seed.is_file() or not live.is_file():
-        return None
-    if seed.read_bytes() == live.read_bytes():
-        return None
-    return ("vault/templates/new-note.md differs from the freshly emitted "
-            "seeds/templates/new-note.md")
 
 
 def update_brain(target, *, apply: bool = False, adopt: bool = False) -> int:
@@ -291,17 +304,8 @@ def update_brain(target, *, apply: bool = False, adopt: bool = False) -> int:
         print(f"  CHANGED  {rel}")
     for rel, reason in skipped:
         print(f"  SKIP     {rel} — {reason}")
-    print("\npreserved (never touched): vault/, data/, config/, your space outside the "
-          "CLAUDE.md/README.md markers, git history")
-
-    drift = _note_template_drift(brain)
-    if drift:
-        print(f"\n⚠  NOTE — {drift}.")
-        print("   That template is what a writer copies AND what Claude Desktop reads via")
-        print("   get_note_template(), and it carries the 'what earns a note' gate that must")
-        print("   match CLAUDE.md. It lives under the preserved vault/, so this tool will not")
-        print("   touch it. If you have not customised it, refresh it with:")
-        print("       cp seeds/templates/new-note.md vault/templates/new-note.md")
+    print("\npreserved (never touched): vault/ (except the devkit-owned note template), "
+          "data/, config/,\n   your space outside the CLAUDE.md/README.md markers, git history")
 
     # Migration notice (#30). These files define the *embed input* — what a note's vector is
     # computed over. If one of them changes, every existing vector was produced by the OLD
@@ -354,6 +358,8 @@ def update_brain(target, *, apply: bool = False, adopt: bool = False) -> int:
             # keeping the user's preamble/appendix byte-for-byte.
             _, text, _ = _managed_target(rel, brain, (TEMPLATE / rel).read_text(), adopt)
             (brain / rel).write_text(text)
+        elif rel in VAULT_OWNED:
+            _write(TEMPLATE / VAULT_OWNED[rel], brain / rel)
         else:
             _write(TEMPLATE / rel, brain / rel)
         print(f"  wrote {rel}")

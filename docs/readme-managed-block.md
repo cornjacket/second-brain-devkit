@@ -158,12 +158,24 @@ old default, safe to overwrite" heuristic, would have deleted it silently.
   because `splice_block` regenerates that region without it. Gate 8 caught it. The emitted
   layout is whatever the splice produces — not whatever reads best.
 
-**Still open — `vault/templates/new-note.md`.** It duplicates the note gate that **gate 9**
-requires to match `CLAUDE.md` byte-for-byte, but it lives under the preserved `vault/`, so an
-upgrade can leave a brain violating a build-time invariant. `update_brain` now **reports**
-the drift with the one-line fix; it does not write it, because the vault is the one place
-this tool has promised never to touch. Promoting it to a managed file (or teaching gate 9 to
-cover the upgrade path) is the open follow-on.
+**Closed — `vault/templates/new-note.md` (2026-08-03).** It duplicates the note gate that
+**gate 9** requires to match `CLAUDE.md`, but it sat under the preserved `vault/`, so an upgrade
+could leave a brain violating a build-time invariant. First shipped as a *report*; that was
+half a fix. It is now the **one named exception** to "never write into `vault/`" (`VAULT_OWNED`
+in `update_brain.py`) and is refreshed wholesale on every upgrade.
+
+Why a carve-out rather than relaxing the rule: the file is devkit-owned in everything but
+location. It lives in the vault only because that is where Obsidian's **Templates plugin** can
+insert from — moving it out would break the editor workflow it exists for — and it is not a
+note (`templates/` is not a PARA root, so it is never embedded, searched, or returned by
+`get_note`). Naming one path keeps the promise auditable: *"this tool writes exactly one file
+inside your vault, and here it is"*, rather than degrading to *"it might write anywhere in
+there."* Gate 16 asserts both halves — the template refreshes, **and** a real note beside it
+survives untouched.
+
+A splice of just the marked region was considered and rejected: it would protect user
+customisation of a file no user customises, at the cost of more machinery. Wholesale overwrite,
+with the dry run showing CHANGED first, is the same deal every other tooling file gets.
 
 Gate: `tools/check_claude_block.py` (`ci.py` 16/16) — splice preserves user space, idempotent,
 marker-less is named and left alone, `--adopt` loses nothing and leaves the brain genuinely

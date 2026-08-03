@@ -1,4 +1,4 @@
-# Daily plan — 2026-08-02
+# Daily plan — 2026-08-03
 
 **What this repo is (for a newcomer):** `second-brain-devkit` is a *generator*. It builds a personal
 "second brain" — a plain-Markdown notes vault a human edits in Obsidian, plus a local SQLite
@@ -22,8 +22,9 @@ deriver to derive, so that half of #8b is **closed, not unblocked**.
   edge was a **top-N membership** change, so the band damps nothing. Membership hysteresis on
   top-N is the real design — and §2.1b shows `top-N` is also the parameter that actually moves
   the graph (3→12: links 348→1802, isolated 25→0).
-- **The #40 follow-on:** `vault/templates/new-note.md` still lives under the preserved `vault/`
-  while duplicating the note gate CI enforces — reported by `update_brain`, not yet fixed.
+- ~~The #40 follow-on~~ — **closed 2026-08-03.** `vault/templates/new-note.md` is now the one
+  named exception to the preserved `vault/` and refreshes on every upgrade; gate 16 asserts it
+  is the *only* file written in there.
 - Human-gated, unchanged: `add_pdf_guided` CLI form pass; Suite A Desktop; glossary Obsidian
   hand-test.
 

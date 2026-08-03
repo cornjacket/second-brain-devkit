@@ -153,10 +153,14 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   `✅ already up to date` restores the very silence the task exists to end — now a warning,
   asserted by the gate), and the emitted template must be a **fixed point of its own splice**
   (a blank line added for readability made a *pristine* brain report CHANGED forever; gate 8
-  caught it). **Still open:** `vault/templates/new-note.md` duplicates the note gate that gate
-  9 keeps in sync with `CLAUDE.md` but lives under the preserved `vault/` — `update_brain` now
-  *reports* the drift rather than writing into the vault; promoting it to a managed file (or
-  extending gate 9 to the upgrade path) is the follow-on. **CI gate 16**
+  caught it). **Follow-on CLOSED 2026-08-03:** `vault/templates/new-note.md` duplicates the
+  note gate that gate 9 keeps in sync with `CLAUDE.md` but sat under the preserved `vault/`, so
+  an upgrade could leave a brain violating a build-time invariant. Shipping it as a *report* was
+  half a fix; it is now the **one named exception** (`VAULT_OWNED`) and is refreshed on every
+  upgrade. A carve-out of one path, not a relaxed `vault/` rule — the file is devkit-owned in
+  everything but location (it lives there only so Obsidian's Templates plugin can reach it, and
+  `templates/` is not a PARA root, so it is never embedded or searched). Gate 16 asserts both
+  halves: the template refreshes, and a real note beside it survives untouched. **CI gate 16**
   (`tools/check_claude_block.py`, 9 checks). → [docs/readme-managed-block.md §6](docs/readme-managed-block.md)
 - [x] **#40 spec (kept for provenance)** — `update_brain.py`
   refreshes tooling but lists `CLAUDE.md` in `PRESERVE_FILES` and skips a marker-less
