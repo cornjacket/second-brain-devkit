@@ -39,10 +39,11 @@ spec so they cannot drift.
 
 - Imports: standard library unless declared in `requirements.txt`.
 - Match the surrounding code's style and comment density.
-- The devkit is **disjoint from `ai-project-status`**: nothing the generator
-  emits may depend on it. (This repo is itself *tracked by* `ai-project-status`
-  for its own development — see the managed block below — but that must never
-  leak into a generated brain.)
+- The devkit is **disjoint from its own tracker**: nothing the generator emits
+  may depend on it. (This repo is itself *tracked by* a **git-workspace** for
+  its own development — see the managed block below — but that must never leak
+  into a generated brain. The tracker has already been swapped once; the
+  invariant survived it precisely because it was never named in output.)
 - **Hard invariant — zero forbidden references in a generated brain.** No file
   the generator emits may contain the string `ai-project-status` (or any other
   devkit-internal dependency) — not even to *declare independence* from it; an
@@ -91,9 +92,11 @@ plainly rather than implying the brain is ready.
 
 ## Commit & working style (devkit-owned)
 
-This section is **outside** the `ai-project-status` managed block below, so it is this
-repo's own directive: `setup-new-repo.sh --update` only ever rewrites the content
-*between* its begin/end markers and leaves everything else (including this) untouched.
+This section is **outside** the managed block below, so it is this repo's own
+directive: the injector only ever rewrites the content *between* its begin/end markers
+and leaves everything else (including this) untouched. That held for the previous
+tracker's injector and holds for the git-workspace kernel that replaced it — the
+guarantee is the marker pair, not the tool.
 
 - **Commit autonomously; never push unless asked; stop at the task boundary.** Do **not** ask permission to commit and do **not** ask "shall I commit?" in prose — stage and commit completed work following the commit-message schema below on your own initiative. To keep commits silent (no permission prompt), match the allow-list: run `git add <paths>` and `git commit` as **separate** calls (not a `&&` compound), and pass the message as a **single-quoted** string — **no `$(cat <<EOF)` command substitution** (avoid apostrophes in the body so single-quoting works). **Never `git push` on your own** — push only when the user **explicitly** asks; do not ask to push either. Autonomy is *within* a task: do everything the task needs **except** pushing. Once a task's commit is announced, **stop and yield to the user** — report what landed and wait, rather than rolling forward into the next task unprompted. The task boundary is a checkpoint, not a place to keep going.
 
@@ -112,54 +115,16 @@ repo's own directive: `setup-new-repo.sh --update` only ever rewrites the conten
   - [Impact]: …
   ```
 
-  `[Context]`/`[Impact]` still sit in the body, so the schema and project-status's extraction
+  `[Context]`/`[Impact]` still sit in the body, so the schema and the tracker's extraction
   are unaffected (it reads the full message, not the subject). **Do not rewrite existing
   history** to fix it — the content is fine, only the framing was wrong. The schema block
-  below is *injected* and cannot be edited here; the durable fix belongs upstream in
-  `templates/claude-rule.md` in [project-status](https://github.com/cornjacket/project-status),
-  which would fix every repo in the portfolio at once. This bullet is the local guard until then.
-
-<!-- ai-project-status:begin -->
-<!--
-  This block is injected and refreshed by project-status:
-  https://github.com/cornjacket/project-status
-
-  Do not edit between the begin/end markers — local edits will be
-  overwritten on the next `setup-new-repo.sh --update`. To change
-  the rules, edit templates/claude-rule.md in project-status
-  and re-run `setup-new-repo.sh --update <this-repo-remote>`.
-
-  This block is deliberately a KERNEL: only the rules that would be too
-  late if they loaded on demand. Rationale, examples, and the daily-plan
-  body structure live in ./project-status-guide.md.
--->
-## project-status: commit + daily-plan discipline
-
-This repo is monitored by [`project-status`](https://github.com/cornjacket/project-status): it reconstructs activity from your **git history** and aggregates your `daily-plan.md` across every tracked repo. **Read [`project-status-guide.md`](project-status-guide.md)** (repo root) before writing a daily plan, or whenever a commit message needs more than the rules below.
-
-### Commits
-
-1. Every commit follows this shape. `[Context]` and `[Impact]` are required on any non-trivial commit (a typo or pure formatting may omit them):
-
-   ```
-   <domain>(<scope>): <high-level functional summary>
-   - [Context]: why this was done / what was learned
-   - [Impact]: how it alters the project or system behavior
-   ```
-
-2. Title the **system change, not the files**, and write it for a reader who has never seen this repo — these messages are summarized across the whole portfolio. `feat(auth): let users reset a forgotten password by email`, not `add token TTL check to reset handler`.
-
-3. Commit at **task granularity** — never per-prompt — and commit completed work **before the session ends**. Uncommitted work is invisible to the tracker.
-
-4. Immediately after committing, print `✅ <short-hash> — <title>` on its own line.
-
-### Daily plan (`daily-plan.md`, repo root)
-
-5. The first line is exactly `# Daily plan — YYYY-MM-DD` and nothing else — no repo URL. The file is **one** day's plan: always overwritten, never appended.
-
-6. Write the *next* day's plan only when the user explicitly asks to plan ahead — not on an ambiguous "let's stop here". On Friday, write Monday's.
-
-<!-- ai-project-status:end -->
+  below is *injected* and cannot be edited here; the durable fix belongs **upstream in the
+  injector's template**, which would fix every repo in the portfolio at once. That upstream
+  moved on 2026-08-04: it was `templates/claude-rule.md` in `project-status`, which is
+  retiring, and is now `template/workspace/templates/commit-kernel.md` in
+  [create-git-workspace](https://github.com/cornjacket/create-git-workspace) — where the
+  missing blank line was **confirmed still present** in all four copies of the schema when
+  this repo migrated. Filed there. This bullet is the local guard until it lands.
 
 <!-- git-workspace-commits:begin -->
 <!--
