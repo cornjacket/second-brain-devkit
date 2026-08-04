@@ -3,12 +3,36 @@
 The durable milestone tracker for **this repo** (the generator + system home).
 
 Distinct from:
-- `daily-plan.md` — single-day, forward-looking, `ai-project-status`-managed.
+- the daily plan — single-day, forward-looking. **No longer in this repo** (2026-08-04):
+  plans are per-developer and live in the tracking workspace, at
+  `<workspace>/.workspace/daily-plans/second-brain-devkit/daily-plan.md`.
 - `SPEC.md` — the spec (what the system *is*), not a progress tracker.
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-07-28)
+- [ ] **#41 — the forbidden-reference denylist names one tracker; it should describe a
+  *class*.** `tools/check_no_forbidden_refs.py` has `DEFAULT_DENYLIST = ("ai-project-status",)`,
+  written when there was exactly one thing that could leak. On **2026-08-04** this repo's
+  tracker was replaced by a **git-workspace**, which injects its own marker block into
+  `CLAUDE.md` — a block the old denylist cannot see. The guard did not fail; it simply
+  stopped covering the thing it exists to cover, which is the worse failure of the two
+  because CI stays green.
+
+  **The leak path is real, not hypothetical.** `tests/golden/CLAUDE.md` currently carries
+  the old tracker's managed block (vendored in from the live golden, which still has it).
+  Emission scrubs it and CI gate `check_no_forbidden_refs` is what proves that. When the
+  live golden is stripped of the old tracker and a git-workspace kernel is injected in its
+  place — which the workspace's retirement plan requires — `vendor_golden.py` will carry
+  the *new* block into `tests/golden/`, and nothing will be watching for it.
+
+  Fix: add the new injector's tokens (`git-workspace`, `create-git-workspace`) to the
+  denylist. Consider whether the durable form is a **marker-shape** rule rather than a
+  name list — any `<!-- *:begin -->` managed block from a tracker is by definition
+  devkit-internal, and a shape-based check would have survived this swap without an edit.
+
+  _Filed by the tracking workspace, which states problems in its members rather than
+  fixing them. Nothing here is urgent: the guard is correct for today's content._
 - **Done 2026-07-28 — #39, an embed-excluded block so decorative text stays in a note
   without polluting its vector.** A region fenced between
   `<!-- second-brain:no-embed:begin -->` and `<!-- second-brain:no-embed:end -->` is cut from
