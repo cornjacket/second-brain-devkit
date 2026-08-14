@@ -72,13 +72,21 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   deliberately out of scope). Losing the passphrase loses the brain *unidentifiably* — with
   names encrypted you cannot enumerate what you lost — so escrow is a documented prerequisite.
 
-  **Acceptance.** The golden stays plaintext (toggle off), which pins the no-op path
-  bit-identical; the ON path gets a **hermetic gate** that generates a throwaway brain (the
+  **Acceptance — 20 enumerated cases, and the OFF case lands first.** That a plaintext brain
+  commits its notes under `vault/` is asserted in exactly **one** place today
+  (`tests/test_pdf_gitignore.py:50`), written as an over-reach guard on the PDF rule rather
+  than as coverage of the property: one PARA root, no subdirectory, and it asks
+  `git check-ignore` ("would this be ignored") rather than `git ls-files` ("is the content
+  actually tracked"). So cases 1–5 widen that net **before** any ignore rule is touched —
+  otherwise the regression that "encryption silently stopped committing notes" has nothing
+  to catch it. The golden stays plaintext (toggle off), pinning the no-op path bit-identical;
+  the ON path gets a **hermetic gate** that generates a throwaway brain (the
   `check_config_matrix.py` pattern), enables, clones, decrypts, and asserts a byte-identical
-  round-trip. Load-bearing assertion is a **canary** — a known phrase *and* a known filename
-  absent from a fresh clone's object store and from `git log -p` — and it is
-  **mutation-tested**, because a check that greps for absence is exactly the kind that passes
-  forever without comparing anything. `enabled` also needs a special-cased gate-10 MATRIX
+  round-trip, plus no-churn, stable-name, orphan-sweep, wrong-passphrase, commit-message and
+  resumable-migration cases. The load-bearing assertions are the **canaries** — a known
+  phrase *and* a known filename absent from a fresh clone's object store and from
+  `git log -p` — and they are **mutation-tested**, because a check that greps for absence is
+  exactly the kind that passes forever without comparing anything. `enabled` also needs a special-cased gate-10 MATRIX
   entry: its "flip" is a **migration** (`encrypt_vault.py --enable/--decrypt/--disable`), not
   a value.
 - [ ] **#41 — the forbidden-reference denylist names one tracker; it should describe a

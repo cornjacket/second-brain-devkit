@@ -335,22 +335,64 @@ prototyped there without destroying the regression baseline. It gets a hermetic 
 that generates a throwaway brain (the `check_config_matrix.py` pattern), enables
 encryption, clones it, decrypts, and asserts a byte-identical round-trip.
 
-The load-bearing assertion is a **canary**: a known phrase written into a note, and a
-note filename that is itself a canary, must both be absent from a fresh clone's object
-store and from `git log -p`. Per the "tests that cannot fail" rule, that one is
-**mutation-tested** — break the encryptor on purpose and confirm the gate goes red —
-because it is precisely the kind of check that passes forever without ever comparing
-anything.
+### What the OFF case is covered by today, and what it is missing
 
-Also pinned: the four blinded call-sites still do their jobs with encryption on
-(especially "a commit still embeds the note"), and the `.gitignore` allowlist.
+**A plaintext brain commits its notes under `vault/`, and that is deliberate.** The
+`.gitignore` ignores only derived or foreign things there — `.*.embed.json` sidecars,
+`*.pdf`, `.obsidian/` — so every `.md` is tracked. Empirically true in the real brain:
+48 tracked notes under `vault/`.
 
-**Subdirectory round-trip gets its own fixture**, because the flat `enc/` layout is
-exactly where a nested tree could quietly be lost or quietly be leaked: a brain with
-notes at two depths under two different buckets, plus a bucket left empty, must
-(a) restore to the identical tree on a fresh clone, and (b) show **no bucket or
-subfolder name anywhere** in `git ls-files`, `git log --stat` or the object store — the
-empty bucket included, which is what a committed `.gitkeep` would have given away.
+It is *asserted* in exactly one place: `tests/test_pdf_gitignore.py:50`,
+`test_notes_are_still_committed`, which checks `vault/resources/some-note.md` is not
+ignored. That exists as an over-reach guard on the PDF rule, not as coverage of this
+property, and it has two blind spots this task must close **before** touching the ignore
+rules — otherwise the OFF-case regression net is one assertion wide:
+
+- it checks a single PARA root; the PDF test next to it loops over all four
+- it asks `git check-ignore`, which answers "would this be ignored", not "is the brain's
+  content actually tracked"
+
+**OFF-case cases** (must hold whether or not this feature ever ships — these run in the
+golden, so they are the regression net that proves encryption changed nothing):
+
+| # | Case | Assertion |
+| --- | --- | --- |
+| 1 | a note in **every** PARA root, plus `glossary/`, is not ignored | `git check-ignore` says no, for each root |
+| 2 | a note in a **subdirectory** at two depths is not ignored | same, for `projects/a/b/note.md` |
+| 3 | notes are **actually tracked**, not merely un-ignored | `git ls-files 'vault/**/*.md'` is non-empty and contains the seeded notes |
+| 4 | no `enc/` directory exists and no `.md.enc` is tracked | the encrypted layout is absent when the toggle is off |
+| 5 | the generated brain is **bit-identical** to today's with the toggle off | existing G2 structural diff, unchanged |
+
+### ON-case cases
+
+Hermetic: generate a throwaway brain, enable encryption, add notes, clone, decrypt.
+
+| # | Case | Assertion |
+| --- | --- | --- |
+| 6 | **round-trip** | decrypt of a fresh clone reproduces every note **byte-identically** |
+| 7 | **body canary** | a known phrase in a note appears nowhere in the clone's object store or `git log -p` |
+| 8 | **filename canary** | a note named for a canary word — the word appears in no tracked path, no `git log --stat`, no tree object |
+| 9 | **no plaintext tracked** | `git ls-files vault/` returns exactly `vault/templates/new-note.md` |
+| 10 | **subdirectory round-trip** | notes at two depths under two buckets restore to the identical tree |
+| 11 | **empty bucket leaves no trace** | a bucket with no notes is invisible in `ls-files`/`log --stat` — what a committed `.gitkeep` would have given away |
+| 12 | **no churn** | re-running the encryptor with no edits produces **zero** diff (the `phash` skip-gate) |
+| 13 | **stable name** | editing a note's body leaves its opaque name unchanged |
+| 14 | **orphan sweep** | deleting a note removes its blob; renaming produces delete + add, no leftover |
+| 15 | **wrong passphrase** | fails once with a clear message from the verifier, before any note is touched |
+| 16 | **commit messages** | no title or term appears in `git log`; the opaque name does |
+| 17 | **the four blinded call-sites** | a commit still embeds the note; `add_note` still commits; the line-count guard still warns; glossary autolink still runs |
+| 18 | **classification** | every emitted `.md` lands in exactly one bucket; an unclassified new file fails the gate |
+| 19 | **passphrase file not committable** | an in-repo passphrase path is refused by pre-commit and reported by `doctor` |
+| 20 | **migration is resumable** | an interrupted `--enable` leaves a state `doctor` names, never a half-encrypted brain reported as healthy |
+
+### The one that gets mutation-tested
+
+Cases 7 and 8 are **absence** assertions — the exact shape that passes forever without
+ever comparing anything, per the "tests that cannot fail" rule. Both get broken on
+purpose (encryptor stubbed to pass the plaintext through) and confirmed red before they
+are trusted. Case 3 gets the same treatment for the opposite reason: it is the assertion
+standing between "we ignore the right things" and "we silently stopped committing the
+user's notes."
 
 ## Build order
 
@@ -364,7 +406,8 @@ empty bucket included, which is what a committed `.gitkeep` would have given awa
    whether a folder name ever reaches git, so it is called out rather than assumed.
 5. `doctor.py` checks; README section, including the "does not reach back into history"
    warning.
-6. The hermetic CI gate + the mutation check; the classification gate; the subdirectory
-   round-trip fixture.
+6. The 20 test cases above. **Cases 1–5 (the OFF case) land first**, before any ignore
+   rule is touched — they are the net that catches "encryption silently stopped
+   committing notes", and today that net is one assertion wide.
 7. Prototype in the golden with the toggle **off** (proving the no-op path is
    bit-identical), vendor, template, `tools/ci.py`.
