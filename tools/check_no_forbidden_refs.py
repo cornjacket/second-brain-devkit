@@ -20,13 +20,29 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
 # Tokens that must never appear in a generated brain. Extend as new
 # devkit-internal dependencies appear; keep each lowercase (matching is
 # case-insensitive).
-DEFAULT_DENYLIST = ("ai-project-status",)
+#
+# A name list alone is the wrong shape for this guard, and 2026-08-04 proved it: this
+# repo's tracker was swapped for another, the new one injects its own managed block into
+# CLAUDE.md, and the denylist could not see it. The guard never failed — it just quietly
+# stopped covering the thing it exists to cover, which is worse than failing, because CI
+# stays green. So the names below are the floor, and ``forbidden_marker_names`` is the
+# rule that survives the next swap without an edit.
+DEFAULT_DENYLIST = ("ai-project-status", "git-workspace", "create-git-workspace")
+
+# A managed block is written by a tool that owns the file it splices into. Exactly one
+# such tool is legitimate in a brain — the brain's own — so ANY other ``<!-- x:begin -->``
+# marker is devkit-internal by construction, whatever it happens to be called. That is
+# name-independent: it would have caught the old tracker and the new one, and it will
+# catch the next, on the day it appears rather than the day someone remembers.
+ALLOWED_MARKER_NAMES = frozenset({"second-brain"})
+MARKER_RE = re.compile(r"<!--\s*([A-Za-z0-9][A-Za-z0-9._-]*):(?:begin|end)\s*-->")
 
 # Directories that are never part of a brain's tracked source and would only
 # produce noise (VCS internals, caches, virtualenvs, the derived cache/build).
@@ -57,6 +73,9 @@ def scan(root: Path, denylist) -> list[tuple[Path, int, str, str]]:
             for needle in needles:
                 if needle in low:
                     hits.append((path, lineno, needle, line.strip()))
+            for name in MARKER_RE.findall(line):
+                if name.lower() not in ALLOWED_MARKER_NAMES:
+                    hits.append((path, lineno, f"managed block <{name}:…>", line.strip()))
     return hits
 
 
@@ -86,7 +105,8 @@ def main(argv: list[str]) -> int:
             print(f"  {rel}:{lineno}: [{token}] {line}", file=sys.stderr)
         return 1
 
-    print(f"OK: no forbidden references in {root} (denylist: {', '.join(denylist)})")
+    print(f"OK: no forbidden references in {root} (denylist: {', '.join(denylist)}; "
+          f"managed blocks limited to {', '.join(sorted(ALLOWED_MARKER_NAMES))})")
     return 0
 
 

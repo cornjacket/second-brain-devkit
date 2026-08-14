@@ -23,7 +23,7 @@
 
 # Tokens that must never appear in an emitted brain (SPEC §5.2/§5.3). The guard
 # fails on any hit in the generated tree.
-forbidden_tokens = ["ai-project-status"]
+forbidden_tokens = ["ai-project-status", "git-workspace", "create-git-workspace"]
 
 
 # --- verbatim -----------------------------------------------------------------
@@ -160,8 +160,6 @@ paths = [
 [exclude]
 paths = [
   "SPEC.md",
-  ".claude/hooks/check-daily-plan.py",
-  ".claude/settings.json",
   "PLAN.md",
   "tasks/0001-migrate-to-vault-rooted-layout.md",
   "tasks/0002-markdown-line-count-guard.md",
@@ -186,8 +184,6 @@ paths = [
 
 [exclude.reasons]
 "SPEC.md" = "product design spec — NOT emitted into a brain (OQ-4), but kept in the golden as its build-time design reference; canonical ownership moves to the devkit only at mothball (G4). The emitted scripts carry no SPEC.md §X pointers, so brains stay clean without it."
-".claude/hooks/check-daily-plan.py" = "ai-project-status daily-plan SessionStart hook — dev-process only"
-".claude/settings.json" = "wires the SessionStart daily-plan hook — dev-process only"
 "PLAN.md" = "the golden's own build tracker — the generator builds the brain instead"
 "tasks/*" = "the golden's task specs — artifacts of hand-building the golden"
 "tests/test_note_view.py" = "dev-only regression test for the canonical view's embed-excluded (no-embed) block (task #39) — pins the edges the brain's own self_test invariant does not: several blocks per note, unpaired markers, the Obsidian-benign marker shape, and the token estimator. Stdlib-only; a brain ships the projection, not its test. Run in CI against the vendored copy (gate 15)."

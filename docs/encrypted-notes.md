@@ -531,10 +531,11 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
 8. Prototype in the golden with the toggle **off** (proving the no-op path is
    bit-identical), vendor, template, `tools/ci.py`.
 
-### Blocker found at step 1: the golden's vendor loop is broken today
+### Blocker found at step 1 — since fixed under #41
 
-`vendor_golden.py` and `build_template.py` **cannot be run** right now, and this predates
-and is independent of encryption. The live golden has since been un-bootstrapped from the
+`vendor_golden.py` and `build_template.py` could not be run when step 1 landed, for reasons
+that predate and are independent of encryption. **Resolved 2026-08-13 under task #41**; the
+account below is kept because it is why step 1 vendored by hand. The live golden has since been un-bootstrapped from the
 old tracker (`be7239a`, `d3e9f11`) and had its `CLAUDE.md` wrapped in managed-block
 markers (`f403db2`). So:
 

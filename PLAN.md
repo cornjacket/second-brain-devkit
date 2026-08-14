@@ -21,11 +21,10 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   explicitly** or OpenSSL's 32 MB cap makes the shipped cost *refuse to run* rather than run
   slowly, which only the people on the defaults would ever hit. The plaintext-absence
   assertion was mutation-tested: stubbing the encryptor to pass bytes through turns it red
-  while the round-trip test stays green. **Blocker for step 2+:** `vendor_golden.py` and
-  `build_template.py` cannot run today — the live golden has been un-bootstrapped from the
-  old tracker and its `CLAUDE.md` re-wrapped, so the snapshot no longer partitions the
-  manifest and the cleaning transform's anchor is gone. That is **#41's scenario arriving
-  early, and failing loudly rather than leaking** — fix it under #41, not here. A remote-backed brain (`--remote`, shipped in #6) pushes every note in the
+  while the round-trip test stays green. **Blocker cleared 2026-08-13** — step 1 had to vendor
+  its three files by hand because `vendor_golden.py`/`build_template.py` were broken by the
+  golden's tracker migration; that was **#41's scenario arriving early and failing loudly
+  rather than leaking**, and #41 is now done, so step 2 has a working loop. A remote-backed brain (`--remote`, shipped in #6) pushes every note in the
   clear to a server the user does not own. Opt-in encryption makes the *committed* form
   unreadable — **bodies and filenames both** — while the working tree stays plaintext
   `.md`, so Obsidian, search, embedding and auto-linking are untouched. **Encryption is a
@@ -136,8 +135,24 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   never anything's only copy. Verification still runs locally first, since catching a leak
   before the push is cheaper than after. Sequenced after build steps 1–5, the same
   relationship #34 has to #33.
-- [ ] **#41 — the forbidden-reference denylist names one tracker; it should describe a
-  *class*.** `tools/check_no_forbidden_refs.py` has `DEFAULT_DENYLIST = ("ai-project-status",)`,
+- **Done 2026-08-13 — #41, the guard now describes a *class*, and the vendor loop runs again.**
+  The predicted leak had already half-happened: the live golden was un-bootstrapped from the old
+  tracker, so `vendor_golden.py` refused (the refreshed snapshot no longer partitioned the
+  manifest — two `.claude/` dev-process files were classified but gone) and `build_template.py`
+  died on a cleaning transform anchored to a managed block that no longer existed, **after**
+  wiping `template/`. Found by #42 step 1 trying to use the loop, not by a test.
+  Fixed on three levels: the manifest drops the two vanished paths and adds the new tracker's
+  tokens; `clean_claude` matches a foreign managed block **by shape** (`<!-- x:begin -->` where
+  `x` is not `second-brain`) and tolerates its absence, with the "no blank line before the END
+  marker" rule now stated outright instead of surviving as a side effect of the old removal; and
+  the guard gained `ALLOWED_MARKER_NAMES` — **any** non-`second-brain` managed block is
+  devkit-internal by construction, so the next tracker swap is caught on the day it happens
+  rather than the day someone remembers to add a name. **Mutation-tested both ways**: a block
+  from a tracker called `some-future-tracker` (a name the guard has never seen) and the new
+  tracker named in prose are both caught, exit 1. `template/` rebuilt **byte-identical**, so no
+  emitted brain changes; 16/16 gates green. *Original description below.*
+- [x] **#41 spec (kept for provenance) — the forbidden-reference denylist names one tracker;
+  it should describe a *class*.** `tools/check_no_forbidden_refs.py` has `DEFAULT_DENYLIST = ("ai-project-status",)`,
   written when there was exactly one thing that could leak. On **2026-08-04** this repo's
   tracker was replaced by a **git-workspace**, which injects its own marker block into
   `CLAUDE.md` — a block the old denylist cannot see. The guard did not fail; it simply
