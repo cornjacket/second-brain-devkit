@@ -51,6 +51,7 @@ MATRIX = {
     "hybrid_search":     {"env": "SECOND_BRAIN_HYBRID_SEARCH",    "default": "true",  "flip": "0"},
     "rrf_k":             {"env": "SECOND_BRAIN_RRF_K",            "default": "60",    "flip": "10"},
     "glossary_autolink": {"env": "SECOND_BRAIN_GLOSSARY_AUTOLINK", "default": "false", "flip": "1"},
+    "encryption":        {"env": "SECOND_BRAIN_ENCRYPTION",        "default": "false", "flip": "1"},
 }
 
 
@@ -144,6 +145,79 @@ def check_glossary_autolink(brain: Path, env: dict) -> list[str]:
     return fails
 
 
+def check_encryption(brain: Path, env: dict) -> list[str]:
+    """encryption=TRUE (default false) — a note must still reach the commit, encrypted.
+
+    This toggle is unlike its neighbours: it git-ignores the vault, so every mechanism that
+    finds work by asking git what is staged returns an **empty list** — no error, nothing
+    done, exit 0. So the assertions here are all *positive*: a blob appeared, the note
+    embedded, and exactly one path is tracked under vault/. "Nothing crashed" would pass on
+    a completely inert commit path.
+
+    It is also not a flip but a **migration**, so the fixture runs the real
+    ``--enable`` rather than hand-building the encrypted state — otherwise the gate would
+    exercise a state no user can actually get into.
+    """
+    try:
+        import cryptography  # noqa: F401
+    except ImportError:
+        print("    (skipped: optional 'cryptography' not installed)")
+        return []
+
+    fails: list[str] = []
+    env = {**env, "SECOND_BRAIN_PASSPHRASE": "config-matrix passphrase"}
+    # Seed WITHOUT the flip: the toggle describes a migrated brain, and a brain that has not
+    # migrated yet is not in that state — see the half-finished-migration check below.
+    seed_env = {k: v for k, v in env.items() if k != "SECOND_BRAIN_ENCRYPTION"}
+    _git_brain(brain, seed_env)
+
+    # The toggle on, the migration not run: the hook must REFUSE rather than commit. The
+    # ignore rules arrive with the migration, so committing here would push plaintext.
+    (brain / "vault" / "resources" / "premature.md").write_text(
+        "---\ntags: [cfg]\n---\n\n# Premature\n\nBody.\n", encoding="utf-8")
+    _git(brain, "add", "-A", env=env)
+    if _git(brain, "commit", "-q", "-m", "premature", env=env).returncode == 0:
+        fails.append("encryption=true with no keyfile COMMITTED anyway — the toggle is a claim "
+                     "the migration has not made true, and the notes went in as plaintext")
+    _git(brain, "reset", "-q", env=seed_env)
+    (brain / "vault" / "resources" / "premature.md").unlink()
+
+    r = _run([sys.executable, "scripts/encrypt_vault.py", "--enable"], brain, seed_env)
+    if r.returncode != 0:
+        return fails + [f"--enable failed: {(r.stderr or r.stdout).strip()[:200]}"]
+
+    tracked = _git(brain, "ls-files", "vault", env=env).stdout.split()
+    if tracked != ["vault/templates/new-note.md"]:
+        fails.append(f"after --enable, vault/ still tracks {tracked} — the seeded notes are "
+                     f"committed in the clear")
+
+    canary = "grimsbyhollow"
+    note = brain / "vault" / "resources" / f"{canary}-note.md"
+    note.write_text(f"---\ntags: [cfg]\n---\n\n# Enc\n\nThe {canary} clause.\n", encoding="utf-8")
+    c = _git(brain, "commit", "-q", "--allow-empty", "-m", "note: enc", env=env)
+    if c.returncode != 0:
+        return fails + [f"commit failed with encryption=true: {(c.stderr or c.stdout)[:200]}"]
+
+    committed = _git(brain, "show", "--stat", "--name-only", "HEAD", env=env).stdout
+    if ".md.enc" not in committed:
+        fails.append(f"committing a new note produced NO encrypted blob — the note never "
+                     f"reached git at all: {committed.split()!r}")
+    if canary in committed:
+        fails.append("the note's filename appears in the commit — the name is not encrypted")
+
+    sidecar = note.parent / f".{note.stem}.embed.json"
+    if not sidecar.exists():
+        fails.append("the new note was not embedded — with the vault git-ignored this is how "
+                     "embedding silently stops")
+
+    # A missing passphrase must be loud. Silence is indistinguishable from "nothing to do".
+    quiet = {k: v for k, v in env.items() if k != "SECOND_BRAIN_PASSPHRASE"}
+    if _run([sys.executable, "scripts/note_selection.py"], brain, quiet).returncode == 0:
+        fails.append("encryption=true with NO passphrase exited 0 — it must fail loudly rather "
+                     "than report an empty selection")
+    return fails
+
+
 def check_search_toggle(brain: Path, env: dict, label: str) -> list[str]:
     """hybrid_search=false / rrf_k=10 — search must still work, just rank differently.
 
@@ -179,6 +253,8 @@ def main() -> int:
             env = {**base, spec["env"]: spec["flip"]}
             if key == "glossary_autolink":
                 found = check_glossary_autolink(brain, env)
+            elif key == "encryption":
+                found = check_encryption(brain, env)
             else:
                 found = check_search_toggle(brain, env, f"{key}={spec['flip']}")
             fails += found

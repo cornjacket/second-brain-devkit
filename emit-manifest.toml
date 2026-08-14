@@ -66,6 +66,7 @@ paths = [
   "requirements.txt",
   "requirements-mcp.txt",
   "requirements-pdf.txt",
+  "requirements-crypt.txt",
   "scripts/register.py",
   "scripts/add_pdf.py",
   "scripts/autolink.py",
@@ -74,6 +75,7 @@ paths = [
   "scripts/db.py",
   "scripts/doctor.py",
   "scripts/embed_staged.py",
+  "scripts/encrypt_vault.py",
   "scripts/embed_vault.py",
   "scripts/embedder.py",
   "scripts/features.py",
@@ -178,11 +180,9 @@ paths = [
   "tests/test_doctor_pdf.py",
   "tests/test_pdf_gitignore.py",
   "tests/fixtures/pdf/sample.embed.json",
-  "scripts/encrypt_vault.py",
   "tests/test_encrypt_vault.py",
   "tests/test_note_selection.py",
   "tests/test_encrypt_migration.py",
-  "requirements-crypt.txt",
 ]
 
 [exclude.reasons]
@@ -202,8 +202,6 @@ paths = [
 "tests/test_doctor_pdf.py" = "dev-only regression test for doctor's M6 PDF parity (task #7) — a PDF sidecar is never mis-flagged in the note pass, and a consistent PDF scans clean. A brain ships the tool, not its test."
 "tests/test_pdf_gitignore.py" = "dev-only guard that an ingested PDF is genuinely git-ignored, not merely untracked (task #39) — asks `git check-ignore` rather than grepping the file, so a rule that is present but wrong still fails. A brain ships the .gitignore, not its test."
 "requirements-pdf.txt" = "PDF ingestion (task #7) optional-dep manifest — built at M1, NOT YET EMITTED. Promote to `verbatim` at M6 when a brain gains the add_pdf command. See docs/pdf-ingestion.md."
-"scripts/encrypt_vault.py" = "encrypted notes at rest (task #42) — the mechanism (keys, opaque names, envelope), built at step 1, NOT YET EMITTED. It has no callers until the hooks are rewired (step 2) and no way to be switched on until the migration lands (step 3), so emitting it now would ship a module a brain cannot use. Promote to `verbatim` at step 5, alongside the [encryption] toggle. Same staging the PDF milestones used. See docs/encrypted-notes.md."
 "tests/test_encrypt_migration.py" = "dev-only end-to-end test for the migration (task #42, step 3) — enable, clone, decrypt, disable, against a real throwaway git repo. Its canaries are ABSENCE assertions over what a commit actually contains (git ls-tree + every tracked blob, not the working tree), planted separately in a note body, a filename and a subdirectory name. It also PINS THE DOCUMENTED LIMIT: pre-migration history still holds the plaintext, so the warning is a checked fact rather than a claim. A brain ships the tool, not its test."
 "tests/test_note_selection.py" = "dev-only regression test for the shared note selector (task #42, step 2) — covers BOTH modes, because the plaintext path is what must not regress and the encrypted path is where `git diff --cached` returns an empty list rather than an error. Each case asserts a note is *selected*; an empty result is the bug, so a test that only asserted 'did not crash' would pass on a blind commit path. A brain ships the selector, not its test."
 "tests/test_encrypt_vault.py" = "dev-only regression test for the encryption mechanism (task #42) — round-trip, keyed/deterministic names, the verifier, tamper detection, and the shipped scrypt parameters (incl. the maxmem that OpenSSL's 32 MB cap would otherwise refuse to run). Skips without the optional `cryptography`. A brain ships the tool, not its test."
-"requirements-crypt.txt" = "encrypted notes (task #42) optional-dep manifest — built at step 1, NOT YET EMITTED. Promote to `verbatim` at step 5 with the toggle, so a brain is never told to install a dependency for a feature it cannot yet enable. See docs/encrypted-notes.md."

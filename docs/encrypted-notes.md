@@ -511,7 +511,7 @@ At a glance:
 | ✅ | 2. Un-blind the commit path | One shared selector replaces every `git diff --cached -- '*.md'`, so nothing silently stops working when the vault is ignored. |
 | ✅ | 3. The migration | `--enable` / `--decrypt` / `--disable` / `--sync` and the default-deny ignore block — the commands a user actually runs. |
 | ✅ | 4. Directory reconstruction | Rebuild the note tree from the path inside each envelope, so no folder name is ever committed. |
-| ☐ | 5. Make it usable | `doctor.py` preflights, the README section, and promoting the modules + toggle into every generated brain. |
+| ✅ | 5. Make it usable | `doctor.py` preflights, the README section, and promoting the modules + toggle into every generated brain. |
 | ☐ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
 | ☐ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
 | ☐ | 8. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
@@ -575,13 +575,33 @@ At a glance:
 
    `--decrypt` `mkdir -p`s each header's parent at arbitrary depth, and the PARA skeleton
    comes from `CONTENT_ROOTS` rather than from committed `.gitkeep` placeholders.
-5. **☐ Make it usable** — the preflights, the documentation, and actually shipping the
+5. **✅ Make it usable** — the preflights, the documentation, and actually shipping the
    feature into a generated brain.
 
-   `doctor.py` checks (§ above); the README section, including the "does not reach back
-   into history" warning; and the promotion the earlier steps deferred — `encrypt_vault.py`,
-   `requirements-crypt.txt` and the `encryption` key move from `exclude` into the emitted
-   set, which is also when gate 10's coverage rule starts applying to the toggle.
+   `doctor.py` gained five checks; the README gained an "Encrypt your notes (optional)"
+   section carrying the does-not-reach-backwards warning; `encrypt_vault.py`,
+   `requirements-crypt.txt` and the `encryption` key moved into the emitted set, and gate
+   10 now enforces coverage on the toggle (its fixture runs the real `--enable`, since a
+   flip alone would exercise a state no user can reach).
+
+   **Two bugs, both found by running the migration rather than by a test:**
+
+   - **The README claim was false when written.** "Committing a note encrypts it" — nothing
+     in the hook chain did that. The pre-commit hook gained a fourth step
+     (`encrypt_vault.py --precommit`), last in the chain so the blob carries the text
+     glossary auto-linking may have just edited, and a silent no-op — not even a passphrase
+     lookup — when the toggle is off.
+   - **Enabling encryption destroyed every embedding in the brain.** `git diff-tree` reports
+     untracking and deleting identically as `D`, and `update_cache`'s delete path unlinks
+     sidecars — so the one commit that untracks the whole vault read as "every note
+     deleted" and wiped the lot. Nothing failed, nothing printed. **The working tree is now
+     the authority on whether a note exists**, which also fixes the plaintext case of
+     untracking a note by hand. Both halves are pinned: untracking is not a deletion, and a
+     real deletion still is one.
+
+   `--enable` also now untracks by asking git what it tracks, rather than trusting the note
+   list — which is what caught the `.gitkeep` placeholders that would have advertised
+   exactly which PARA buckets are empty.
 6. **☐ Full acceptance suite** — the remaining numbered cases, starting with the net that
    catches the worst failure.
 
