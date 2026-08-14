@@ -221,6 +221,15 @@ def step_classification() -> bool:
     return _run([PY, str(TOOLS / "check_content_classification.py")])
 
 
+def step_encrypted_roundtrip() -> bool:
+    # Every other encryption gate proves BYTES round-trip; this proves the brain still works.
+    # Sidecars are git-ignored, so a fresh clone has no vectors and an empty cache — the
+    # restore path (clone -> decrypt -> embed -> hydrate -> search) is the whole point of
+    # having a remote and was never exercised. Bare repo, deterministic embedder, no
+    # network; the two-query search assertion fails a search that ignores its query. #42.
+    return _run([PY, str(TOOLS / "check_encrypted_roundtrip.py")])
+
+
 def step_claude_block() -> bool:
     # An UPGRADED brain must receive documentation updates, not just code (#40). CLAUDE.md is
     # now a managed block like the README, plus --adopt for a brain that predates the markers.
@@ -240,24 +249,25 @@ def step_embed_excluded() -> bool:
 
 
 STEPS = [
-    ("1/18 manifest partition", step_partition),
-    ("2/18 template in sync with golden", step_template_in_sync),
-    ("3/18 emitted scripts compile", step_py_compile),
-    ("4/18 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/18 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/18 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/18 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/18 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/18 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/18 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/18 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/18 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/18 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/18 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/18 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
-    ("16/18 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
-    ("17/18 encryption (mechanism + a commit path that does not go blind)", step_encryption),
-    ("18/18 content classification (every .md is content or machinery)", step_classification),
+    ("1/19 manifest partition", step_partition),
+    ("2/19 template in sync with golden", step_template_in_sync),
+    ("3/19 emitted scripts compile", step_py_compile),
+    ("4/19 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/19 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/19 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/19 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/19 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/19 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/19 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/19 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/19 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/19 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/19 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/19 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/19 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
+    ("17/19 encryption (mechanism + a commit path that does not go blind)", step_encryption),
+    ("18/19 content classification (every .md is content or machinery)", step_classification),
+    ("19/19 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
 ]
 
 

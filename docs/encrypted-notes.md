@@ -555,7 +555,8 @@ At a glance:
 | ✅ | 5. Make it usable | `doctor.py` preflights, the README section, and promoting the modules + toggle into every generated brain. |
 | ✅ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
 | ✅ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
-| ☐ | 8. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
+| ✅ | 8. Survive a remote | Push an encrypted brain, destroy the local copy, clone it back, and prove the knowledge is still findable. |
+| ☐ | 9. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
 
 1. **✅ The mechanism** — keys, opaque filenames and the envelope, as pure byte operations
    that know nothing about git.
@@ -675,8 +676,31 @@ At a glance:
    can look at what the remote actually holds.
 
    `tools/mirror_brain.py`, run against the real brain: **47 notes mirrored, all nine
-   checks green.** Human-driven, not a CI gate. See the runbook below.
-8. **☐ Ship it** — the final pass that proves a brain which never turns encryption on is
+   checks green**, pushed to a disposable private remote, and **confirmed by hand
+   (2026-08-14): the remote holds no `.md` files at all — only `.enc` blobs under
+   `enc/`.** Human-driven, not a CI gate. See the runbook below.
+8. **✅ Survive a remote** — push an encrypted brain, destroy the local copy, clone it
+   back, and prove the knowledge is still findable.
+
+   **CI gate 19** (`tools/check_encrypted_roundtrip.py`). Every other encryption test
+   proves *bytes* round-trip; this proves the brain still **works**, which is a different
+   claim. Bare repo → generate → encrypt → notes → commit → push → **delete the local brain
+   entirely** → clone → assert no note survived in the clear → decrypt → embed → hydrate →
+   search. Hermetic: git + stdlib + sqlite-vec, deterministic embedder, no network.
+
+   **The search assertion is two queries, not one.** Each must rank *its own* note first, so
+   a search that ignored the query and returned a fixed order fails. That matters because
+   the deterministic `test` embedder makes the vector half meaningless — the assertion rests
+   on the lexical FTS5 half, which is real regardless of backend. Mutation-tested both ways:
+   an encryptor that passes plaintext through fires 4 checks, and collapsing the two queries
+   onto one expected note fires the ranking check.
+
+   **It found the README gap it was predicted to find.** The restore instructions said
+   "clone, then `--decrypt`" — which leaves you holding your notes and **an empty search
+   index**, because vectors are derived, machine-specific and never committed. The real
+   path is `--decrypt` → `embed_vault.py` → `hydrate_cache.py`, and the README now says so.
+
+9. **☐ Ship it** — the final pass that proves a brain which never turns encryption on is
    unchanged.
 
    Golden with the toggle **off** (the no-op path bit-identical), vendor, template,
