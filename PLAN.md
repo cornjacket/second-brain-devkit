@@ -11,8 +11,21 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-08-13)
-- [ ] **▶▶ NEXT — #42, encrypt a brain's notes at rest so a git remote holds nothing
-  readable.** A remote-backed brain (`--remote`, shipped in #6) pushes every note in the
+- [~] **▶▶ IN PROGRESS — #42, encrypt a brain's notes at rest so a git remote holds nothing
+  readable.** **Step 1 of 8 done (2026-08-13)** — `scripts/encrypt_vault.py` + 36 unit tests
+  + `requirements-crypt.txt`, prototyped in the golden and vendored, classified `exclude`
+  so no brain receives a module it cannot yet switch on; 16/16 CI gates green, emitted brain
+  unchanged. Two findings: the **orphan sweep decrypts nothing** (the name is a pure
+  function of the path, so live names are computed and the leftovers *are* the orphans —
+  the planned header-decrypt was unnecessary), and **`hashlib.scrypt` needs `maxmem` raised
+  explicitly** or OpenSSL's 32 MB cap makes the shipped cost *refuse to run* rather than run
+  slowly, which only the people on the defaults would ever hit. The plaintext-absence
+  assertion was mutation-tested: stubbing the encryptor to pass bytes through turns it red
+  while the round-trip test stays green. **Blocker for step 2+:** `vendor_golden.py` and
+  `build_template.py` cannot run today — the live golden has been un-bootstrapped from the
+  old tracker and its `CLAUDE.md` re-wrapped, so the snapshot no longer partitions the
+  manifest and the cleaning transform's anchor is gone. That is **#41's scenario arriving
+  early, and failing loudly rather than leaking** — fix it under #41, not here. A remote-backed brain (`--remote`, shipped in #6) pushes every note in the
   clear to a server the user does not own. Opt-in encryption makes the *committed* form
   unreadable — **bodies and filenames both** — while the working tree stays plaintext
   `.md`, so Obsidian, search, embedding and auto-linking are untouched. **Encryption is a
@@ -103,7 +116,10 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   manifest entry; the real brain stays untouched either way, which was the constraint):
   `--mirror` one-way real→twin (`--reverse` exists for the Desktop write path but is
   explicit and non-overwriting — bidirectional-by-default would put test junk in the one
-  brain that matters), `--verify` (every note decrypts byte-identically; `ls-files` under
+  brain that matters) — **no MCP server and no skill for the twin**: it is a *copy target*,
+  not a brain anybody uses, and a second server would buy another way to write notes nobody
+  reads at the cost of both collisions below (`~/second-brain-encrypt` already exists as an
+  empty clone of its remote), `--verify` (every note decrypts byte-identically; `ls-files` under
   `vault/` returns only the note template; no real filename **stem** in any tracked path or
   commit message; no real content line anywhere in the object store via `cat-file` over all
   blobs; note counts agree), `--teardown`. **Two one-machine-two-brains collisions**, neither

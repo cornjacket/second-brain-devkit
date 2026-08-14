@@ -444,7 +444,21 @@ on any regenerate, reported as an unknown file by `update_brain.py`, and would n
 `emit-manifest.toml` entry to keep the partition invariant clean. Devkit-owned, never
 emitted, is the same call `tools/vendor_golden.py` and the ablation tooling already make.
 
-### Wiring the twin to Claude Desktop — two collisions
+### Scope: a copy target, not a second brain
+
+**No MCP server and no skill for the twin.** It is not a brain anybody uses — it is a
+*copy target*, and its whole job is to hold the same notes so their committed form can be
+inspected. Adding a second server and a second skill would buy a second way to write
+notes nobody reads, at the cost of both collisions below.
+
+So the loop is: copy `.md` files from `~/second-brain/vault/` into the twin, encrypt,
+commit, push, look at what the remote holds. `~/second-brain-encrypt` already exists as
+an empty clone of `git@github.com:cornjacket/second-brain-encrypt.git`.
+
+The collisions below are kept as the *reason* the twin stays a copy target, and as the
+warning if it ever grows one.
+
+### If the twin ever does get a server — two collisions
 
 The twin needs its own MCP server entry so it can be exercised through the same interface
 the real brain uses. Two things collide on the name `second-brain`:
@@ -489,8 +503,18 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
 
 ## Build order
 
-1. `scripts/encrypt_vault.py` — envelope, KDF, keyfile, name derivation — plus dev-only
-   unit tests in the devkit.
+1. **DONE** — `scripts/encrypt_vault.py`: envelope, KDF, keyfile, name derivation, plus
+   36 dev-only unit tests. Not emitted yet (classified `exclude`): it has no callers
+   until step 2 and no way to be switched on until step 3, so emitting it now would ship
+   a brain a module it cannot use. Promote to `verbatim` at step 5, with the toggle.
+
+   Two things worth carrying forward. **The orphan sweep decrypts nothing** — the name is
+   a pure function of the path, so every live note's blob name can simply be computed and
+   the leftovers *are* the orphans; the earlier plan to decrypt headers for this was
+   unnecessary. And **`hashlib.scrypt` needs `maxmem` raised explicitly**: at the shipped
+   cost (`n=2**17`, ~134 MB) OpenSSL's built-in 32 MB cap makes it *refuse to run* rather
+   than run slowly — a failure only the people using the defaults would ever hit. Both are
+   pinned by tests. Measured cost: 0.29 s per derivation.
 2. Rewire the four call-sites; make each one's coverage fail first with encryption on.
 3. `--enable` / `--decrypt` / `--disable`, and the `.gitignore` allowlist.
 4. **Directory reconstruction** — `--decrypt` `mkdir -p`s each header's parent at
@@ -506,3 +530,26 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
    not a CI gate. Runs against the real brain's content once the mechanism is proven.
 8. Prototype in the golden with the toggle **off** (proving the no-op path is
    bit-identical), vendor, template, `tools/ci.py`.
+
+### Blocker found at step 1: the golden's vendor loop is broken today
+
+`vendor_golden.py` and `build_template.py` **cannot be run** right now, and this predates
+and is independent of encryption. The live golden has since been un-bootstrapped from the
+old tracker (`be7239a`, `d3e9f11`) and had its `CLAUDE.md` wrapped in managed-block
+markers (`f403db2`). So:
+
+- `vendor_golden.py` refuses — the refreshed snapshot no longer partitions the manifest
+  (`.claude/hooks/check-daily-plan.py` and `.claude/settings.json` are gone from the live
+  golden but still classified in `emit-manifest.toml`);
+- `build_template.py` then fails on `CLAUDE.md` — its cleaning transform anchors on the
+  old tracker's managed block, which no longer exists, and it wipes `template/` before
+  discovering that.
+
+This is **task #41's scenario arriving early**, one step short of the leak it predicted:
+the vendor loop broke *loudly* instead of quietly carrying the new tracker's block into
+`tests/golden/`, which is the good version of that failure.
+
+Step 1 therefore vendored its three new files **by hand** — they are new, so no drift
+could ride along — and CI is green at 16/16. The next step that needs a real
+`vendor_golden.py` run must fix the manifest and the `CLAUDE.md` transform first. Doing it
+under #41 rather than #42 keeps the encryption work from absorbing a tracker migration.
