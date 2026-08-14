@@ -377,7 +377,19 @@ def main(argv: list[str]) -> int:
         print(f"error: no brain at {real}", file=sys.stderr)
         return 2
 
+    # Same resolution the twin's own scripts use, so a key file written once works here
+    # too. `--setup` is the exception: the twin has no keyfile yet, so there is no id to
+    # look a key file up by, and the passphrase has to be supplied.
     passphrase = os.environ.get("SECOND_BRAIN_PASSPHRASE", "")
+    if not passphrase.strip() and (twin / "enc" / "keyfile.json").exists():
+        sys.path.insert(0, str(twin / "scripts"))
+        sys.modules.pop("passphrase", None)
+        try:
+            import passphrase as pp
+            passphrase = pp.resolve(twin)
+        except Exception as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 2
     if not passphrase.strip():
         print("error: set SECOND_BRAIN_PASSPHRASE — the twin is disposable, so its "
               "passphrase can be anything you like", file=sys.stderr)
