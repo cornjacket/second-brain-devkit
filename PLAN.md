@@ -10,7 +10,66 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-07-28)
+## ▶ Next up (2026-08-13)
+- [ ] **▶▶ NEXT — #42, encrypt a brain's notes at rest so a git remote holds nothing
+  readable.** A remote-backed brain (`--remote`, shipped in #6) pushes every note in the
+  clear to a server the user does not own. Opt-in encryption makes the *committed* form
+  unreadable — **bodies and filenames both** — while the working tree stays plaintext
+  `.md`, so Obsidian, search, embedding and auto-linking are untouched. **Encryption is a
+  git-layer concern, not a note-layer one.** Off by default; a brain that never enables it
+  is bit-identical to today's.
+
+  **Design** (full write-up in [docs/encrypted-notes.md](docs/encrypted-notes.md)):
+  `vault/projects/foo.md` stays in the working tree and is git-ignored; git tracks
+  `enc/<opaque>.md.enc`, where the name is `HMAC(k_name, <path>)` — **keyed** so nobody can
+  test whether the brain holds `salary-negotiation.md`, **deterministic** so an unchanged
+  note never churns. The plaintext path travels in an encrypted header prefixed to the note
+  before encryption and stripped after, so a restore is byte-identical and needs **no
+  manifest** — a single mapping file would conflict on *every* concurrent commit of a
+  two-machine brain and, being ciphertext, could not be merged. AES-256-GCM +
+  scrypt(n=2¹⁷) via `cryptography` as an **optional** dep (the `pypdf` precedent); `age`
+  rejected (a binary prerequisite for every user and CI runner). Passphrase from a
+  **file outside the repo**, never a prompt — the MCP server cannot answer one without
+  hanging (`docs/mcp-hardening.md`). A tracked `enc/keyfile.json` carries the KDF salt, an
+  optional **hint**, and a **verifier tag** so a wrong passphrase fails once, clearly,
+  before any note is touched.
+
+  **What makes this a real task rather than a wrapper around AES:** git-ignoring `vault/**`
+  **blinds four mechanisms that select work by what git staged**, and none of them fails
+  loudly — the "observer goes blind" shape. `embed_staged.py:39` filters staged `.md`, so
+  **notes silently stop being embedded on commit** while the hook still exits 0;
+  `mcp_server.py:497` runs `git add` on an ignored pathspec, so `add_note` fails mid-commit
+  (the #28 poisoning shape); the pre-commit line-count guard never fires again;
+  `glossary_autolink_staged.py` goes quiet the same way. Rewiring those to trigger on the
+  note being encrypted *is* the work. Commit messages leak too — `note: add {title}` — and
+  switch to the encrypted name, keeping traceability at one level of indirection.
+
+  **What is encrypted follows a rule, not a list:** *if `update_brain.py` may overwrite it,
+  it is machinery and stays plaintext; otherwise it is content and gets encrypted*
+  (`update_brain.py:126`). That yields `vault/**/*.md` minus the one `VAULT_OWNED` carve-out
+  `vault/templates/new-note.md` (whose byte-identity with `CLAUDE.md` **gate 9** requires —
+  encrypting it would put a build-time invariant behind a passphrase). `GLOSSARY.md` stays
+  plaintext: it is documentation *about* the glossary layer, ships with no terms, and is
+  byte-identical in the template and in the real brain — the vocabulary itself is one note
+  per term under `vault/glossary/`, which **is** encrypted. The classification is **enforced
+  by a gate**, so a newly emitted Markdown file cannot ship unclassified, and `GLOSSARY.md`
+  is flagged the moment it stops matching the template — i.e. the moment it becomes content.
+
+  **Honest limits, stated up front rather than discovered:** enabling encryption does **not**
+  reach back into history — plaintext already pushed stays pushed until the history is
+  rewritten. Note count, ciphertext sizes and commit cadence remain visible (size padding
+  deliberately out of scope). Losing the passphrase loses the brain *unidentifiably* — with
+  names encrypted you cannot enumerate what you lost — so escrow is a documented prerequisite.
+
+  **Acceptance.** The golden stays plaintext (toggle off), which pins the no-op path
+  bit-identical; the ON path gets a **hermetic gate** that generates a throwaway brain (the
+  `check_config_matrix.py` pattern), enables, clones, decrypts, and asserts a byte-identical
+  round-trip. Load-bearing assertion is a **canary** — a known phrase *and* a known filename
+  absent from a fresh clone's object store and from `git log -p` — and it is
+  **mutation-tested**, because a check that greps for absence is exactly the kind that passes
+  forever without comparing anything. `enabled` also needs a special-cased gate-10 MATRIX
+  entry: its "flip" is a **migration** (`encrypt_vault.py --enable/--decrypt/--disable`), not
+  a value.
 - [ ] **#41 — the forbidden-reference denylist names one tracker; it should describe a
   *class*.** `tools/check_no_forbidden_refs.py` has `DEFAULT_DENYLIST = ("ai-project-status",)`,
   written when there was exactly one thing that could leak. On **2026-08-04** this repo's
