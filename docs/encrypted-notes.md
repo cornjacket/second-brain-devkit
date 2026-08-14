@@ -413,6 +413,47 @@ you read the twin's `git log`/`ls-files` yourself and recognise nothing, **and**
 verifier asserts the same mechanically — because "I looked and it seemed fine" is
 exactly the check that passes forever without comparing anything.
 
+### Runbook
+
+```bash
+export SECOND_BRAIN_PASSPHRASE="anything — the twin is disposable"
+
+python3 tools/mirror_brain.py --setup      # scaffold, strip the seeds, encrypt while EMPTY
+python3 tools/mirror_brain.py --mirror     # copy the real notes in; they are only ever
+                                           # committed encrypted   (--push to publish)
+python3 tools/mirror_brain.py --verify     # the mechanical half — then read the repo yourself
+python3 tools/mirror_brain.py --teardown   # when done; then delete the remote
+```
+
+`--setup` refuses anything but an empty clone, because the ordering *is* the guarantee:
+encryption governs future commits only, so a note mirrored in before the twin is encrypted
+would sit in its history as plaintext forever. Encrypting while empty buys a much stronger
+claim — **no note has ever been committed in the clear, in any commit** — which `--verify`
+then checks directly. `--setup` also deletes the four seeded notes before the first commit;
+they are public boilerplate and would leak nothing, but removing them makes that claim
+absolute rather than "except the ones that were fine".
+
+### What `--verify` checks
+
+Every real note decrypts byte-identically · the counts agree · only the note template is
+tracked under `vault/` · no note **filename** appears in the history · no **subfolder** name
+does · no sampled **content line** does · no plaintext note was **ever** committed · the real
+brain is still clean · the global skill still points at the real brain.
+
+**The baseline is what makes the canaries usable.** A plain substring search over the object
+store fails immediately and uselessly: a brain's scaffold ships `seeds/` — the very notes a
+real brain was seeded from — plus docs using ordinary words like "corpus" and "ablation". The
+first run reported 14 false leaks. So the canaries subtract everything reachable from the
+pre-mirror commits, which by construction predates every real note. The blind spot this
+leaves is stated in the code: a note whose filename or wording genuinely coincides with the
+scaffold's boilerplate is indistinguishable from it.
+
+**Mutation-tested, twice, because a verifier that has never failed proves nothing.**
+Committing an invented plaintext note fired 2 of the 9 checks; committing a *real* note fired
+4 — and the filename check caught **five** names, not one: the leaked note plus the four it
+wikilinks to. Worth knowing on its own — **leaking one note leaks the names of its
+neighbours.**
+
 ### The mirror script
 
 **One-way by default: real → twin.** The real brain is the source of truth and is never
@@ -513,7 +554,7 @@ At a glance:
 | ✅ | 4. Directory reconstruction | Rebuild the note tree from the path inside each envelope, so no folder name is ever committed. |
 | ✅ | 5. Make it usable | `doctor.py` preflights, the README section, and promoting the modules + toggle into every generated brain. |
 | ✅ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
-| ☐ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
+| ✅ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
 | ☐ | 8. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
 
 1. **✅ The mechanism** — keys, opaque filenames and the envelope, as pure byte operations
@@ -630,12 +671,11 @@ At a glance:
    constant, so pointing it at a fixture is not cheap. The code is written and reviewed, and
    the path is exercised by hand in the Desktop suite. Recorded here rather than counted as
    covered.
-7. **☐ The parallel twin** — a note-for-note encrypted copy of the real brain, so a human
+7. **✅ The parallel twin** — a note-for-note encrypted copy of the real brain, so a human
    can look at what the remote actually holds.
 
-   `tools/mirror_brain.py` + runbook — human-driven, not a CI gate. Note the constraint
-   step 3 turned up: the twin must be **encrypted before any note is mirrored in**, or its
-   history holds plaintext permanently.
+   `tools/mirror_brain.py`, run against the real brain: **47 notes mirrored, all nine
+   checks green.** Human-driven, not a CI gate. See the runbook below.
 8. **☐ Ship it** — the final pass that proves a brain which never turns encryption on is
    unchanged.
 
