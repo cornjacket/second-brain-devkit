@@ -24,6 +24,7 @@ Hermetic: stdlib + the vendored tree. Devkit tool, never emitted.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -52,8 +53,35 @@ def run_suite(module: str) -> tuple[bool, str]:
     return proc.returncode == 0, (proc.stderr or "") + (proc.stdout or "")
 
 
+def check_dependency_is_optional() -> list[str]:
+    """`cryptography` must never be imported at module level in an emitted brain.
+
+    It is declared in `requirements-crypt.txt`, not `requirements.txt`, so the overwhelming
+    majority of brains — every one that never turns encryption on — will not have it
+    installed. A single module-level import anywhere in the emitted tree turns that into an
+    ImportError on a path that has nothing to do with encryption: the pre-commit hook, or
+    `doctor`, or `search_vault`. The feature would break brains that never asked for it.
+
+    Static rather than behavioural on purpose. Simulating the absence of an installed
+    package is fiddly and easy to get subtly wrong; "no line in the shipped tree begins
+    with `import cryptography`" is exact, and it is the property that actually matters.
+    """
+    template = REPO_ROOT / "template"
+    offenders = []
+    for path in sorted(template.rglob("*.py")):
+        for lineno, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if re.match(r"^(import|from)\s+cryptography\b", line):
+                offenders.append(f"{path.relative_to(template)}:{lineno}: {line.strip()}")
+    if offenders:
+        return [f"'cryptography' is imported at module level in the emitted brain — a brain "
+                f"without the optional dependency would break on a path unrelated to "
+                f"encryption: {offenders}"]
+    print(f"  ok    'cryptography' is imported lazily everywhere it is used")
+    return []
+
+
 def main() -> int:
-    fails: list[str] = []
+    fails: list[str] = check_dependency_is_optional()
     crypto = have_crypto()
     if not crypto:
         print("  note: optional 'cryptography' is absent — encrypted-mode cases will skip")

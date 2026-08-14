@@ -9,7 +9,12 @@ filenames both** — while the working tree stays exactly as it is today: plaint
 is written, embedded, linked or searched changes. What changes is what git is allowed
 to see.
 
-Off by default. A brain that never enables it is byte-identical to today's.
+**Off by default, and off means off.** A brain that never enables encryption behaves
+exactly as it did before this feature: same commits, same sidecars, same search, and no
+`cryptography` dependency — it is declared in `requirements-crypt.txt` and every import of
+it is lazy, so a brain that never opts in never installs it and never touches that code.
+What such a brain *does* gain is four unused modules and a toggle set to `false`; the tree
+is not literally unchanged, the behaviour is.
 
 ## Threat model
 
@@ -556,7 +561,7 @@ At a glance:
 | ✅ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
 | ✅ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
 | ✅ | 8. Survive a remote | Push an encrypted brain, destroy the local copy, clone it back, and prove the knowledge is still findable. |
-| ☐ | 9. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
+| ✅ | 9. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving a brain that never opts in is unaffected. |
 
 1. **✅ The mechanism** — keys, opaque filenames and the envelope, as pure byte operations
    that know nothing about git.
@@ -700,11 +705,23 @@ At a glance:
    index**, because vectors are derived, machine-specific and never committed. The real
    path is `--decrypt` → `embed_vault.py` → `hydrate_cache.py`, and the README now says so.
 
-9. **☐ Ship it** — the final pass that proves a brain which never turns encryption on is
-   unchanged.
+9. **✅ Ship it** — the final pass that proves a brain which never turns encryption on is
+   unaffected.
 
-   Golden with the toggle **off** (the no-op path bit-identical), vendor, template,
-   `tools/ci.py` green.
+   Toggle ships `false`; golden, vendor and template rebuilt; **19/19 gates green**.
+
+   The claim needed correcting rather than just checking. "Byte-identical to today's" was
+   written before the feature shipped and is no longer true — an emitted brain gains four
+   modules, an optional requirements file and a toggle. What is actually guaranteed is
+   **behavioural**: same commits, same sidecars, same search, and **no dependency**. The
+   last part is now enforced by gate 17, which fails on any module-level
+   `import cryptography` in the emitted tree — because that would turn an optional package
+   into an ImportError on the pre-commit hook of a brain that never asked for encryption.
+   Mutation-tested by adding such an import to `doctor.py`.
+
+   **Known gap, carried forward rather than closed:** the MCP `add_note` write path under
+   encryption has no automated test (the server's brain root is a module constant). The code
+   is written and reviewed; the path is exercised by hand through Desktop.
 
 ### Blocker found at step 1 — since fixed under #41
 

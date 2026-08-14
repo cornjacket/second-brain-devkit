@@ -11,8 +11,36 @@ Distinct from:
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-08-13)
-- [~] **▶▶ IN PROGRESS — #42, encrypt a brain's notes at rest so a git remote holds nothing
-  readable.** **Steps 1–4 of 8 done (2026-08-13).** **Steps 3–4** — the migration a user
+- **Done 2026-08-14 — #42, a brain's committed form is unreadable: bodies and filenames both.**
+  All nine steps shipped; **19 CI gates green**. The working tree stays plaintext `.md`, so
+  Obsidian, search, embedding and auto-linking are untouched — **encryption is a git-layer
+  concern, not a note-layer one**. `enc/<opaque>.md.enc` per note, the name a keyed HMAC of
+  the path (so nobody can test whether a brain holds `salary-negotiation.md`) and the path
+  itself inside the envelope, which is why **no manifest file is needed** and a two-machine
+  brain cannot conflict on one. Off by default, and off means off: `cryptography` is optional
+  and every import of it is lazy, enforced by a gate.
+
+  **What the build actually taught, none of it found by a test:**
+
+  - **Git-ignoring the vault blinds everything that asks git what changed.** Four selectors
+    went silent (embedding stopped, `add_note` broke); a fifth went *destructive* —
+    `update_cache` read the untracking of the vault as the deletion of every note in it and
+    **unlinked every sidecar**, wiping the brain's vectors in the one commit meant to be a
+    safe migration. Untracking is not deleting; the **working tree** is now the authority.
+  - **A canary needs a baseline.** The twin's first verification reported 14 leaks that were
+    the scaffold's own vocabulary (`seeds/` ships the notes a brain was seeded from).
+  - **Round-tripping bytes is not restoring a brain.** Vectors are never committed, so
+    "clone, then decrypt" left an empty search index — the README was wrong until gate 19
+    asked the restored brain a question and got nothing.
+  - **Enabling encryption cannot reach backwards**, and that limit is now pinned by a test
+    rather than promised by a doc.
+
+  Verified beyond CI: the twin (`tools/mirror_brain.py`) mirrored **47 real notes**, passed
+  all nine checks, was pushed, and the remote was **confirmed by hand to hold only `.enc`
+  blobs**. Known gap, stated rather than counted as covered: the MCP `add_note` write path
+  under encryption has no automated test. → [docs/encrypted-notes.md](docs/encrypted-notes.md)
+- [x] **#42 spec (kept for provenance) — encrypt a brain's notes at rest so a git remote holds
+  nothing readable.** **Steps 1–4 of 8 done (2026-08-13).** **Steps 3–4** — the migration a user
   actually runs: `--enable` / `--decrypt` / `--disable` / `--sync`, plus `--name-of`,
   `--path-of`, `--set-hint`, and the default-deny vault ignore block spliced as a marked
   region. Enable encrypts the content set, untracks the plaintext with `--cached` so the
