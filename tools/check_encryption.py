@@ -31,7 +31,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GOLDEN = REPO_ROOT / "tests" / "golden"
 SUITES = ("tests.test_encrypt_vault", "tests.test_note_selection",
-          "tests.test_encrypt_migration")
+          "tests.test_encrypt_migration", "tests.test_notes_are_committed")
 
 
 def have_crypto() -> bool:

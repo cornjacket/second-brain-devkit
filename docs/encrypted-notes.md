@@ -512,7 +512,7 @@ At a glance:
 | ✅ | 3. The migration | `--enable` / `--decrypt` / `--disable` / `--sync` and the default-deny ignore block — the commands a user actually runs. |
 | ✅ | 4. Directory reconstruction | Rebuild the note tree from the path inside each envelope, so no folder name is ever committed. |
 | ✅ | 5. Make it usable | `doctor.py` preflights, the README section, and promoting the modules + toggle into every generated brain. |
-| ☐ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
+| ✅ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
 | ☐ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
 | ☐ | 8. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
 
@@ -602,13 +602,34 @@ At a glance:
    `--enable` also now untracks by asking git what it tracks, rather than trusting the note
    list — which is what caught the `.gitkeep` placeholders that would have advertised
    exactly which PARA buckets are empty.
-6. **☐ Full acceptance suite** — the remaining numbered cases, starting with the net that
-   catches the worst failure.
+6. **✅ Full acceptance suite** — every numbered case above is covered, and the one that
+   is not is named rather than left implied.
 
-   **Cases 1–5 (the OFF case) land first**: they are what catches "encryption silently
-   stopped committing notes", and today that net is one assertion wide
-   (`test_pdf_gitignore.py:50`). Then the classification gate, and the ON cases not already
-   covered by steps 1–3.
+   **Cases 1–4** landed first, as `tests/test_notes_are_committed.py`: every PARA root plus
+   the glossary, two subdirectory depths, and `git ls-files` rather than only
+   `check-ignore` — because a rule can leave a note un-ignored and still have it never reach
+   a commit. Hermetic, built from the brain's own shipped `.gitignore`, and
+   **mutation-tested**: a vault-swallowing ignore rule turns 14 assertions red. Case 5 is the
+   existing G2 structural diff.
+
+   **Case 18** became **CI gate 18** (`tools/check_content_classification.py`): it generates
+   a brain, asks `update_brain` about every `.md`, and compares that verdict against what
+   `encrypt_vault` actually encrypts. **It found a real hole immediately** — `content_notes`
+   enumerated the PARA roots, but the rule says the whole vault, so a note in `vault/inbox/`
+   (or any folder invented later) was preserved by every upgrade and silently never backed
+   up. Fixed; the gate now discriminates on a `config/*.md` instead.
+
+   **Case 19** needed building, not just testing: `--precommit` now refuses to commit when
+   the passphrase file is **staged or tracked** inside the brain. Deliberately narrow — a key
+   merely sitting in the repo is untracked and ignored, a bad habit that `doctor` reports
+   without stopping work. Committing the key beside the ciphertext it unlocks is not a
+   partial leak; it is the whole brain.
+
+   **Honest gap.** Case 16's `add_note` subject line and case 17's fourth call-site — the MCP
+   write path under encryption — have no automated test: the server's brain root is a module
+   constant, so pointing it at a fixture is not cheap. The code is written and reviewed, and
+   the path is exercised by hand in the Desktop suite. Recorded here rather than counted as
+   covered.
 7. **☐ The parallel twin** — a note-for-note encrypted copy of the real brain, so a human
    can look at what the remote actually holds.
 
