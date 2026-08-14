@@ -179,6 +179,9 @@ paths = [
   "tests/test_doctor_pdf.py",
   "tests/test_pdf_gitignore.py",
   "tests/fixtures/pdf/sample.embed.json",
+  "scripts/encrypt_vault.py",
+  "tests/test_encrypt_vault.py",
+  "requirements-crypt.txt",
 ]
 
 [exclude.reasons]
@@ -200,3 +203,6 @@ paths = [
 "tests/test_doctor_pdf.py" = "dev-only regression test for doctor's M6 PDF parity (task #7) — a PDF sidecar is never mis-flagged in the note pass, and a consistent PDF scans clean. A brain ships the tool, not its test."
 "tests/test_pdf_gitignore.py" = "dev-only guard that an ingested PDF is genuinely git-ignored, not merely untracked (task #39) — asks `git check-ignore` rather than grepping the file, so a rule that is present but wrong still fails. A brain ships the .gitignore, not its test."
 "requirements-pdf.txt" = "PDF ingestion (task #7) optional-dep manifest — built at M1, NOT YET EMITTED. Promote to `verbatim` at M6 when a brain gains the add_pdf command. See docs/pdf-ingestion.md."
+"scripts/encrypt_vault.py" = "encrypted notes at rest (task #42) — the mechanism (keys, opaque names, envelope), built at step 1, NOT YET EMITTED. It has no callers until the hooks are rewired (step 2) and no way to be switched on until the migration lands (step 3), so emitting it now would ship a module a brain cannot use. Promote to `verbatim` at step 5, alongside the [encryption] toggle. Same staging the PDF milestones used. See docs/encrypted-notes.md."
+"tests/test_encrypt_vault.py" = "dev-only regression test for the encryption mechanism (task #42) — round-trip, keyed/deterministic names, the verifier, tamper detection, and the shipped scrypt parameters (incl. the maxmem that OpenSSL's 32 MB cap would otherwise refuse to run). Skips without the optional `cryptography`. A brain ships the tool, not its test."
+"requirements-crypt.txt" = "encrypted notes (task #42) optional-dep manifest — built at step 1, NOT YET EMITTED. Promote to `verbatim` at step 5 with the toggle, so a brain is never told to install a dependency for a feature it cannot yet enable. See docs/encrypted-notes.md."
