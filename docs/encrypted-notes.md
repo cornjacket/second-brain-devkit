@@ -503,7 +503,23 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
 
 ## Build order
 
-1. **DONE** — `scripts/encrypt_vault.py`: envelope, KDF, keyfile, name derivation, plus
+At a glance:
+
+| | Step | What it entails |
+| --- | --- | --- |
+| ✅ | 1. The mechanism | Keys, opaque filenames and the envelope, as pure byte operations that know nothing about git. |
+| ✅ | 2. Un-blind the commit path | One shared selector replaces every `git diff --cached -- '*.md'`, so nothing silently stops working when the vault is ignored. |
+| ✅ | 3. The migration | `--enable` / `--decrypt` / `--disable` / `--sync` and the default-deny ignore block — the commands a user actually runs. |
+| ✅ | 4. Directory reconstruction | Rebuild the note tree from the path inside each envelope, so no folder name is ever committed. |
+| ☐ | 5. Make it usable | `doctor.py` preflights, the README section, and promoting the modules + toggle into every generated brain. |
+| ☐ | 6. Full acceptance suite | The remaining numbered cases — especially the plaintext net that catches "encryption silently stopped committing notes". |
+| ☐ | 7. The parallel twin | A note-for-note encrypted copy of the real brain, so a human can look at what the remote actually holds. |
+| ☐ | 8. Ship it | Final vendor → template → `tools/ci.py` pass with the toggle off, proving the no-op path is bit-identical. |
+
+1. **✅ The mechanism** — keys, opaque filenames and the envelope, as pure byte operations
+   that know nothing about git.
+
+   `scripts/encrypt_vault.py`: envelope, KDF, keyfile, name derivation, plus
    36 dev-only unit tests. Not emitted yet (classified `exclude`): it has no callers
    until step 2 and no way to be switched on until step 3, so emitting it now would ship
    a brain a module it cannot use. Promote to `verbatim` at step 5, with the toggle.
@@ -515,8 +531,11 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
    cost (`n=2**17`, ~134 MB) OpenSSL's built-in 32 MB cap makes it *refuse to run* rather
    than run slowly — a failure only the people using the defaults would ever hit. Both are
    pinned by tests. Measured cost: 0.29 s per derivation.
-2. **DONE** — all four call-sites now go through one shared selector,
-   `scripts/note_selection.py`, instead of each asking git `diff --cached -- '*.md'`.
+2. **✅ Un-blind the commit path** — one shared selector replaces every
+   `git diff --cached -- '*.md'`, so nothing silently stops working when the vault is
+   ignored.
+
+   All four call-sites now go through `scripts/note_selection.py`.
    Plus `scripts/passphrase.py` (file, never a prompt), the working-tree layer on the
    encryptor (`encrypt_file` / `needs_encrypting`), and **CI gate 17**. 15 tests across
    both modes; mutation-tested by restoring the old selector, which turns **5 of the 7**
@@ -534,7 +553,10 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
      migration does not exist. `features.py` carries the accessor (a missing key reads as
      `false`), and the toggle joins `features.toml` at step 5 — which is also when gate
      10's coverage rule starts applying to it.
-3. **DONE** — `--enable` / `--decrypt` / `--disable` / `--sync`, plus `--name-of`,
+3. **✅ The migration** — the commands a user actually runs, plus the ignore rules that
+   make them bite.
+
+   `--enable` / `--decrypt` / `--disable` / `--sync`, plus `--name-of`,
    `--path-of` and `--set-hint`, and the `.gitignore` allowlist spliced as a marked block.
    20 end-to-end tests against real throwaway git repos; the three canaries are
    mutation-tested with a pass-through encryptor and all go red.
@@ -548,18 +570,36 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
    anyone ever quietly "fixes" it. Consequence, stated plainly: **a brain that has ever
    committed plaintext cannot be made retroactively private by switching this on.** For the
    twin, start from a history that never held plaintext.
-4. **DONE (with step 3)** — directory reconstruction: `--decrypt` `mkdir -p`s each
-   header's parent at arbitrary depth, and the PARA skeleton comes from `CONTENT_ROOTS`
-   rather than from committed `.gitkeep` placeholders.
-5. `doctor.py` checks; README section, including the "does not reach back into history"
-   warning.
-6. The 20 test cases above. **Cases 1–5 (the OFF case) land first**, before any ignore
-   rule is touched — they are the net that catches "encryption silently stopped
-   committing notes", and today that net is one assertion wide.
-7. **The parallel encrypted twin** (`tools/mirror_brain.py` + runbook) — human-driven,
-   not a CI gate. Runs against the real brain's content once the mechanism is proven.
-8. Prototype in the golden with the toggle **off** (proving the no-op path is
-   bit-identical), vendor, template, `tools/ci.py`.
+4. **✅ Directory reconstruction** — rebuild the note tree from the path inside each
+   envelope, so no folder name is ever committed. *(Landed with step 3.)*
+
+   `--decrypt` `mkdir -p`s each header's parent at arbitrary depth, and the PARA skeleton
+   comes from `CONTENT_ROOTS` rather than from committed `.gitkeep` placeholders.
+5. **☐ Make it usable** — the preflights, the documentation, and actually shipping the
+   feature into a generated brain.
+
+   `doctor.py` checks (§ above); the README section, including the "does not reach back
+   into history" warning; and the promotion the earlier steps deferred — `encrypt_vault.py`,
+   `requirements-crypt.txt` and the `encryption` key move from `exclude` into the emitted
+   set, which is also when gate 10's coverage rule starts applying to the toggle.
+6. **☐ Full acceptance suite** — the remaining numbered cases, starting with the net that
+   catches the worst failure.
+
+   **Cases 1–5 (the OFF case) land first**: they are what catches "encryption silently
+   stopped committing notes", and today that net is one assertion wide
+   (`test_pdf_gitignore.py:50`). Then the classification gate, and the ON cases not already
+   covered by steps 1–3.
+7. **☐ The parallel twin** — a note-for-note encrypted copy of the real brain, so a human
+   can look at what the remote actually holds.
+
+   `tools/mirror_brain.py` + runbook — human-driven, not a CI gate. Note the constraint
+   step 3 turned up: the twin must be **encrypted before any note is mirrored in**, or its
+   history holds plaintext permanently.
+8. **☐ Ship it** — the final pass that proves a brain which never turns encryption on is
+   unchanged.
+
+   Golden with the toggle **off** (the no-op path bit-identical), vendor, template,
+   `tools/ci.py` green.
 
 ### Blocker found at step 1 — since fixed under #41
 
