@@ -534,11 +534,23 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
      migration does not exist. `features.py` carries the accessor (a missing key reads as
      `false`), and the toggle joins `features.toml` at step 5 — which is also when gate
      10's coverage rule starts applying to it.
-3. `--enable` / `--decrypt` / `--disable`, and the `.gitignore` allowlist.
-4. **Directory reconstruction** — `--decrypt` `mkdir -p`s each header's parent at
-   arbitrary depth, and the PARA skeleton comes from the `seed_vault.py` constant rather
-   than from committed `.gitkeep` placeholders. Small, but it is the step that decides
-   whether a folder name ever reaches git, so it is called out rather than assumed.
+3. **DONE** — `--enable` / `--decrypt` / `--disable` / `--sync`, plus `--name-of`,
+   `--path-of` and `--set-hint`, and the `.gitignore` allowlist spliced as a marked block.
+   20 end-to-end tests against real throwaway git repos; the three canaries are
+   mutation-tested with a pass-through encryptor and all go red.
+
+   **The tests found the limit rather than trusting the doc.** The canaries were first
+   written against the whole object store and *failed* — because the seeded plaintext is
+   still reachable from the pre-migration commit. That is exactly the documented behaviour,
+   so the assertion was corrected to what the feature actually promises (what a commit
+   *contains*: `git ls-tree` plus every tracked blob), **and a new test now pins the limit
+   itself** — pre-migration history still holds the plaintext, and will fail loudly if
+   anyone ever quietly "fixes" it. Consequence, stated plainly: **a brain that has ever
+   committed plaintext cannot be made retroactively private by switching this on.** For the
+   twin, start from a history that never held plaintext.
+4. **DONE (with step 3)** — directory reconstruction: `--decrypt` `mkdir -p`s each
+   header's parent at arbitrary depth, and the PARA skeleton comes from `CONTENT_ROOTS`
+   rather than from committed `.gitkeep` placeholders.
 5. `doctor.py` checks; README section, including the "does not reach back into history"
    warning.
 6. The 20 test cases above. **Cases 1–5 (the OFF case) land first**, before any ignore

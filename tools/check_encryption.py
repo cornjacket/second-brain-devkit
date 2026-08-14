@@ -7,6 +7,7 @@ still *work*.
 
   ``tests/test_encrypt_vault.py``   keys, opaque names, envelope, verifier, tamper detection
   ``tests/test_note_selection.py``  which notes a commit picks up — in BOTH modes
+  ``tests/test_encrypt_migration.py`` enable / clone / decrypt / disable, against real git
 
 The second suite is the one that earns a gate. Three callers used to ask git ``diff
 --cached -- '*.md'`` for their work list, which returns an **empty list** the moment the
@@ -29,7 +30,8 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GOLDEN = REPO_ROOT / "tests" / "golden"
-SUITES = ("tests.test_encrypt_vault", "tests.test_note_selection")
+SUITES = ("tests.test_encrypt_vault", "tests.test_note_selection",
+          "tests.test_encrypt_migration")
 
 
 def have_crypto() -> bool:

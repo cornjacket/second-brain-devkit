@@ -12,7 +12,22 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-08-13)
 - [~] **▶▶ IN PROGRESS — #42, encrypt a brain's notes at rest so a git remote holds nothing
-  readable.** **Steps 1–2 of 8 done (2026-08-13).** **Step 2** — all four blinded call-sites
+  readable.** **Steps 1–4 of 8 done (2026-08-13).** **Steps 3–4** — the migration a user
+  actually runs: `--enable` / `--decrypt` / `--disable` / `--sync`, plus `--name-of`,
+  `--path-of`, `--set-hint`, and the default-deny vault ignore block spliced as a marked
+  region. Enable encrypts the content set, untracks the plaintext with `--cached` so the
+  working tree is untouched, and commits once; preflight runs **before any write**, so a
+  refused migration leaves the brain exactly as it was. Decrypt rebuilds the tree from the
+  path inside each envelope and recreates the PARA skeleton from a constant, because no
+  directory under the vault is committed at all. **20 end-to-end tests against real git
+  repos**, canaries planted separately in a note body, a filename and a subdirectory name;
+  mutation-tested with a pass-through encryptor, all three go red. **The tests found the
+  limit rather than trusting the doc:** written first against the whole object store they
+  *failed*, because pre-migration plaintext is still reachable — so the assertion was
+  narrowed to what a commit actually contains, **and a new test now pins the limit itself**,
+  which will fail loudly if anyone quietly "fixes" it. Consequence: a brain that has ever
+  committed plaintext **cannot be made retroactively private** by switching this on, so the
+  twin must start from a history that never held any. **Step 2** — all four blinded call-sites
   now share one selector (`scripts/note_selection.py`) instead of each asking git
   `diff --cached -- '*.md'`, a question git cannot answer once the vault is ignored; plus
   `scripts/passphrase.py` (a file, never a prompt — the MCP server and a pre-commit hook can
