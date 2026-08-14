@@ -60,17 +60,6 @@ def sub_once(text: str, pattern: str, repl: str, label: str) -> str:
 
 # --- per-file cleaners --------------------------------------------------------
 
-def clean_register(text: str) -> str:
-    """Drop the ai-project-status independence note from the module docstring."""
-    return replace_once(
-        text,
-        "\n\nIndependent of ai-project-status: registering a project never "
-        "requires adopting\nthat tooling.",
-        "",
-        "register.py ai-project-status note",
-    )
-
-
 def clean_claude(text: str) -> str:
     """Strip the golden's dev-process content; point internals at the devkit."""
     # 1. Intro: a brain has no SPEC.md — point at the devkit that generated it.
@@ -151,7 +140,6 @@ def clean_embedder_config(text: str) -> str:
 
 
 CLEANERS = {
-    "scripts/register.py": clean_register,
     "CLAUDE.md": clean_claude,
     "README.md": clean_readme,
     "config/embedder.toml": clean_embedder_config,
