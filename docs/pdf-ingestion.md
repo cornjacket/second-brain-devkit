@@ -247,6 +247,18 @@ the natural `sqlite-vec` pattern and the leading choice. The exact layout — th
 
 ## 5. Milestones
 
+At a glance:
+
+| | Step | What it entails |
+| --- | --- | --- |
+| ✅ | M0. Lock the design | Write this document, so the shape is settled before any code exists. |
+| ✅ | M1. PDF → chunks | Turn a PDF into overlapping, deterministic text chunks with page spans — no model involved. |
+| ✅ | M2. Sidecar for a chunked source | A PDF's `.embed.json` holds a *list* of chunk vectors, byte-stable on the `test` backend. |
+| ✅ | M3. Cache schema | Additive parallel tables, loaded alongside notes, with the note path left byte-identical. |
+| ✅ | M4. Search returns a passage | Chunk-grain fusion, result shaping, and source + page + snippet in every hit. |
+| ✅ | M5. Ingestion engine | `add_pdf` — pick a folder, move the file in, extract → chunk → embed → load. No commit. |
+| ✅ | M6. Emit + Desktop + docs | Promote the modules into every brain, register the MCP tools, add config, README, CI gate and doctor parity. |
+
 - **M0 — Lock the design in writing** *(this document)*.
 - **M1 — Turn a PDF into clean chunks, provably.** `pdf_extract.py` (pypdf → text + page map) and a
   source-type-agnostic `chunker.py` (text → overlapping token-window chunks with page/char spans).

@@ -54,6 +54,32 @@ spec so they cannot drift.
   template, scrub the reference entirely rather than reword it. See
   [SPEC §5.2](SPEC.md).
 
+## Step map — the 100-ft view of a multi-step task
+
+A **step map** is a table of one row per step: a status marker, a short title, and one
+sentence of what that step entails. High enough to read a whole task in one screen, low
+enough to say what each step actually does. `✅` or `☐` only — a step is done or it is not.
+
+| | Step | What it entails |
+| --- | --- | --- |
+| ✅ | 1. The mechanism | Keys, names and the envelope, as byte operations that know nothing about git. |
+| ☐ | 2. Ship it | Final vendor → template → CI pass proving the off path is bit-identical. |
+
+Two rules, and the second is the one that makes it worth having:
+
+- **Authoring.** Any `docs/` design doc with a staged plan opens that plan with a step map,
+  with the per-step detail underneath. Docs without stages do not get one — a step map over
+  a doc that has no steps is noise.
+- **Reporting — show it, do not offer it.** When a step lands, print the current step map as
+  part of reporting the work. **Do not ask whether to show it**, and do not replace it with
+  prose describing progress: the whole point is that the user should never have to ask "so
+  where are we?". Asking is the failure mode, not the courtesy — it puts the burden of
+  remembering this convention back on the reader, which is exactly what an always-loaded
+  rule exists to prevent.
+
+Keep the map and the steps below it in sync in the same commit; a map that lags is worse
+than none, because it is read *instead of* the detail.
+
 ## Development Workflow
 This repo is a **generator**: it produces a `second-brain/` repo. Build each feature with this loop:
 1. **Prototype** the feature by hand in the golden reference (`../second-brain-test/`, a standalone sibling repo — see OQ-1) and confirm it behaves as expected. The golden is the known-good *expected output* and serves as the regression baseline.

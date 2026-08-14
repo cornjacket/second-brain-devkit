@@ -43,7 +43,11 @@ def have_crypto() -> bool:
 
 
 def run_suite(module: str) -> tuple[bool, str]:
-    proc = subprocess.run([sys.executable, "-m", "unittest", module, "-v"],
+    # -B: never write .pyc INTO tests/golden. These suites live inside the vendored tree,
+    # and gate 1 partitions that tree by walking the filesystem — so a stray __pycache__
+    # is an unclassified file that fails the build on the NEXT run, far from its cause.
+    # The sibling gates (check_pdf, check_tag_lint) do the same, for the same reason.
+    proc = subprocess.run([sys.executable, "-B", "-m", "unittest", module, "-v"],
                           cwd=GOLDEN, capture_output=True, text=True)
     return proc.returncode == 0, (proc.stderr or "") + (proc.stdout or "")
 

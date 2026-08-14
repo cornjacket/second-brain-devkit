@@ -7,6 +7,18 @@ the backfill applier, both CLIs, and the write-time near-miss warning, with 12 f
 **Scope:** frontmatter `tags:` only, in the PARA roots — the exact surface `list_tags`
 enumerates. Never bodies, wikilinks, titles, the glossary, or the note template.
 
+At a glance:
+
+| | Step | What it entails |
+| --- | --- | --- |
+| ✅ | 1. Detector | Read-only rules that find near-misses, non-discriminating tags, overlaps and format drift. |
+| ✅ | 2. Applier | Rewrite frontmatter `tags:` from an explicit mapping — rename, merge or remove — dry-run by default. |
+| ✅ | 3. CLIs | `tag_lint.py` reports (always exits 0); `tag_apply.py` stages edits for a human to review. |
+| ✅ | 4. Write-time warning | `add_note` and `add_glossary_term` warn on a near-miss as you write, using the detector's own rule. |
+| ✅ | 5. Emission | Ship all three modules into every generated brain, governed by the structural diff. |
+| ✅ | 6. CI gate | Gate 13 runs the vendored suite against the emitted bytes and smoke-runs the lint CLI. |
+| ☐ | 7. `lint_tags` MCP tool | Expose the detector read-only to Desktop. **Deferred** — speculative until a vault is big enough to drift. |
+
 ---
 
 ## 1. Motivation
