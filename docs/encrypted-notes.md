@@ -515,7 +515,25 @@ It is the real-brain counterpart to the fixture gate, in the same relationship #
    cost (`n=2**17`, ~134 MB) OpenSSL's built-in 32 MB cap makes it *refuse to run* rather
    than run slowly — a failure only the people using the defaults would ever hit. Both are
    pinned by tests. Measured cost: 0.29 s per derivation.
-2. Rewire the four call-sites; make each one's coverage fail first with encryption on.
+2. **DONE** — all four call-sites now go through one shared selector,
+   `scripts/note_selection.py`, instead of each asking git `diff --cached -- '*.md'`.
+   Plus `scripts/passphrase.py` (file, never a prompt), the working-tree layer on the
+   encryptor (`encrypt_file` / `needs_encrypting`), and **CI gate 17**. 15 tests across
+   both modes; mutation-tested by restoring the old selector, which turns **5 of the 7**
+   encrypted-mode cases red.
+
+   Three decisions worth carrying forward:
+
+   - **A missing passphrase raises.** Returning an empty list would be indistinguishable
+     from "nothing changed" — the exact bug the module exists to prevent, reintroduced by
+     the code written to fix it.
+   - **`add_note` stages the blob and titles the commit with the opaque name.** A log
+     printing the note title would undo encrypting the filename.
+   - **The `encryption` toggle is deliberately NOT in `features.toml` yet.** Shipping it
+     before `--enable` exists would put a switch in a user's config whose documented
+     migration does not exist. `features.py` carries the accessor (a missing key reads as
+     `false`), and the toggle joins `features.toml` at step 5 — which is also when gate
+     10's coverage rule starts applying to it.
 3. `--enable` / `--decrypt` / `--disable`, and the `.gitignore` allowlist.
 4. **Directory reconstruction** — `--decrypt` `mkdir -p`s each header's parent at
    arbitrary depth, and the PARA skeleton comes from the `seed_vault.py` constant rather

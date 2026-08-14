@@ -12,7 +12,20 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 ## ▶ Next up (2026-08-13)
 - [~] **▶▶ IN PROGRESS — #42, encrypt a brain's notes at rest so a git remote holds nothing
-  readable.** **Step 1 of 8 done (2026-08-13)** — `scripts/encrypt_vault.py` + 36 unit tests
+  readable.** **Steps 1–2 of 8 done (2026-08-13).** **Step 2** — all four blinded call-sites
+  now share one selector (`scripts/note_selection.py`) instead of each asking git
+  `diff --cached -- '*.md'`, a question git cannot answer once the vault is ignored; plus
+  `scripts/passphrase.py` (a file, never a prompt — the MCP server and a pre-commit hook can
+  neither of them answer one, and a server waiting on stdin hangs forever), the encryptor's
+  working-tree layer, and **CI gate 17** (now 17 gates). 15 tests over both modes, each
+  asserting a note is *selected* rather than that nothing crashed; **mutation-tested** by
+  restoring the old selector, which turns 5 of the 7 encrypted-mode cases red. Notable calls:
+  a missing passphrase **raises** (an empty list is indistinguishable from "nothing changed" —
+  the original bug, reintroduced by its own fix); `add_note` stages the blob and titles the
+  commit with the opaque name; and the `encryption` key is deliberately **not** in
+  `features.toml` yet, since shipping a switch whose documented migration does not exist is a
+  trap — it lands at step 5, which is when gate 10's coverage rule starts applying to it.
+  **Step 1** — `scripts/encrypt_vault.py` + 36 unit tests
   + `requirements-crypt.txt`, prototyped in the golden and vendored, classified `exclude`
   so no brain receives a module it cannot yet switch on; 16/16 CI gates green, emitted brain
   unchanged. Two findings: the **orphan sweep decrypts nothing** (the name is a pure
