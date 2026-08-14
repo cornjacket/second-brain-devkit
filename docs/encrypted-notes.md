@@ -24,8 +24,9 @@ The plaintext is right there, and it must be — the whole brain reads it.
 
 - the **number** of notes, and the size of each ciphertext (a long note is visibly long)
 - commit **timestamps** and their cadence
-- the four PARA directory names and the devkit's own docs — identical in every brain,
-  so they say nothing about you
+- the devkit's own docs and the single path `vault/templates/new-note.md` — identical in
+  every brain, so they say nothing about you. **No other directory under `vault/` is
+  committed at all** (see "Subdirectories" below)
 - **anything already pushed before you switched it on.** Enabling encryption does not
   reach back into history. Plaintext in an existing remote stays there until the
   history is rewritten, and the migration says so before it starts.
@@ -102,6 +103,40 @@ because the path travels inside the file.
 
 **Flat, not mirrored.** `enc/projects/<opaque>` would still leak PARA bucket membership
 and every subfolder name you chose. The encrypted tree is a bag of blobs.
+
+### Subdirectories
+
+You are free to organise `vault/projects/` into whatever tree you like — the HMAC is
+taken over the **full relative path**, so depth is irrelevant and
+`vault/projects/2026/kitchen-remodel/notes.md` encrypts exactly like a top-level note.
+
+**No directory under `vault/` is committed when encryption is on.** Git tracks files,
+not directories, so once `vault/**` is ignored, a subdirectory's *name* never reaches a
+tree object — which is the point: a folder called `divorce/` is a tell even when every
+note inside it is unreadable. The structure exists only in the working tree and in the
+encrypted headers.
+
+The tree is therefore **reconstructed, not restored**:
+
+- `--decrypt` reads each header's `path` and `mkdir -p`s its parent before writing.
+  Arbitrary depth, in one pass, with no directory metadata committed anywhere.
+- The **PARA skeleton** (`projects/`, `areas/`, `resources/`, `archive/`, `glossary/`,
+  `templates/`) is recreated from the devkit's own constant — the same list
+  `seed_vault.py` uses — not from committed `.gitkeep` files.
+
+That last point is a leak, not a convenience. Today the golden commits `.gitkeep` only
+in the buckets that happen to be *empty* (`archive/`, `glossary/`), so under encryption
+the **presence or absence of a `.gitkeep` would advertise which buckets you use**. The
+ignore rules therefore commit none of them, and the skeleton comes from a constant that
+is identical in every brain.
+
+**Documented gap:** an *empty* subdirectory is not preserved. Git cannot represent one
+without a placeholder file, and a placeholder is precisely the tell above. A folder you
+created but have not written a note into yet will not survive a clone.
+
+**Moving a note between subdirectories changes its path, hence its opaque name**, so git
+sees a delete plus an add rather than a rename. That is the same cost noted above for
+renames, and it is what keeps the name from leaking where a note lives.
 
 Cost: git rename tracking and `git log -- <one note>` no longer work by path.
 `scripts/encrypt_vault.py --name-of <path>` and `--path-of <name>` bridge it locally.
@@ -265,17 +300,22 @@ attachment, a stray export — cannot silently leak. Same allowlist shape the wo
 wrapper uses for its managed children:
 
 ```gitignore
-# Every note is content — default-deny.
+# Every note is content — default-deny. No directory under vault/ is committed:
+# a folder name is a tell even when the notes inside it are unreadable.
 /vault/**
-# The PARA skeleton (universal names, zero information) and the devkit-owned template.
-!/vault/*/
-!/vault/*/.gitkeep
+# Exactly one exception — the devkit-owned note template (gate 9 needs it readable).
+!/vault/templates/
 !/vault/templates/new-note.md
 ```
 
-Git cannot re-include a file underneath an excluded **directory**, which is why
-`!/vault/*/` is there. That subtlety fails *open* — get it wrong and notes leak while
-everything looks fine — so it is pinned by a test.
+Two subtleties, both of which fail **open** — get either wrong and notes leak while
+everything looks fine — so both are pinned by a test:
+
+- Git cannot re-include a file underneath an excluded **directory**, which is why
+  `!/vault/templates/` must precede the file negation. It is scoped to that one
+  directory rather than `!/vault/*/`, so no other bucket is even mentioned.
+- **No `.gitkeep` is re-included.** The skeleton is recreated from the devkit constant
+  instead; committing placeholders would advertise which buckets are empty.
 
 ## doctor.py
 
@@ -284,6 +324,9 @@ everything looks fine — so it is pinned by a test.
 - no plaintext note staged or tracked
 - `enabled` agrees with what is on disk (catches a half-finished migration)
 - the passphrase file is not inside the repo
+- **nothing under `vault/` is tracked except `templates/new-note.md`** — a positive
+  assertion over `git ls-files vault/`, so a stray `git add -f` or a hand-edited ignore
+  rule is caught rather than assumed away
 
 ## Testing
 
@@ -302,14 +345,26 @@ anything.
 Also pinned: the four blinded call-sites still do their jobs with encryption on
 (especially "a commit still embeds the note"), and the `.gitignore` allowlist.
 
+**Subdirectory round-trip gets its own fixture**, because the flat `enc/` layout is
+exactly where a nested tree could quietly be lost or quietly be leaked: a brain with
+notes at two depths under two different buckets, plus a bucket left empty, must
+(a) restore to the identical tree on a fresh clone, and (b) show **no bucket or
+subfolder name anywhere** in `git ls-files`, `git log --stat` or the object store — the
+empty bucket included, which is what a committed `.gitkeep` would have given away.
+
 ## Build order
 
 1. `scripts/encrypt_vault.py` — envelope, KDF, keyfile, name derivation — plus dev-only
    unit tests in the devkit.
 2. Rewire the four call-sites; make each one's coverage fail first with encryption on.
 3. `--enable` / `--decrypt` / `--disable`, and the `.gitignore` allowlist.
-4. `doctor.py` checks; README section, including the "does not reach back into history"
+4. **Directory reconstruction** — `--decrypt` `mkdir -p`s each header's parent at
+   arbitrary depth, and the PARA skeleton comes from the `seed_vault.py` constant rather
+   than from committed `.gitkeep` placeholders. Small, but it is the step that decides
+   whether a folder name ever reaches git, so it is called out rather than assumed.
+5. `doctor.py` checks; README section, including the "does not reach back into history"
    warning.
-5. The hermetic CI gate + the mutation check; the classification gate.
-6. Prototype in the golden with the toggle **off** (proving the no-op path is
+6. The hermetic CI gate + the mutation check; the classification gate; the subdirectory
+   round-trip fixture.
+7. Prototype in the golden with the toggle **off** (proving the no-op path is
    bit-identical), vendor, template, `tools/ci.py`.

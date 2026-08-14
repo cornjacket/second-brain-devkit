@@ -34,6 +34,17 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   optional **hint**, and a **verifier tag** so a wrong passphrase fails once, clearly,
   before any note is touched.
 
+  **Subdirectories: none of them are committed.** The HMAC covers the *full relative path*,
+  so a nested tree encrypts like anything else — and since git tracks files rather than
+  directories, ignoring `vault/**` means a subfolder's **name never reaches a tree object**.
+  A folder called `divorce/` is a tell even when every note inside it is unreadable. The
+  tree is therefore **reconstructed**, not restored: `--decrypt` `mkdir -p`s each header's
+  parent, and the PARA skeleton comes from the `seed_vault.py` constant. Notably **no
+  `.gitkeep` is committed** — the golden ships them only in the buckets that happen to be
+  *empty* (`archive/`, `glossary/`), so committing them under encryption would advertise
+  exactly which buckets you use. Known gap: an empty subdirectory does not survive a clone,
+  because the only way to represent one is the placeholder that leaks.
+
   **What makes this a real task rather than a wrapper around AES:** git-ignoring `vault/**`
   **blinds four mechanisms that select work by what git staged**, and none of them fails
   loudly — the "observer goes blind" shape. `embed_staged.py:39` filters staged `.md`, so
