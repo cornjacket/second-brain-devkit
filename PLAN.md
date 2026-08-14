@@ -106,15 +106,20 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   brain that matters), `--verify` (every note decrypts byte-identically; `ls-files` under
   `vault/` returns only the note template; no real filename **stem** in any tracked path or
   commit message; no real content line anywhere in the object store via `cat-file` over all
-  blobs; note counts agree), `--teardown`. **Two name collisions to design around:**
-  `install_skill.py` symlinks `~/.claude/skills/second-brain` under a **fixed** name, so
-  running it from the twin would silently repoint the global skill every project consults at
-  the test brain (the verifier asserts that symlink still aims at the real brain); and both
-  MCP servers expose identically-named tools, so the twin registers under the distinct key
-  `second-brain-encrypt`, ideally only for the duration of a run. **The twin gets no git
-  remote until cases 7–8 pass on it** — it holds real personal notes, and pushing it early
-  would leak exactly what the feature protects, on the hypothesis that the feature works.
-  Sequenced after build steps 1–5, the same relationship #34 has to #33.
+  blobs; note counts agree), `--teardown`. **Two one-machine-two-brains collisions**, neither
+  severe, both worth writing down: there is **one skill slot** per machine —
+  `install_skill.py` symlinks the fixed path `~/.claude/skills/second-brain` whichever brain
+  it runs from, so running it from the twin repoints every project's query at the test brain
+  (workaround: don't — the twin is driven through Desktop and `git`, and
+  `scripts/search_vault.py` works directly; `ls -l` shows the slot, re-running from the real
+  brain restores it); and both MCP servers expose identically-named tools, so the twin
+  registers under the distinct key `second-brain-encrypt`, ideally only for a run's duration.
+  **The twin does get a remote, deliberately** — a leak that never left a local `.git` is not
+  the failure mode this guards against, and what a *server* ends up holding is the thing
+  being tested. Risk bounded by disposability: a private repo, deleted when the run ends,
+  never anything's only copy. Verification still runs locally first, since catching a leak
+  before the push is cheaper than after. Sequenced after build steps 1–5, the same
+  relationship #34 has to #33.
 - [ ] **#41 — the forbidden-reference denylist names one tracker; it should describe a
   *class*.** `tools/check_no_forbidden_refs.py` has `DEFAULT_DENYLIST = ("ai-project-status",)`,
   written when there was exactly one thing that could leak. On **2026-08-04** this repo's

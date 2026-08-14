@@ -449,11 +449,16 @@ emitted, is the same call `tools/vendor_golden.py` and the ablation tooling alre
 The twin needs its own MCP server entry so it can be exercised through the same interface
 the real brain uses. Two things collide on the name `second-brain`:
 
-1. **`install_skill.py` will repoint your CLI skill.** It symlinks
-   `~/.claude/skills/second-brain` → `<BRAIN>/skill/second-brain`, and the link name is
-   fixed. Running it from the twin silently aims your global `second-brain` skill — the
-   one every project consults — at the test brain. **Do not run `install_skill.py` from
-   the twin.** The verifier checks that symlink still points at the real brain.
+1. **There is one skill slot per machine.** `install_skill.py` always symlinks the same
+   fixed path, `~/.claude/skills/second-brain` → `<BRAIN>/skill/second-brain`, whichever
+   brain it is run from — and the skill resolves its brain from where that link lands. So
+   running it from the twin repoints every project's `/second-brain` query at the test
+   brain. Purely an artifact of running two brains on one machine; with one brain it never
+   arises. **Workaround: don't run it from the twin** — the twin is exercised through
+   Desktop's MCP server and `git`, and CLI search on it works directly
+   (`python3 ~/second-brain-encrypt/scripts/search_vault.py "…"`), no skill needed.
+   `ls -l ~/.claude/skills/second-brain` shows where the slot points; re-running
+   `install_skill.py` from the real brain restores it. `--verify` checks it as a courtesy.
 2. **Both servers expose identically-named tools.** Desktop namespaces by server key, so
    both entries coexist, but the model sees two `add_note`s and two
    `search_second_brain`s and can pick the wrong one. The server key is therefore
@@ -461,13 +466,20 @@ the real brain uses. Two things collide on the name `second-brain`:
    explicitly. Registering the twin **only for the duration of a run** is the safer habit
    and what the runbook says.
 
-### No remote until the canaries pass
+### The remote is a disposable scratchpad
 
-The twin contains **real personal notes**. Giving it a git remote before the encryption is
-proven would push exactly the content this feature exists to protect, on the hypothesis
-that the encryption works. It is created with no remote; verification is entirely local
-(`git log`, `git cat-file`, `ls-files`), and a remote is added — if at all — only after
-cases 7 and 8 pass on the twin itself.
+The twin **does** get a remote from the start, and it is the point: a leak that only ever
+existed in a local `.git` is not the failure mode this feature guards against. Pushing is
+how the twin tests the thing that actually matters — what a *server* ends up holding.
+
+The risk is accepted deliberately and bounded by disposability: a **private** repo,
+created for this, deleted the moment a run is done, and never the twin's only copy of
+anything. If a run reveals plaintext on the remote, the response is to delete the repo and
+fix the encryptor — the twin is a scratchpad, not an archive.
+
+Verification still runs **locally first** (`ls-files`, `git log -p`, `cat-file` over every
+blob), because catching a leak before it is pushed is strictly cheaper than after. The
+remote is the second look, not the first.
 
 ### Sequencing
 
