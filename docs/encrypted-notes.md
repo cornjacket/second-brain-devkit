@@ -394,6 +394,87 @@ are trusted. Case 3 gets the same treatment for the opposite reason: it is the a
 standing between "we ignore the right things" and "we silently stopped committing the
 user's notes."
 
+## Manual verification: a parallel encrypted twin
+
+The hermetic gate proves the mechanism on throwaway fixtures. It cannot answer the
+question the owner of a brain actually wants answered — *"is my real content absent from
+my real git history?"* — because a fixture brain contains nothing the user would
+recognise. So the feature also gets a **human-driven twin**, the same shape as the
+desktop-e2e suites (#33/#34/#35): not a CI gate, a thing a person looks at.
+
+```
+~/second-brain/            the real brain — plaintext, untouched, never modified by this
+~/second-brain-encrypt/    the twin — same notes, encryption ON
+```
+
+The twin is a **note-for-note copy** of the real brain with the toggle enabled, so every
+note has a plaintext original to compare against. Comparison is then a two-layer check:
+you read the twin's `git log`/`ls-files` yourself and recognise nothing, **and** a
+verifier asserts the same mechanically — because "I looked and it seemed fine" is
+exactly the check that passes forever without comparing anything.
+
+### The mirror script
+
+**One-way by default: real → twin.** The real brain is the source of truth and is never
+written to. A `--reverse` exists for testing the Desktop write path (a note added into
+the twin flowing back), but it is explicit, refuses to overwrite an existing note, and is
+not part of the normal loop. Bidirectional-by-default would put test junk in the one
+brain that matters.
+
+Modes:
+
+- `--mirror` — copy every note from the real vault into the twin's, then encrypt and
+  commit. Idempotent; a second run with no upstream edits produces no commit.
+- `--verify` — the mechanical half of the comparison:
+  1. every real note exists in the twin, and **decrypts byte-identically**
+  2. `git ls-files` in the twin returns nothing under `vault/` but the note template
+  3. every real note's **filename stem** appears in no tracked path and in no commit
+     message in the twin
+  4. a sample of real note **content lines** appears nowhere in the twin's object store
+     (`git log -p`, `git cat-file --batch` over all blobs)
+  5. the two brains' note **counts** agree
+- `--teardown` — remove the twin. It holds real personal content in its working tree;
+  it should not linger once a run is done.
+
+**Where it lives.** The ask was for a script that lives only in the twin, so nothing new
+lands in the real brain — that constraint is preserved either way, and the
+recommendation is that the **devkit owns it** at `tools/mirror_brain.py`, invoked against
+the twin. A script living inside a *generated* brain is un-versioned by the devkit, lost
+on any regenerate, reported as an unknown file by `update_brain.py`, and would need an
+`emit-manifest.toml` entry to keep the partition invariant clean. Devkit-owned, never
+emitted, is the same call `tools/vendor_golden.py` and the ablation tooling already make.
+
+### Wiring the twin to Claude Desktop — two collisions
+
+The twin needs its own MCP server entry so it can be exercised through the same interface
+the real brain uses. Two things collide on the name `second-brain`:
+
+1. **`install_skill.py` will repoint your CLI skill.** It symlinks
+   `~/.claude/skills/second-brain` → `<BRAIN>/skill/second-brain`, and the link name is
+   fixed. Running it from the twin silently aims your global `second-brain` skill — the
+   one every project consults — at the test brain. **Do not run `install_skill.py` from
+   the twin.** The verifier checks that symlink still points at the real brain.
+2. **Both servers expose identically-named tools.** Desktop namespaces by server key, so
+   both entries coexist, but the model sees two `add_note`s and two
+   `search_second_brain`s and can pick the wrong one. The server key is therefore
+   `second-brain-encrypt`, distinct at a glance, and write tests name the target
+   explicitly. Registering the twin **only for the duration of a run** is the safer habit
+   and what the runbook says.
+
+### No remote until the canaries pass
+
+The twin contains **real personal notes**. Giving it a git remote before the encryption is
+proven would push exactly the content this feature exists to protect, on the hypothesis
+that the encryption works. It is created with no remote; verification is entirely local
+(`git log`, `git cat-file`, `ls-files`), and a remote is added — if at all — only after
+cases 7 and 8 pass on the twin itself.
+
+### Sequencing
+
+This subtask runs **after** build steps 1–5, once `--enable` and the hermetic gate exist.
+It is the real-brain counterpart to the fixture gate, in the same relationship #34 has to
+#33: the mechanism is proven first, then pointed at content the human recognises.
+
 ## Build order
 
 1. `scripts/encrypt_vault.py` — envelope, KDF, keyfile, name derivation — plus dev-only
@@ -409,5 +490,7 @@ user's notes."
 6. The 20 test cases above. **Cases 1–5 (the OFF case) land first**, before any ignore
    rule is touched — they are the net that catches "encryption silently stopped
    committing notes", and today that net is one assertion wide.
-7. Prototype in the golden with the toggle **off** (proving the no-op path is
+7. **The parallel encrypted twin** (`tools/mirror_brain.py` + runbook) — human-driven,
+   not a CI gate. Runs against the real brain's content once the mechanism is proven.
+8. Prototype in the golden with the toggle **off** (proving the no-op path is
    bit-identical), vendor, template, `tools/ci.py`.

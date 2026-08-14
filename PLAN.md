@@ -89,6 +89,32 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
   exactly the kind that passes forever without comparing anything. `enabled` also needs a special-cased gate-10 MATRIX
   entry: its "flip" is a **migration** (`encrypt_vault.py --enable/--decrypt/--disable`), not
   a value.
+
+  **Subtask — a parallel encrypted twin, for the question a fixture cannot answer.** The
+  hermetic gate proves the mechanism on throwaway notes; it cannot tell the owner of a brain
+  *"my real content is absent from my real git history"*, because a fixture contains nothing
+  he would recognise. So the feature also gets a **human-driven twin** at
+  `~/second-brain-encrypt/` — a **note-for-note copy** of `~/second-brain/` with encryption
+  ON, so every note has a plaintext original to compare against. Same framing as the
+  desktop-e2e suites (#33/#34/#35): **not a CI gate**, a thing a person looks at, backed by a
+  verifier so that "I looked and it seemed fine" is not the whole check.
+  `tools/mirror_brain.py` (**devkit-owned, never emitted** — a script living inside a
+  *generated* brain is lost on regenerate, unknown to `update_brain.py`, and would need a
+  manifest entry; the real brain stays untouched either way, which was the constraint):
+  `--mirror` one-way real→twin (`--reverse` exists for the Desktop write path but is
+  explicit and non-overwriting — bidirectional-by-default would put test junk in the one
+  brain that matters), `--verify` (every note decrypts byte-identically; `ls-files` under
+  `vault/` returns only the note template; no real filename **stem** in any tracked path or
+  commit message; no real content line anywhere in the object store via `cat-file` over all
+  blobs; note counts agree), `--teardown`. **Two name collisions to design around:**
+  `install_skill.py` symlinks `~/.claude/skills/second-brain` under a **fixed** name, so
+  running it from the twin would silently repoint the global skill every project consults at
+  the test brain (the verifier asserts that symlink still aims at the real brain); and both
+  MCP servers expose identically-named tools, so the twin registers under the distinct key
+  `second-brain-encrypt`, ideally only for the duration of a run. **The twin gets no git
+  remote until cases 7–8 pass on it** — it holds real personal notes, and pushing it early
+  would leak exactly what the feature protects, on the hypothesis that the feature works.
+  Sequenced after build steps 1–5, the same relationship #34 has to #33.
 - [ ] **#41 — the forbidden-reference denylist names one tracker; it should describe a
   *class*.** `tools/check_no_forbidden_refs.py` has `DEFAULT_DENYLIST = ("ai-project-status",)`,
   written when there was exactly one thing that could leak. On **2026-08-04** this repo's
