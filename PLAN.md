@@ -1446,6 +1446,36 @@ has no feedback loop because it never touches retrieval.
       (leading underscore) worth having alongside, or does one mechanism suffice?
       Surfaced in the live brain while working out how to record CSET algebra subtests — the
       project note and its paperwork trail wanted to live together.
+- [ ] **Subtask: `docs/embed-opt-out.md`** — the feature page, per the one-doc-per-feature
+      convention (`embed-excluded-block.md`, `tag-hygiene.md`, `auto-linking.md`). Covers the key,
+      the opt-out polarity and *why* (silent vs. noisy failure), the template variant, and the
+      colocation pattern the whole thing exists to enable.
+- [ ] **Subtask: document the recommended `projects/` layout — one subfolder per project.**
+      **Recommended, never enforced.** A project is goal-bound and ends, so its note and its
+      material should archive or delete as one unit; a flat `projects/` scatters that across the
+      root and leaves nothing to move. The convention: `projects/<project>/` holds the project
+      note plus its colocated material, and `projects/` itself holds folders rather than loose
+      notes. No script checks this — `doctor.py` should not grow a rule for it, because a
+      one-note project with nothing to colocate is a legitimate exception and a warning would
+      train people to ignore warnings.
+      **Design question to settle first: what is the note inside called?**
+      `projects/<project>/<project>.md` keeps Obsidian's name-based `[[wikilinks]]` working
+      unchanged and keeps every note title unique. A bare `index.md` or `README.md` per folder
+      would put many identically-named notes in the vault, which breaks wikilink resolution and
+      makes search results unreadable — decide before documenting, not after people adopt it.
+
+## PARA roots recurse (task #46, backlog, surfaced 2026-08-30)
+- [ ] **Document that PARA roots are walked recursively — a capability that already works and is
+      written down nowhere.** Every walker uses `rglob`: `embed_vault.py`, `embed_staged.py`,
+      `note_selection.py`, `doctor.py`, `tag_hygiene.py`, `glossary_scan.py`, `encrypt_vault.py`.
+      So `projects/<project>/note.md` is embedded, searchable, tag-linted and encrypted exactly
+      like a note at the root. A grep of `docs/`, `SPEC.md` and the whole `template/` tree for
+      "subfolder" / "nested" returns **nothing** — a user has no way to learn this except by
+      reading the source or asking.
+      Two lines in the emitted `CLAUDE.md`, next to the existing "file it under the right PARA
+      root" instruction. **Split from #45 deliberately:** this is true of the shipped system
+      today, so it should not wait on a feature. #45's colocation pattern *depends* on it, which
+      is why the gap surfaced there.
 
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
