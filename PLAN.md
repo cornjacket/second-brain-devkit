@@ -1414,6 +1414,39 @@ has no feedback loop because it never touches retrieval.
       **Not a scheduler.** No cron, no daemon — the cadence is "when you ask", the same posture as
       `doctor.py`. Review state (last-shown per note) is derived and git-ignored like the log itself.
 
+## Embed opt-out (task #45, backlog, surfaced 2026-08-30)
+- [ ] **`embed: false` frontmatter key, so non-note Markdown can live inside a PARA root.**
+      Today whether a file is embedded is decided **solely by location** — the four `PARA_ROOTS`
+      in `embed_vault.py` and `embed_staged.py`. There is no way to keep a Markdown file inside a
+      root without it becoming a note, which blocks a reasonable organizing pattern: a project's
+      material in `projects/<project>/` so the whole thing archives or deletes as one unit.
+      Non-Markdown already colocates safely (the walkers glob `*.md`), so the gap is narrow but
+      real — a project README, meeting scratch, or a draft silently becomes a searchable note and
+      dilutes retrieval.
+      **Opt-out, not opt-in — the polarity is the whole design decision.** Embedding stays the
+      default. Under opt-in, a note you forget to tag is **silently unsearchable**, discovered only
+      the day you search for it and get nothing; under opt-out, an untagged file shows up in
+      results where it is immediately visible and trivially fixed. Noisy failures beat silent ones,
+      and this repo already errs the wrong way once — a note in a non-PARA folder disappears with
+      no warning. Do not add a second way to do that.
+      **Scope:** honored in `embed_staged.py` (pre-commit) and `embed_vault.py` (bulk); a missing
+      or malformed key means embed (never fail closed); no sidecar written for a skipped file and
+      an existing stale sidecar removed; `hydrate_cache.py` / `update_cache.py` must not resurrect
+      a skipped file into the cache; `doctor.py` reports the **skipped count**, so exclusion is
+      visible rather than assumed.
+      **Ship a non-embedded template variant.** The emitted templates should include a version
+      whose frontmatter carries `embed: false`, so the excluded case has a starting point rather
+      than being hand-rolled — the same reason `new-note.md` exists for the embedded case. Note
+      `vault/templates/` is already outside the PARA roots, so this variant is for material that
+      lives **inside** a root (project scratch, colocated README).
+      Document in both disjoint pipes the note gate already spans: the template `CLAUDE.md` block
+      and `vault/templates/new-note.md` (`tools/check_note_gate.py` keeps them from drifting).
+      **Open:** does `archive/` behave differently, or is that orthogonal? Does `encrypt_vault.py`
+      need to know about skipped files, or is it location-based only? Is a folder-level convention
+      (leading underscore) worth having alongside, or does one mechanism suffice?
+      Surfaced in the live brain while working out how to record CSET algebra subtests — the
+      project note and its paperwork trail wanted to live together.
+
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
       and cleanly remove it (notes + every derived remnant). (task #16; BUILT 2026-07-09.)** For exercising a brain
