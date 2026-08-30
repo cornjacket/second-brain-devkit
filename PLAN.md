@@ -1359,6 +1359,60 @@ populated brain**, not a single example. (The prompting example that raised this
       is exactly what #8's `t_max`/hysteresis calibrate on, so the distance scale is now
       final. Full design in [docs/retrieval-quality.md §1](docs/retrieval-quality.md);
       decision captured as a brain note (`resources/nomic-embedding-prefixes.md`).
+- [ ] **Usage log + real-brain ground truth — task #43, backlog (surfaced 2026-08-20).** Nothing in a
+      brain records that a note was ever *read*. Every date in the system is a **write** date from git,
+      and neither `search_vault.py` nor `mcp_server.py` keeps a counter — so a brain cannot answer
+      *"which notes does search never surface?"*, its own `resources/unfindable-is-not-nonexistent.md`
+      failure, unmeasured. Proposal: an append-only `data/usage.jsonl` — derived and **git-ignored**
+      (`data/*` already covers it), same posture as `brain.db`: safe to delete, loses only history —
+      recording `search_second_brain` (timestamp, query, the `embedder.fingerprint()` already emitted,
+      ranked result paths) and `get_note` as the "actually reading this" event, joined on time
+      proximity for a weak conversion signal. **Never per-note frontmatter:** usage is a per-*machine*
+      fact, so a second clone would legitimately disagree, and note content must stay
+      machine-independent — the same rule that keeps derived data out of the artifact it describes.
+      **The payoff is diagnostic, not a ranker input.** Two uses: (a) the **dead zone** — notes
+      retrieved by zero queries, which says the note is phrased wrong or the ranker misses it, and
+      which a boost would actively *hide*; (b) **real-brain ground truth** — `tools/ablation.py` today
+      measures against the *synthetic* labeled `tests/bench-corpus/queries.jsonl`, so `rrf_k`,
+      `hybrid_search` and #8's `t_max` are tuned on a corpus nobody actually searches. Logged
+      `(query → note opened)` pairs are the missing real judgments, and replaying them catches the
+      regression that matters most — an embed-model swap, after which every vector shifts and the
+      results still look plausible.
+      **Explicit non-goal: usage must never feed the score.** "Memories that are used become stronger"
+      does not transfer — biological strengthening counters *decay*, and a vault does not decay
+      (nothing is forgotten, storage is free, recall is exact). A hit counter measures what the ranker
+      already surfaced, so boosting on it closes the loop this repo has already ruled against twice:
+      `resources/embed-the-substance-not-the-file.md` ("the vectors just slowly become about
+      themselves") and #8's mutual-KNN **hub suppression**, which exists precisely to remove this
+      rich-get-richer pull. The entrenchment fails *invisibly* — the note never found stays unfindable
+      because it was never found. If a use signal is ever wanted in ranking, the defensible form is
+      **negative and advisory**: flag zero-retrieval notes for review, boost nothing (asymmetric on
+      purpose — boosting fails invisibly, flagging fails cheaply).
+      Known bias, stated rather than counted as covered: opened-note is **position-biased** (you open
+      what ranked #1), so it is good for catching regressions on known-good pairs and useless for
+      discovering what the ranker never showed. (a) and (b) are complementary; neither is sufficient
+      alone.
+
+## Spaced resurfacing (task #44, backlog, surfaced 2026-08-20)
+Sibling of #43, and the honest answer to what *"memories that are used become stronger"* is actually
+reaching for. The vault remembers perfectly; the copy that decays is the one in the **author's head** —
+a brain of 30+ notes holds lessons its owner can no longer recall on demand. So the feature that
+delivers the biological intuition is **review**, not a ranking multiplier, and unlike a usage boost it
+has no feedback loop because it never touches retrieval.
+- [ ] **Surface an old note for review on a cadence, chosen without a popularity signal.** Selection
+      should be **anti**-popularity — prefer notes least recently *surfaced* (the #43 log is the
+      natural input, and the two features share that one file), falling back to uniform-random when no
+      log exists so this stands alone. Delivery is the open question: `scripts/resurface.py` is the
+      cheap version; an MCP tool lets Claude Desktop open with *"here's a note you wrote in March —
+      still true?"*, which is also the natural moment to catch a **stale** note.
+      **The staleness question is why this can't lean on git.** `git log` gives the last *write*, and
+      it over-reports freshness: the #8 autolink pass rewrote `related_auto:` frontmatter in **23 of
+      33 notes** in the live brain on a single day, resetting every one of those file dates with zero
+      substance change. A real "last meaningfully changed" derives from `note_view.canonical_body`'s
+      content hash, which already distinguishes a substance edit from a tool edit — the same
+      projection the sidecar re-embed gate uses.
+      **Not a scheduler.** No cron, no daemon — the cadence is "when you ask", the same posture as
+      `doctor.py`. Review state (last-shown per note) is derived and git-ignored like the log itself.
 
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
