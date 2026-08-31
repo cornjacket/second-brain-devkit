@@ -1707,6 +1707,34 @@ has no feedback loop because it never touches retrieval.
       rename to `subpath`, so the live MCP tier had been red since #50 — CI never runs it (the
       `mcp` SDK is an optional dep), which is precisely why it drifted.
 
+## The canonical example taught the name the rule rejects (task #52, FIXED 2026-08-31)
+- [x] **The entry-note example and the uniqueness rule contradicted each other, three
+      paragraphs apart.** Reported by a live client, not by a test. ENTRY NOTES showed
+      `projects/algebra/chapter-1/chapter-1.md`; UNIQUENESS then said to scope a generic name
+      rather than reuse a bare one. So the canonical example demonstrated precisely the name the
+      next rule refuses, and anyone following it literally hits the pre-commit hook the day a
+      second subject has a chapter 1.
+      **Checking the proposed fix exposed an older bug behind it.** The suggested form used a
+      double dash (`algebra-1--chapter-1`), matching the `{folder}--{descriptor}` convention
+      shipped in #45 — but `_slugify` collapses any run of non-alphanumerics to **one** hyphen,
+      so **no title can ever produce `--`**. That convention was never reachable through
+      `add_note` at all. It shipped and survived because the examples were only ever eyeballed;
+      nothing compared a documented filename against what the tool can actually emit.
+      **One rule now covers both:** a child is named after its parent, `{parent}-{descriptor}`,
+      for a nested folder and a plain file alike (`algebra-chapter-1/`, `algebra-progress.md`).
+      Reachable by slugify, and unique **by construction** rather than by luck — the entry-note
+      rule turns every folder name into a note name, so scoping the folder is what keeps the
+      note name unique. Fixed in all four pipes plus the generated `FOLDER HINT`, which had been
+      suggesting the colliding name.
+      **Gated mechanically, which is the transferable part.** Gate 23 now extracts every `*.md`
+      filename from every tool description and rejects any containing `--`, because that is
+      unreachable by the tool meant to create it; and rejects an entry-note example that is not
+      scoped to its parent. **A documented example is executable specification — compare it
+      against what the code can produce, rather than reading it.**
+      Third time this week that the *interface text* was wrong while the mechanism was right
+      (#50's missing rules, #51's stale-memory gap, this). The mechanism gets gates by habit;
+      the text did not, until now.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one

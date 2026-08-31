@@ -260,6 +260,33 @@ def check_tool_descriptions(brain: Path, fails: list[str]) -> None:
                              f"line is all a collapsed tool index shows, so the capability is "
                              f"invisible until someone already knows to look for it")
 
+    # Every example filename must be REACHABLE by the tool that is supposed to create it.
+    # `_slugify` collapses any run of non-alphanumerics to ONE hyphen, so no title can ever
+    # produce `--` — which means a documented `{folder}--{descriptor}.md` is a convention
+    # add_note cannot follow. That shipped and went unnoticed because the examples were only
+    # ever eyeballed; this is the mechanical version of reading them.
+    import re as _re
+    for tool, desc in tools.items():
+        for name in _re.findall(r"[A-Za-z0-9][A-Za-z0-9._/-]*\.md", desc):
+            stem = name.rsplit("/", 1)[-1][:-3]
+            if "--" in stem:
+                fails.append(f"{tool}'s description shows {name!r}, which add_note cannot "
+                             f"create: _slugify collapses runs of non-alphanumerics to a "
+                             f"single hyphen, so no title slugifies to a double dash")
+
+    # The nested example must be SCOPED to its parent, or the canonical example teaches
+    # exactly the name the uniqueness rule rejects — the two sections contradict each other
+    # and whoever follows the example hits the hook the day a second subject has a chapter 1.
+    for tool in ("add_note",):
+        d = tools.get(tool, "")
+        if "algebra/chapter-1/chapter-1.md" in d or "/chapter-1/chapter-1.md" in d:
+            fails.append(f"{tool}'s entry-note example uses a bare `chapter-1/chapter-1.md` — "
+                         f"a generic name that collides the moment a second project has a "
+                         f"chapter 1, which is precisely what the uniqueness rule forbids")
+        if "algebra-chapter-1" not in d:
+            fails.append(f"{tool}'s entry-note example is not scoped to its parent, so it does "
+                         f"not demonstrate the naming rule it states")
+
     # A stale memory outranks a correct description unless the description says otherwise.
     for tool in ("add_note", "add_asset"):
         if "authority" not in tools.get(tool, ""):
@@ -307,7 +334,11 @@ def check_overview(brain: Path, fails: list[str]) -> None:
     if "Recent changes" not in text.split("## Tools")[0]:
         fails.append("the recent-changes list is not before the tool list — it is the part "
                      "that corrects a stale caller, so it goes first")
-    for rule in ("subpath", "chapter-1", "unique", "add_asset", "embed: false"):
+    if "/chapter-1/chapter-1.md" in text:
+        fails.append("second_brain_overview's entry-note example uses a bare "
+                     "`chapter-1/chapter-1.md`, contradicting the uniqueness rule printed a "
+                     "few lines below it")
+    for rule in ("subpath", "algebra-chapter-1", "unique", "add_asset", "embed: false"):
         if rule not in text:
             fails.append(f"second_brain_overview omits {rule!r} from the conventions it claims "
                          f"to carry")
