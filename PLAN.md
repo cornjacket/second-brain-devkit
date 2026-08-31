@@ -1504,6 +1504,14 @@ has no feedback loop because it never touches retrieval.
       **Durable concept notes do not live in the project folder.** They go in `resources/`, flat.
       A project folder holds what dies with the project; a lesson that outlives it is a resource,
       and burying it in a folder headed for `archive/` is how it becomes unfindable.
+      **DECIDED 2026-08-30 — the entry-note rule RECURSES.** Nesting two levels
+      (`projects/algebra/chapter1/`) means `chapter1/` carries its own `chapter1.md`, on the same
+      reasoning as the first level: every folder that holds material has an entry note named
+      after it. **This raises the stakes on filename uniqueness rather than settling them** — a
+      folder called `chapter1` is far more collidable than one called `algebra`, and two projects
+      with a `chapter1/` each would produce two `chapter1.md`, which is precisely what breaks
+      `[[wikilink]]` resolution. Recursing the convention therefore *depends on* a uniqueness
+      mechanism existing, and there is none today.
       **Structure rule:** subfolders belong in `projects/`, with `archive/` as their destination
       when the project ends. Not `resources/` or `areas/` — a resource is filed by topic and an
       area does not end, so neither has the "archive as one unit" motive that justifies nesting.
@@ -1623,6 +1631,54 @@ has no feedback loop because it never touches retrieval.
       recurring shape across #42 (four selectors), #47 and #48 is now enumerated rather than
       open-ended: **a git-ignored vault answers "what changed?" with an empty list, not an
       error, so the failure is silent by construction.**
+
+## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
+- [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
+      at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
+      root cause, and the first is **live in a shipped brain today**.
+      **Root cause.** Two mechanisms both enumerate what counts, and neither has a default for
+      anything new. `encrypt_vault.IGNORE_BODY` denies `/vault/**` and then re-includes exactly
+      one path by name (`!/vault/templates/new-note.md`); `encrypt_vault.content_notes()` globs
+      `*.md`. So a file that is neither the named exception nor Markdown is ignored by git *and*
+      invisible to the encryptor. It never reaches a commit in any form. The comment above the
+      block says "default-deny, so a new file type cannot leak" — which is true, and is only half
+      the question. It is airtight about **leaking** and silent about **losing**.
+      **Instance A — live now, a regression from #45.** `vault/templates/not-a-note.md` shipped
+      2026-08-30 and was never added to the re-include list. On an encrypted brain it is
+      git-ignored and absent from `HEAD`. Verified by cloning: the clone's `vault/templates/`
+      holds `new-note.md` only. Consequence: an encrypted brain's clone has no `not-a-note`
+      template, so the MCP tool `get_note_template("not-a-note")` returns its **fallback string**
+      instead of the template — the feature present in the code and absent from the brain. This
+      is a one-line fix (`!/vault/templates/not-a-note.md`) and should probably not wait for the
+      rest of this task.
+      **Instance B — blocks the planned `add_asset` tool.** An `.svg` (or any attachment) beside
+      its note under a PARA root behaves the same way: git-ignored by `/vault/**`, skipped by
+      `content_notes()`, absent from the clone. A tool that writes the file, commits and pushes
+      would report success and push **nothing**. Confirmed by clone: `tile.svg` is not there.
+      **Reproduce:** generate a brain, commit an `.svg` under `vault/projects/x/`, run
+      `encrypt_vault.py --enable`, commit, then `git clone` it. `git ls-tree -r HEAD -- vault/`
+      returns `vault/templates/new-note.md` and nothing else.
+      **Why no gate caught it.** Gate 18 (content classification) asks whether every Markdown
+      file is either preserved-by-`update_brain` or encrypted. It only walks `*.md`, so an
+      attachment is outside its question entirely; and `not-a-note.md` slips through because it
+      is `VAULT_OWNED`, hence *not* preserved, hence not in the leaked set. Gate 19 (encrypted
+      round-trip) counts blobs against notes and now excludes all of `vault/templates/`, so it
+      cannot see a template going missing either. **Both gates are about leaking. Neither asks
+      whether anything was lost** — which is the same asymmetry as the comment in the source.
+      **Fix directions, not yet chosen.** (a) Extend the re-include list and teach
+      `content_notes()` to cover attachments — encrypt an `.svg` like a note, since it is equally
+      the user's content and equally revealing (a filename is a tell, which is why blob names are
+      HMACs). Keeps the privacy property; needs the round-trip to restore non-`.md` bytes, which
+      it already can — the envelope carries the path and the bytes, and neither is
+      Markdown-specific. (b) Invert the classification: define **machinery** explicitly and treat
+      everything else in the vault as content, so a new file type is encrypted by default rather
+      than dropped by default. (b) is the shape that stops this recurring; (a) is smaller.
+      **The gate this needs either way:** an assertion that every file under `vault/` is
+      accounted for — encrypted, or a named machinery exception — with the same
+      "every entry needs a reason" discipline `EXPECTED_UNENCRYPTED` already uses. Today the
+      question is only ever asked about `*.md`.
+      Surfaced while scoping `add_asset` (write a note plus a sibling `.svg` into
+      `projects/algebra/chapter1/`), not by a failure — nothing failed.
 
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
