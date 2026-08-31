@@ -181,6 +181,72 @@ def check_payload(brain: Path, env: dict, fails: list[str]) -> None:
         os.chdir(cwd)
 
 
+def check_tool_descriptions(brain: Path, fails: list[str]) -> None:
+    """The rules must reach the MCP client, not just the human reading the docs.
+
+    An assistant in Claude Desktop never sees `CLAUDE.md`, the README, or `docs/`. Its ONLY
+    channel is the tool description, so a convention documented everywhere except there is a
+    convention it will break — and break plausibly, producing a folder that cannot hold its own
+    entry note, or an `![[wikilink]]` image that does not render outside Obsidian.
+
+    `add_note` is where all of this has to land, because it is the tool that chooses the
+    filename AND writes the body containing the image reference. Asserting it here is the point:
+    the first version of this feature documented every rule in the emitted `CLAUDE.md` and left
+    the tool description carrying a worked example (`chapter1/chapter1.md`) that was itself the
+    mistake the rule exists to prevent.
+    """
+    sys.path.insert(0, str(brain / "scripts"))
+    for stale in ("mcp_server", "note_view", "features", "db", "search_vault", "add_pdf"):
+        sys.modules.pop(stale, None)
+    cwd = os.getcwd()
+    os.chdir(brain)
+    try:
+        import mcp_server as m
+    except ImportError:
+        print("        optional 'mcp' SDK absent — tool descriptions were NOT checked")
+        os.chdir(cwd)
+        return
+    try:
+        import asyncio
+        # Collapse whitespace: a description is a wrapped docstring, so a phrase that reads as
+        # one string in the source can be split by a newline plus indentation. The probes are
+        # about what the text SAYS, not how it happens to be wrapped.
+        tools = {t.name: " ".join((t.description or "").split())
+                 for t in asyncio.run(m.mcp.list_tools())}
+    finally:
+        os.chdir(cwd)
+
+    required = {
+        "add_note": [
+            ("slugifies", "the folder-naming rule — without it a model picks `chapter1/` and "
+                          "the folder can never hold its own entry note"),
+            ("chapter-1", "a worked example in the CORRECT kebab-case form"),
+            ("entry note", "the entry-note convention"),
+            ("unique", "that note filenames must be unique vault-wide, which the hook enforces "
+                       "by REFUSING the write"),
+            ("![", "the relative-markdown image syntax — add_note writes the body that carries "
+                   "the image reference, so this is the only tool that can get it right"),
+            ("add_asset", "a pointer to the tool for non-note files"),
+        ],
+        "add_asset": [
+            ("![", "the relative-markdown image syntax"),
+            ("add_note", "a pointer back, since the note must exist first"),
+            ("never embedded", "that an asset is never embedded"),
+        ],
+    }
+    for tool, probes in required.items():
+        if tool not in tools:
+            fails.append(f"{tool} is not exposed to MCP clients at all")
+            continue
+        for probe, why in probes:
+            if probe not in tools[tool]:
+                fails.append(f"{tool}'s description does not mention {why} — an MCP client sees "
+                             f"ONLY this text, so the rule cannot reach it")
+    if "chapter1/" in tools.get("add_note", ""):
+        fails.append("add_note's description contains the example `chapter1/` — the very "
+                     "mistake the slug rule exists to prevent")
+
+
 def check_uniqueness_blocks_a_commit(brain: Path, env: dict, fails: list[str]) -> None:
     """The hook must REFUSE, not warn. A duplicate misroutes links silently and forever."""
     dup = brain / "vault" / "projects" / "geometry" / "chapter-1"
@@ -247,6 +313,11 @@ def main() -> int:
         if len(fails) == before:
             print("  ok    a nested note plus a sibling SVG land, commit, and only the note "
                   "embeds; every bad path and orphan is refused")
+        before = len(fails)
+        check_tool_descriptions(brain, fails)
+        if len(fails) == before:
+            print("  ok    the naming, uniqueness and image-syntax rules reach the MCP client "
+                  "in add_note's own description")
         before = len(fails)
         check_uniqueness_blocks_a_commit(brain, env, fails)
         if len(fails) == before:
