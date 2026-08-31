@@ -1509,8 +1509,8 @@ has no feedback loop because it never touches retrieval.
       area does not end, so neither has the "archive as one unit" motive that justifies nesting.
       Recommended, not enforced, in both cases.
 
-## PARA roots recurse (task #46, backlog, surfaced 2026-08-30)
-- [ ] **Document that PARA roots are walked recursively — a capability that already works and is
+## PARA roots recurse (task #46, DONE 2026-08-30)
+- [x] **Document that PARA roots are walked recursively — a capability that already works and is
       written down nowhere.** Every walker uses `rglob`: `embed_vault.py`, `embed_staged.py`,
       `note_selection.py`, `doctor.py`, `tag_hygiene.py`, `glossary_scan.py`, `encrypt_vault.py`.
       So `projects/<project>/note.md` is embedded, searchable, tag-linted and encrypted exactly
@@ -1521,11 +1521,21 @@ has no feedback loop because it never touches retrieval.
       root" instruction. **Split from #45 deliberately:** this is true of the shipped system
       today, so it should not wait on a feature. #45's colocation pattern *depends* on it, which
       is why the gap surfaced there.
-      **Partly covered by #45 (2026-08-30), still open.** The emitted README now states the
-      recursion twice (the "Everyday use" colocation paragraph and the Layout tree) and
-      `docs/embed-opt-out.md` §6 depends on it. The **emitted `CLAUDE.md` still does not say
-      it** — which is the copy that matters here, because it is the always-loaded one and the
-      only pipe an in-repo agent reads. That is the two lines this task is actually about.
+      **DONE 2026-08-30.** Stated in the emitted `CLAUDE.md` on the existing
+      file-it-under-a-PARA-root bullet, and pinned in `SPEC.md` as a contract rather than an
+      accident ("**under** means *at any depth*"). #45 had already put it in the emitted README
+      twice (the "Everyday use" colocation paragraph and the Layout tree); `CLAUDE.md` was the
+      copy that mattered, being the always-loaded one an in-repo agent reads.
+      **Re-verified before documenting**, rather than trusting the survey: every walker over a
+      PARA root really does use `rglob` (`embed_vault`, `note_selection`, `doctor`,
+      `tag_hygiene`, `glossary_scan`, `encrypt_vault`, and the MCP list/search tools).
+      **The asymmetry is worth the extra clause**, and both copies now carry it:
+      `vault/glossary/` is scanned with a flat `glob`, so a term filed in a subfolder there is
+      invisible to the glossary tools. A reader who learns "roots recurse" would otherwise
+      generalise it to the whole vault and be wrong exactly once.
+      **No gate.** CI gate 20 already fails if a colocated note stops embedding, which is the
+      load-bearing half; asserting the other walkers' `rglob` would test the implementation
+      rather than a behaviour.
 
 ## Moving a note breaks its index entry (task #47, backlog, surfaced 2026-08-30)
 - [ ] **A renamed or moved note is never re-embedded, and the post-commit cache update then dies
