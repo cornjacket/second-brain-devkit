@@ -1446,6 +1446,22 @@ has no feedback loop because it never touches retrieval.
       (leading underscore) worth having alongside, or does one mechanism suffice?
       Surfaced in the live brain while working out how to record CSET algebra subtests — the
       project note and its paperwork trail wanted to live together.
+- [ ] **Subtask: the MCP surface — three tools, one of which fails silently.**
+      `get_note` (path-based), `search_second_brain` and `list_vault` (both `rglob`) already work
+      with subfolders unchanged; nothing to do there.
+      **`get_note_template` is the priority.** It returns only `new-note.md`, so once the
+      `embed: false` variant ships an MCP client has no way to reach it and **every note an
+      assistant creates embeds** — the client is locked out of the opt-out entirely. This fails
+      *silently* (a plausible embedded file appears), unlike the folder gap below, which fails
+      loudly by refusing. Serve the variant, e.g. `get_note_template(variant="")`.
+      **`add_note` refuses subfolders** — it hardcodes `VAULT/para_root/<slug>.md` and asserts
+      `path.parent == VAULT/para_root`. Add a `folder` argument and an `embed: bool = True` that
+      writes the opt-out key, rather than a separate `add_project` tool: a second tool would
+      duplicate the whole write path (slugify, refuse-overwrite, encrypt, commit, push) to save
+      one argument. Its one real advantage — *enforcing* folder-name == entry-note-name — belongs
+      with the deferred pre-commit checks, not in a parallel writer.
+      **`add_pdf` hardcodes `dest_dir = VAULT_DIR / para_root`**, so a PDF cannot be colocated in
+      a project folder — the exact case colocation exists for. Same `folder` argument.
 - [ ] **Subtask: `docs/embed-opt-out.md`** — the feature page, per the one-doc-per-feature
       convention (`embed-excluded-block.md`, `tag-hygiene.md`, `auto-linking.md`). Covers the key,
       the opt-out polarity and *why* (silent vs. noisy failure), the template variant, and the
@@ -1458,11 +1474,22 @@ has no feedback loop because it never touches retrieval.
       notes. No script checks this — `doctor.py` should not grow a rule for it, because a
       one-note project with nothing to colocate is a legitimate exception and a warning would
       train people to ignore warnings.
-      **Design question to settle first: what is the note inside called?**
-      `projects/<project>/<project>.md` keeps Obsidian's name-based `[[wikilinks]]` working
-      unchanged and keeps every note title unique. A bare `index.md` or `README.md` per folder
-      would put many identically-named notes in the vault, which breaks wikilink resolution and
-      makes search results unreadable — decide before documenting, not after people adopt it.
+      **DECIDED 2026-08-30 — the repeated-name form.** The entry note is
+      `projects/<project>/<project>.md`, e.g. `projects/algebra/algebra.md`. It looks redundant
+      and it is the only form that works: Obsidian's `[[wikilinks]]` resolve by **name**, so
+      `[[algebra]]` keeps working across the move to `archive/`, and every note title stays
+      unique. A per-folder `index.md` or `README.md` would put many identically-named notes in
+      one vault, breaking wikilink resolution and making search results unreadable.
+      **Naming rule for everything else in the folder:** `{folder}--{descriptor}.md` —
+      `algebra--progress.md`, `algebra--test-1.md`. Folder names carry **no `project-` prefix**:
+      the folder moves to `archive/` and a prefix naming its old status would go stale there.
+      **Durable concept notes do not live in the project folder.** They go in `resources/`, flat.
+      A project folder holds what dies with the project; a lesson that outlives it is a resource,
+      and burying it in a folder headed for `archive/` is how it becomes unfindable.
+      **Structure rule:** subfolders belong in `projects/`, with `archive/` as their destination
+      when the project ends. Not `resources/` or `areas/` — a resource is filed by topic and an
+      area does not end, so neither has the "archive as one unit" motive that justifies nesting.
+      Recommended, not enforced, in both cases.
 
 ## PARA roots recurse (task #46, backlog, surfaced 2026-08-30)
 - [ ] **Document that PARA roots are walked recursively — a capability that already works and is
@@ -1476,6 +1503,27 @@ has no feedback loop because it never touches retrieval.
       root" instruction. **Split from #45 deliberately:** this is true of the shipped system
       today, so it should not wait on a feature. #45's colocation pattern *depends* on it, which
       is why the gap surfaced there.
+
+## Moving a note breaks its index entry (task #47, backlog, surfaced 2026-08-30)
+- [ ] **A renamed or moved note is never re-embedded, and the post-commit cache update then dies
+      on the missing sidecar.** Three pieces interact, none wrong alone:
+      `note_selection.staged_notes` filters `--diff-filter=ACM` — **`R` is excluded**, so a pure
+      `git mv` with no content edit is invisible to the pre-commit hook and nothing re-embeds.
+      Sidecars are git-ignored and live beside the note, so `git mv` moves the tracked `.md` and
+      **leaves `.<name>.embed.json` behind** as an orphan at the old path.
+      `update_cache.py --from-commit` *does* understand renames (delete old row, upsert new), but
+      `upsert()` then hits `raise SystemExit("no sidecar … embed it first")` because the new path
+      has none.
+      Net: the commit lands, the **post-commit hook fails after the fact**, and the cache is left
+      mid-update — old row deleted, new row never inserted. `doctor.py --repair` reconciles it
+      (drops the orphan, re-embeds the missing sidecar), so this is loud rather than silent, and
+      recoverable. But it does not survive unattended use.
+      **Not subfolder-specific** — renaming any note at a PARA root hits it today. It surfaced via
+      #45 because "archive the whole project folder as one unit" is a *move*, which makes the
+      archive half of that workflow the first case that depends on moves working.
+      Likely fix: include `R` in the selector and treat a rename as a re-embed at the new path,
+      leaving `update_cache` to drop the old row. Check `encrypt_vault.py` too — the same move
+      question exists for a blob whose path is inside its envelope.
 
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,
