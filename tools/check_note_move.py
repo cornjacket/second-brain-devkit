@@ -205,9 +205,9 @@ def scenario_encrypted(brain: Path, env: dict, fails: list[str]) -> None:
 
     Two further differences are pinned here rather than assumed. ``git mv`` **cannot be used at
     all** (the vault is git-ignored, so the source is not under version control), which is why
-    this moves the file plainly. And the cache is deliberately not asserted: an encrypted brain
-    does not update it on commit at all — a separate, larger gap, filed on its own rather than
-    smuggled into this gate's green.
+    this moves the file plainly. The cache IS asserted below, but only for the dead-path
+    resurrection this bug caused; that an encrypted commit reaches the cache at all was a
+    separate gap (task #48) and is gate 22's subject, not this one's.
     """
     src = brain / "vault" / "projects" / "kiln.md"
     src.write_text(KILN, encoding="utf-8")

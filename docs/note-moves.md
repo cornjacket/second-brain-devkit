@@ -83,19 +83,13 @@ stops looking. The hook now names `doctor.py --repair`, which re-embeds what has
 and *then* rebuilds, covering both causes. Verified: `--repair` restores the moved note;
 `hydrate_cache` does not.
 
-## 5. Found while fixing this, filed separately
+## 5. Found while fixing this, fixed separately
 
-**An encrypted brain never updates its cache on commit at all.** The commit contains
-`enc/<opaque>.md.enc`, not a PARA note, so `update_cache --from-commit` reports "no PARA-note
-changes" and exits clean. The note is embedded but not searchable until someone runs
-`hydrate_cache` by hand — which contradicts the promise stated in the README and `CLAUDE.md`
-that a committed note is searchable immediately.
-
-Same class as #47 and as the four selectors #42 had to fix: **a component asking git a
-question a git-ignored vault cannot answer.** Not folded in here, because the fix is a design
-choice (teach `update_cache` to map blob → path, or have it fall back to the working tree)
-rather than a letter in a filter. Tracked as its own task; gate 21 deliberately does not
-assert the encrypted cache, so this gate's green never implies that gap is closed.
+**An encrypted brain never updated its cache on commit at all** — a bigger gap than #47,
+found because gate 21's encrypted scenario could not assert the cache. Same class: a
+component asking git a question a git-ignored vault cannot answer. Fixed as task #48; see
+[encrypted-commit-indexing.md](encrypted-commit-indexing.md). Gate 21 still owns only the
+dead-path half; gate 22 owns "a committed note is searchable".
 
 ## 6. What the gate pins
 

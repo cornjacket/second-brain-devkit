@@ -1579,8 +1579,8 @@ has no feedback loop because it never touches retrieval.
       **Not fixed here, filed as #48:** an encrypted brain never updates its cache on commit
       at all.
 
-## Encrypted brains never update the cache on commit (task #48, backlog, surfaced 2026-08-30)
-- [ ] **On an encrypted brain a committed note is embedded but not searchable, contradicting
+## Encrypted brains never update the cache on commit (task #48, FIXED 2026-08-30) → [docs/encrypted-commit-indexing.md](docs/encrypted-commit-indexing.md)
+- [x] **On an encrypted brain a committed note is embedded but not searchable, contradicting
       the promise the README and `CLAUDE.md` both make.** `update_cache.py --from-commit HEAD`
       asks `git diff-tree` what the commit touched. With encryption on that is
       `enc/<opaque>.md.enc` — not a PARA note — so `is_para_note` rejects it, the tool prints
@@ -1599,8 +1599,30 @@ has no feedback loop because it never touches retrieval.
       reuses an existing answer; the first keeps the incremental "only the changed rows"
       property that stops a big vault rehydrating on every commit.
       Surfaced while building gate 21 for #47 — the gate's encrypted scenario could not assert
-      the cache, which is how the gap became visible. Gate 21 deliberately leaves it
-      un-asserted so its green never implies this is closed.
+      the cache, which is how the gap became visible.
+      **FIXED 2026-08-30, resolving it forwards.** Took the first candidate: compute every
+      *live* note's blob name (a pure function of the path) and intersect with the blobs the
+      commit touched — no decryption, no reverse mapping, and the incremental "only changed
+      rows" property survives. The second candidate was not needed. Deletions took neither
+      route: a deleted note's name cannot be computed, so the delete half asks a cheaper
+      question with a better answer — **which cache rows name a file that is not on disk?** —
+      which needs no keys, works in both modes, and also catches a note removed outside a
+      commit.
+      **Blind is now loud.** With the keys underivable it raises rather than returning `[]`
+      and exits non-zero naming `doctor.py --repair`; an empty list there would be
+      indistinguishable from "nothing changed", which is the bug itself.
+      **CI gate 22** (`tools/check_commit_indexes.py`) runs create/edit/move/delete in *both*
+      modes and asserts the user-visible promise — search returns the note — rather than that
+      a row exists. Two things learned writing it: search always returns the top **k** (a KNN
+      ranks every row regardless of the query), so "absent from results" is only meaningful
+      for a row that is genuinely gone — proving an *edit* landed has to read the FTS row
+      directly, and the first version of that assertion failed against correct code.
+      **The audit this closes.** Every `git diff`-shaped call in the emitted scripts was
+      grepped: this was the last blind one. `encrypt_vault`'s `ls-files`/`diff --cached` and
+      `doctor`'s `ls-files vault` legitimately ask about **blobs**, which are tracked. The
+      recurring shape across #42 (four selectors), #47 and #48 is now enumerated rather than
+      open-ended: **a git-ignored vault answers "what changed?" with an empty list, not an
+      error, so the failure is silent by construction.**
 
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,

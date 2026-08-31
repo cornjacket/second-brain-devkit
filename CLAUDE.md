@@ -31,6 +31,16 @@ spec so they cannot drift.
   `embed_vault` drops the sidecar on the bulk path. Ships `vault/templates/not-a-note.md` and
   `get_note_template(variant)` / `add_note(folder, embed)` / `add_pdf(folder)`.
   → [docs/embed-opt-out.md](docs/embed-opt-out.md)
+- Encrypted commit indexing — an encrypted brain never updated its search cache on commit, so a
+  committed note was embedded but **not searchable** until a manual `hydrate_cache` (task #48,
+  fixed; CI gate 22 `tools/check_commit_indexes.py`). The commit holds only `enc/<opaque>.md.enc`,
+  so `git diff-tree` truthfully reported no PARA notes and the updater **exited 0**. Resolved
+  *forwards* — a blob name is a keyed HMAC of the path and cannot be reversed, but every live
+  note's name can be computed and intersected with the commit's blobs; deletions instead ask
+  which cache rows name a file that is not on disk. Third instance of one shape (#42's four
+  selectors, #47, this): **a git-ignored vault answers "what changed?" with an empty list, not an
+  error.** Every `git diff`-shaped call in the emitted scripts has now been audited; this was the
+  last blind one. → [docs/encrypted-commit-indexing.md](docs/encrypted-commit-indexing.md)
 - Moving a note — `git mv` used to remove a note from the brain (task #47, fixed; CI gate 21
   `tools/check_note_move.py`). Git labels a staged move **`R`** and the pre-commit selector
   whitelisted only `ACM`, so nothing re-embedded it at the new path; the fix is `ACMR`. No
