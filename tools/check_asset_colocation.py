@@ -246,6 +246,72 @@ def check_tool_descriptions(brain: Path, fails: list[str]) -> None:
         fails.append("add_note's description contains the example `chapter1/` — the very "
                      "mistake the slug rule exists to prevent")
 
+    # The FIRST line is all a deferred/collapsed tool index shows. A capability named only in
+    # paragraph six is a capability the caller searches for and does not find — so the write
+    # tools have to advertise their surface up front or they are, in practice, undiscoverable.
+    for tool, needed in (("add_note", ("subpath", "embed")),
+                         ("add_asset", ("never embedded",)),
+                         ("add_pdf", ("subpath",)),
+                         ("get_note_template", ("variant",))):
+        first = " ".join(tools.get(tool, "").split(". ")[0].split())
+        for word in needed:
+            if word not in first:
+                fails.append(f"{tool}'s FIRST description line does not name {word!r} — that "
+                             f"line is all a collapsed tool index shows, so the capability is "
+                             f"invisible until someone already knows to look for it")
+
+    # A stale memory outranks a correct description unless the description says otherwise.
+    for tool in ("add_note", "add_asset"):
+        if "authority" not in tools.get(tool, ""):
+            fails.append(f"{tool}'s description does not say it outranks what the caller "
+                         f"remembers — a model with a confident, stale picture of this brain "
+                         f"will act on the memory and never read far enough to be corrected")
+
+
+def check_overview(brain: Path, fails: list[str]) -> None:
+    """`second_brain_overview` must describe the server it actually runs in.
+
+    Its whole value is being trustworthy in one call, so the failure that matters is drift: a
+    tool added later and never mentioned, leaving the one tool that claims to be authoritative
+    quietly incomplete. It is generated from the live registry precisely so that cannot happen,
+    and this asserts that it really is.
+    """
+    sys.path.insert(0, str(brain / "scripts"))
+    cwd = os.getcwd()
+    os.chdir(brain)
+    try:
+        import asyncio
+        import mcp_server as m
+        names = {t.name for t in asyncio.run(m.mcp.list_tools())}
+        text = asyncio.run(m.second_brain_overview())
+    except ImportError:
+        os.chdir(cwd)
+        return
+    finally:
+        os.chdir(cwd)
+
+    # Scope this to the TOOL LIST section, not the whole document. Several tool names also
+    # appear in the conventions prose, so a whole-text search passes while the inventory itself
+    # is missing an entry — which is exactly the drift being guarded against.
+    listing = text.split("## Tools available right now", 1)[-1].split("## Conventions", 1)[0]
+    for name in sorted(names):
+        if f"{name}(" not in listing:
+            fails.append(f"second_brain_overview's tool list omits {name!r} — the one place "
+                         f"that claims to be the current contract is already incomplete. It is "
+                         f"generated from the live registry so that cannot happen; if this "
+                         f"fires, something replaced that with a hand-kept list.")
+    if not m.INTERFACE_CHANGES:
+        fails.append("INTERFACE_CHANGES is empty — the dated list is the only part of the "
+                     "overview that can contradict a stale memory; without it the tool only "
+                     "restates what a confident caller already believes")
+    if "Recent changes" not in text.split("## Tools")[0]:
+        fails.append("the recent-changes list is not before the tool list — it is the part "
+                     "that corrects a stale caller, so it goes first")
+    for rule in ("subpath", "chapter-1", "unique", "add_asset", "embed: false"):
+        if rule not in text:
+            fails.append(f"second_brain_overview omits {rule!r} from the conventions it claims "
+                         f"to carry")
+
 
 def check_uniqueness_blocks_a_commit(brain: Path, env: dict, fails: list[str]) -> None:
     """The hook must REFUSE, not warn. A duplicate misroutes links silently and forever."""
@@ -318,6 +384,11 @@ def main() -> int:
         if len(fails) == before:
             print("  ok    the naming, uniqueness and image-syntax rules reach the MCP client "
                   "in add_note's own description")
+        before = len(fails)
+        check_overview(brain, fails)
+        if len(fails) == before:
+            print("  ok    second_brain_overview lists every live tool, leads with what "
+                  "changed, and carries the conventions")
         before = len(fails)
         check_uniqueness_blocks_a_commit(brain, env, fails)
         if len(fails) == before:

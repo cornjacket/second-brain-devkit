@@ -1673,6 +1673,40 @@ has no feedback loop because it never touches retrieval.
       the vault is git-ignored and only `*.md` is encrypted, so the file would reach no commit in
       any form. Refusing beats a success that pushes nothing.
 
+## The MCP interface must correct a stale client (task #51, BUILT 2026-08-31)
+- [x] **A capability a client cannot recall is more likely NEW than absent — and nothing said
+      so.** Feedback from a live client, after #50 shipped: the tools existed and were correct,
+      and it still did not find them. Three separate channels were leaking, and none of them
+      failed loudly.
+      **The first docstring line is all a collapsed tool index shows.** `add_note` opened with
+      "Create a NEW note in the brain, then commit and push it" — `subpath` and `embed` were not
+      mentioned until paragraph six, so a caller scanning an index sees a tool it already
+      believes it understands and never opens it. Every write tool's first line now names its
+      capability surface, and gate 23 asserts it: a capability described only in the body is,
+      in practice, undiscoverable.
+      **Nothing told the client the schema outranks its memory.** `get_note_template` already
+      said it ("the authority on shape — not any convention you might assume"); `add_note` did
+      not. That sentence is now on both write tools, and gated.
+      **New tool `second_brain_overview`** — read-only, one call, the whole contract: what
+      changed recently, every tool that exists *right now*, and the filing/naming/image
+      conventions. **Generated from the live tool registry**, so it cannot describe a server it
+      is not running in.
+      **The dated change list leads, and that ordering is the design.** Every other section
+      describes the interface as it *is* — which a confident, stale caller reads straight past,
+      because it already "knows" that. Only a dated list of what MOVED can contradict a memory.
+      It is a corrective, not a changelog: short entries in the caller's own vocabulary (tool
+      and parameter names), pruned after a few releases.
+      **What the negative controls taught, twice.** The "every tool appears in the overview"
+      assertion was tautological as first written — the overview is generated, so a new tool
+      appears automatically. Rewritten, it guards the real regression: someone replacing the
+      generation with a hand-kept list. Even then it passed, because it searched the whole
+      document and several tool names also occur in the conventions prose; scoping it to the
+      tool-list section is what made it able to fail. **An assertion that cannot fail is worth
+      less than no assertion, because it also reports success.**
+      Also caught here: `check_mcp_server`'s #45 assertions still passed `folder=` after the
+      rename to `subpath`, so the live MCP tier had been red since #50 — CI never runs it (the
+      `mcp` SDK is an optional dep), which is precisely why it drifted.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one

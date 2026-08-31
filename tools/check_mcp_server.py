@@ -119,15 +119,16 @@ async def drive(brain: Path, env: dict) -> list[str]:
             await s.initialize()
             tools = {t.name: t for t in (await s.list_tools()).tools}
 
-            # 1. exact tool surface (fourteen: #20 glossary pair, #5 write path,
+            # 1. exact tool surface (sixteen: #20 glossary pair, #5 write path,
             #    #25 add_glossary_term, #27 list_tags, #7 the four PDF tools + the
-            #    elicitation-guided ingest)
+            #    elicitation-guided ingest, #50 add_asset + second_brain_overview)
             expected = {"search_second_brain", "get_note",
                         "list_glossary_terms", "lookup_glossary_term",
                         "add_note", "list_vault", "get_note_template",
                         "add_glossary_term", "list_tags",
                         "list_inbox_pdfs", "add_pdf", "search_pdf_passages",
-                        "get_pdf_passage", "add_pdf_guided"}
+                        "get_pdf_passage", "add_pdf_guided",
+                        "add_asset", "second_brain_overview"}
             if set(tools) != expected:
                 fails.append(f"tools/list = {sorted(tools)}, expected {sorted(expected)}")
 
@@ -507,15 +508,15 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
             # asserted the parent, so a subfolder was refused outright, and there was no way to
             # write the opt-out key at all.
             col = await s.call_tool("add_note", {
-                "title": "Algebra", "para_root": "projects", "folder": "algebra",
+                "title": "Algebra", "para_root": "projects", "subpath": "algebra",
                 "body": "Entry note for the algebra project.", "tags": ["math"]})
             if col.isError:
-                fails.append(f"add_note refused a subfolder: {' '.join(_texts(col))[:160]}")
+                fails.append(f"add_note refused a subpath: {' '.join(_texts(col))[:160]}")
             elif not (brain / "vault" / "projects" / "algebra" / "algebra.md").is_file():
-                fails.append("add_note(folder=...) did not file the note in the subfolder")
+                fails.append("add_note(subpath=...) did not file the note in the subfolder")
 
             mat = await s.call_tool("add_note", {
-                "title": "Algebra Progress", "para_root": "projects", "folder": "algebra",
+                "title": "Algebra Progress", "para_root": "projects", "subpath": "algebra",
                 "body": "Scratch that is not a note.", "embed": False})
             mat_path = brain / "vault" / "projects" / "algebra" / "algebra-progress.md"
             report = " ".join(_texts(mat))
@@ -536,9 +537,9 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                              f"searchable: {report[:200]}")
 
             esc = await s.call_tool("add_note", {"title": "Nope", "para_root": "projects",
-                                                 "folder": "../../../etc", "body": "x"})
+                                                 "subpath": "../../../etc", "body": "x"})
             if not esc.isError:
-                fails.append("add_note accepted a traversal payload in `folder`")
+                fails.append("add_note accepted a traversal payload in `subpath`")
 
             # --- traversal in the TITLE cannot escape the vault ----------------------------
             # The title is model/attacker-controlled text that becomes a filename. The slug is a
@@ -774,7 +775,7 @@ def main() -> int:
                 print(f"  FAIL  {f}")
             print(f"\nMCP tier FAILED: {len(fails)} assertion(s) regressed")
             return 1
-        print("  ok    tools/list = the fourteen-tool surface (search, get_note, list_vault, "
+        print("  ok    tools/list = the sixteen-tool surface (search, get_note, list_vault, "
               "get_note_template, the glossary pair, add_note)")
         print("  ok    no outputSchema on any tool (Claude Desktop-safe)")
         print("  ok    search returns absolute vault paths; get_note reads a hit")
