@@ -27,13 +27,14 @@ What it does:
     rather than guesses. A marker-less README stays SKIP — a human can see a stale README.
   • **Never touches your data:** ``vault/`` (notes), ``data/`` (cache), ``config/``
     (backend choice), or your space outside the managed markers — and never rewrites
-    history. **One named exception** (``VAULT_OWNED``): ``vault/templates/new-note.md`` is
-    devkit-owned in everything but location — it sits in the vault only because that is
-    where Obsidian's Templates plugin can reach it, and it is not a note (``templates/``
-    is not a PARA root, so it is never embedded or searched). It also carries the note
-    gate CI keeps in sync with ``CLAUDE.md``, so freezing it let an upgraded brain violate
-    a build-time invariant. Named as one path rather than by relaxing the ``vault/`` rule,
-    so the promise stays auditable.
+    history. **One named exception** (``VAULT_OWNED``): the files under
+    ``vault/templates/`` are devkit-owned in everything but location — they sit in the
+    vault only because that is where Obsidian's Templates plugin can reach them, and they
+    are not notes (``templates/`` is not a PARA root, so they are never embedded or
+    searched). ``new-note.md`` also carries the note gate CI keeps in sync with
+    ``CLAUDE.md``, so freezing it let an upgraded brain violate a build-time invariant.
+    Named as explicit paths rather than by relaxing the ``vault/`` rule, so the promise
+    stays auditable.
   • **Dry-run by default** (shows NEW / CHANGED / preserved). ``--apply`` writes the
     files and records a single, git-revertable commit in the brain's own repo.
 
@@ -105,22 +106,30 @@ ADOPTABLE = (CLAUDE, README)
 MANAGED = (README, CLAUDE)
 
 
-# The ONE exception to "never write into vault/" — dest (brain-relative) → src (template-relative).
+# The ONLY exception to "never write into vault/" — dest (brain-relative) → src (template-relative).
 #
-# `vault/templates/new-note.md` is devkit-owned in everything but location. It has to live
-# inside the vault because that is the only place Obsidian's Templates plugin can insert from;
-# moving it out would break the editor workflow it exists for. But it is also **not** a note —
+# `vault/templates/*.md` is devkit-owned in everything but location. It has to live inside the
+# vault because that is the only place Obsidian's Templates plugin can insert from; moving it
+# out would break the editor workflow it exists for. But it is also **not** a note —
 # `templates/` is not a PARA root, so it is never embedded, never searched, never returned by
-# `get_note`. And it carries the "what earns a note" gate that CI (gate 9) requires to match
-# `CLAUDE.md` byte-for-byte, so leaving it frozen let an upgraded brain quietly violate a
+# `get_note`. `new-note.md` carries the "what earns a note" gate that CI (gate 9) requires to
+# match `CLAUDE.md` byte-for-byte, so leaving it frozen let an upgraded brain quietly violate a
 # build-time invariant.
 #
-# Named as a single path rather than by lifting the `vault/` rule. The promise stays auditable —
-# "this tool writes exactly one file inside your vault, and here it is" — instead of degrading
-# to "it might write anywhere in there". Overwritten wholesale like any other emitted file: a
-# user is not expected to customise it, and if they have, the dry run reports it CHANGED before
-# anything is written, which is the same protection every other tooling file gets.
-VAULT_OWNED = {"vault/templates/new-note.md": "seeds/templates/new-note.md"}
+# `not-a-note.md` (task #45) is here for the same reason plus one of its own: the MCP tool
+# `get_note_template("not-a-note")` reads it out of the vault, so an upgraded brain that never
+# received the file would ship the tool and answer with a fallback string — the feature present
+# in the code and absent from the brain.
+#
+# Named as explicit paths rather than by lifting the `vault/` rule. The promise stays auditable —
+# "this tool writes exactly these files inside your vault, and here they are" — instead of
+# degrading to "it might write anywhere in there". Overwritten wholesale like any other emitted
+# file: a user is not expected to customise them, and if they have, the dry run reports them
+# CHANGED before anything is written, which is the same protection every other tooling file gets.
+VAULT_OWNED = {
+    "vault/templates/new-note.md": "seeds/templates/new-note.md",
+    "vault/templates/not-a-note.md": "seeds/templates/not-a-note.md",
+}
 
 
 def _is_preserved(rel: str) -> bool:

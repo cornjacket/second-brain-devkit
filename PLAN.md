@@ -1414,8 +1414,8 @@ has no feedback loop because it never touches retrieval.
       **Not a scheduler.** No cron, no daemon — the cadence is "when you ask", the same posture as
       `doctor.py`. Review state (last-shown per note) is derived and git-ignored like the log itself.
 
-## Embed opt-out (task #45, backlog, surfaced 2026-08-30)
-- [ ] **`embed: false` frontmatter key, so non-note Markdown can live inside a PARA root.**
+## Embed opt-out (task #45, BUILT 2026-08-30) → [docs/embed-opt-out.md](docs/embed-opt-out.md)
+- [x] **`embed: false` frontmatter key, so non-note Markdown can live inside a PARA root.**
       Today whether a file is embedded is decided **solely by location** — the four `PARA_ROOTS`
       in `embed_vault.py` and `embed_staged.py`. There is no way to keep a Markdown file inside a
       root without it becoming a note, which blocks a reasonable organizing pattern: a project's
@@ -1446,7 +1446,25 @@ has no feedback loop because it never touches retrieval.
       (leading underscore) worth having alongside, or does one mechanism suffice?
       Surfaced in the live brain while working out how to record CSET algebra subtests — the
       project note and its paperwork trail wanted to live together.
-- [ ] **Subtask: the MCP surface — three tools, one of which fails silently.**
+      **BUILT 2026-08-30.** `note_view.embed_excluded` (fails open) honored by `embed_staged`,
+      `embed_vault`, `update_cache` and `doctor`; `vault/templates/not-a-note.md` seeded into
+      every brain and added to `update_brain.VAULT_OWNED` so an upgraded brain receives it;
+      MCP `get_note_template(variant)` / `add_note(folder, embed)` / `add_pdf(folder)` plus
+      `add_pdf.py --folder`; CI **gate 20** (`tools/check_embed_opt_out.py`) drives the whole
+      chain through real commits and real hooks, with the fail-open cases asserted directly.
+      **The three open questions, answered.** `archive/` is *not* special — it is a PARA root
+      like any other, and the opt-out is orthogonal to which root a file sits in.
+      `encrypt_vault.py` stays **location-based** and encrypts an excluded file like any other:
+      the file is still the user's content and still committed, so leaving it in the clear would
+      be the bug. A leading-underscore folder convention was **declined** — one mechanism
+      suffices, and a second, *invisible* one (a rule you cannot see in the file itself) is the
+      opposite of what the polarity argument asks for.
+      **Two boundaries left standing on purpose**, documented in the feature page: `tag_hygiene`
+      still reads an excluded file's tags (the shipped template has no `tags:` key, so nothing
+      leaks in practice) and `glossary_autolink_staged` will still rewrite one (off by default).
+      The coherent position is that note tooling should not touch a file that is not a note;
+      neither is a silent failure, so neither blocked the ship.
+- [x] **Subtask: the MCP surface — three tools, one of which fails silently.**
       `get_note` (path-based), `search_second_brain` and `list_vault` (both `rglob`) already work
       with subfolders unchanged; nothing to do there.
       **`get_note_template` is the priority.** It returns only `new-note.md`, so once the
@@ -1462,11 +1480,11 @@ has no feedback loop because it never touches retrieval.
       with the deferred pre-commit checks, not in a parallel writer.
       **`add_pdf` hardcodes `dest_dir = VAULT_DIR / para_root`**, so a PDF cannot be colocated in
       a project folder — the exact case colocation exists for. Same `folder` argument.
-- [ ] **Subtask: `docs/embed-opt-out.md`** — the feature page, per the one-doc-per-feature
+- [x] **Subtask: `docs/embed-opt-out.md`** — the feature page, per the one-doc-per-feature
       convention (`embed-excluded-block.md`, `tag-hygiene.md`, `auto-linking.md`). Covers the key,
       the opt-out polarity and *why* (silent vs. noisy failure), the template variant, and the
       colocation pattern the whole thing exists to enable.
-- [ ] **Subtask: document the recommended `projects/` layout — one subfolder per project.**
+- [x] **Subtask: document the recommended `projects/` layout — one subfolder per project.**
       **Recommended, never enforced.** A project is goal-bound and ends, so its note and its
       material should archive or delete as one unit; a flat `projects/` scatters that across the
       root and leaves nothing to move. The convention: `projects/<project>/` holds the project
@@ -1503,6 +1521,11 @@ has no feedback loop because it never touches retrieval.
       root" instruction. **Split from #45 deliberately:** this is true of the shipped system
       today, so it should not wait on a feature. #45's colocation pattern *depends* on it, which
       is why the gap surfaced there.
+      **Partly covered by #45 (2026-08-30), still open.** The emitted README now states the
+      recursion twice (the "Everyday use" colocation paragraph and the Layout tree) and
+      `docs/embed-opt-out.md` §6 depends on it. The **emitted `CLAUDE.md` still does not say
+      it** — which is the copy that matters here, because it is the always-loaded one and the
+      only pipe an in-repo agent reads. That is the two lines this task is actually about.
 
 ## Moving a note breaks its index entry (task #47, backlog, surfaced 2026-08-30)
 - [ ] **A renamed or moved note is never re-embedded, and the post-commit cache update then dies

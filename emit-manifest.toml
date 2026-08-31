@@ -110,6 +110,7 @@ paths = [
   "seeds/resources/embeddings.md",
   "seeds/resources/sqlite-vec.md",
   "seeds/templates/new-note.md",
+  "seeds/templates/not-a-note.md",
   "tests/README.md",
   "tests/fixtures/vault/areas/habits.md",
   "tests/fixtures/vault/areas/.habits.embed.json",
@@ -149,6 +150,7 @@ paths = [
   "vault/resources/embeddings.md",
   "vault/resources/sqlite-vec.md",
   "vault/templates/new-note.md",
+  "vault/templates/not-a-note.md",
 ]
 
 [generated.by]
@@ -169,6 +171,7 @@ paths = [
   "tasks/0003-para-seed-script.md",
   "tasks/0004-sidecar-policy-and-test-tiers.md",
   "tests/test_note_view.py",
+  "tests/test_embed_opt_out.py",
   "tests/test_tag_hygiene.py",
   "tests/test_chunker.py",
   "tests/test_pdf_extract.py",
@@ -191,6 +194,7 @@ paths = [
 "PLAN.md" = "the golden's own build tracker — the generator builds the brain instead"
 "tasks/*" = "the golden's task specs — artifacts of hand-building the golden"
 "tests/test_note_view.py" = "dev-only regression test for the canonical view's embed-excluded (no-embed) block (task #39) — pins the edges the brain's own self_test invariant does not: several blocks per note, unpaired markers, the Obsidian-benign marker shape, and the token estimator. Stdlib-only; a brain ships the projection, not its test. Run in CI against the vendored copy (gate 15)."
+"tests/test_embed_opt_out.py" = "dev-only regression test for the `embed: false` frontmatter opt-out (task #45) — pins which way the parser FAILS: only an explicit false/no/off excludes, and a missing key, a typo, an unterminated frontmatter or a mention in prose all mean embed. Also asserts the shipped not-a-note template really carries the key. Stdlib-only; a brain ships the projection, not its test. Run in CI against the vendored copy (gate 20)."
 "tests/test_tag_hygiene.py" = "dev-only regression test for the tag-hygiene detector/applier (task #32) — builds fixtures in a tempdir; a brain ships the tools, not their tests. Run in CI against the vendored copy (gate 13)."
 "tests/test_chunker.py" = "dev-only regression test for the PDF chunker (task #7, M1) — stdlib-only, self-contained; a brain ships the tool, not its test."
 "tests/test_pdf_extract.py" = "dev-only regression test for pdf_extract (task #7, M1) — builds a PDF in a tempdir, skips when pypdf is absent; a brain ships the tool, not its test."

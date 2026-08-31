@@ -21,6 +21,16 @@ spec so they cannot drift.
 - Partial-commit index poisoning — the `add_note` content-corruption bug (task #28, fixed; **awaiting review**) → [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)
 - Stale-embedding detection — doctor flags a vector that predates the note's canonical view (task #30, built) → CI gate 11 (`tools/check_doctor_stale.py`)
 - Embed-excluded block — decorative regions (ASCII art, diagrams) fenced in `<!-- second-brain:no-embed:begin/end -->` are cut from `canonical_body()`, so they leave **both** the embedding and the content hash (task #39, built; CI gate 15 `tools/check_embed_excluded.py`). Line count is the wrong proxy for the embed budget — the budget is tokens. → [docs/embed-excluded-block.md](docs/embed-excluded-block.md)
+- Embed opt-out — `embed: false` frontmatter lets non-note Markdown live inside a PARA root, so a
+  project's note and its material colocate in `projects/<project>/` and archive as one unit (task
+  #45, built; CI gate 20 `tools/check_embed_opt_out.py`). **Opt-out, never opt-in, and the parser
+  fails OPEN** — only an explicit `false`/`no`/`off` excludes; a wrong inclusion shows up in a
+  search result, a wrong exclusion is indistinguishable from a note that was never written. Adding
+  the key to an already-indexed file **retracts** it (sidecar, vector, search row), via two
+  non-interchangeable mechanisms: `update_cache` routes to the DELETE side on the commit path,
+  `embed_vault` drops the sidecar on the bulk path. Ships `vault/templates/not-a-note.md` and
+  `get_note_template(variant)` / `add_note(folder, embed)` / `add_pdf(folder)`.
+  → [docs/embed-opt-out.md](docs/embed-opt-out.md)
 - Tag hygiene — deterministic detector + backfill applier + write-time near-miss warning, emitted into every brain (task #32, Stages 1–6 done; CI gate 13 `tools/check_tag_lint.py`; read-only MCP tool deferred) → [docs/tag-hygiene.md](docs/tag-hygiene.md)
 - Claude Desktop e2e — canned prompts + side-effect verifiers, human-driven (task #33; not a CI gate) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
 - Desktop e2e against a real brain — disposable-branch setup/teardown so the suite runs against a brain with no Desktop reconfig, then reverts byte-identical (task #34) → [docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md)

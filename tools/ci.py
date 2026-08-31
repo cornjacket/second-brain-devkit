@@ -248,26 +248,36 @@ def step_embed_excluded() -> bool:
     return _run([PY, str(TOOLS / "check_embed_excluded.py")])
 
 
+def step_embed_opt_out() -> bool:
+    # `embed: false` lets non-note Markdown live inside a PARA root (#45). Two things rot
+    # silently: the parser's polarity (it must fail OPEN — only an explicit false/no/off
+    # excludes, or a note you forgot to mark goes silently unsearchable) and RETRACTION
+    # (adding the key to an already-indexed file must remove its sidecar, vector and search
+    # row, not merely stop refreshing them). Drives real commits through the real hooks.
+    return _run([PY, str(TOOLS / "check_embed_opt_out.py")])
+
+
 STEPS = [
-    ("1/19 manifest partition", step_partition),
-    ("2/19 template in sync with golden", step_template_in_sync),
-    ("3/19 emitted scripts compile", step_py_compile),
-    ("4/19 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/19 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/19 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/19 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/19 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/19 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/19 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/19 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/19 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/19 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/19 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/19 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
-    ("16/19 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
-    ("17/19 encryption (mechanism + a commit path that does not go blind)", step_encryption),
-    ("18/19 content classification (every .md is content or machinery)", step_classification),
-    ("19/19 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
+    ("1/20 manifest partition", step_partition),
+    ("2/20 template in sync with golden", step_template_in_sync),
+    ("3/20 emitted scripts compile", step_py_compile),
+    ("4/20 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/20 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/20 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/20 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/20 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/20 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/20 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/20 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/20 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/20 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/20 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/20 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/20 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
+    ("17/20 encryption (mechanism + a commit path that does not go blind)", step_encryption),
+    ("18/20 content classification (every .md is content or machinery)", step_classification),
+    ("19/20 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
+    ("20/20 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
 ]
 
 

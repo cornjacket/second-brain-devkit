@@ -223,14 +223,31 @@ def run_checks() -> None:
                  "the refreshed note template does not match the emitted seed")
         print("  ok    the devkit-owned note template is refreshed from the seed")
 
-        # ...and that exception is exactly ONE file. A real note must survive untouched.
+        # The same for the not-a-note variant (#45). It matters for a different reason: the
+        # MCP tool get_note_template("not-a-note") READS this file out of the vault, so an
+        # upgraded brain that never received it would ship the tool and answer with a
+        # fallback string — the feature present in the code and absent from the brain.
+        alt_tpl = brain / "vault" / "templates" / "not-a-note.md"
+        _require(alt_tpl.is_file(), "the brain has no vault/templates/not-a-note.md")
+        alt_tpl.unlink()
+        _commit_all(brain, "an upgraded brain that predates the not-a-note template")
+        out = _update(brain)
+        _require("vault/templates/not-a-note.md" in out,
+                 f"the missing not-a-note template was not picked up:\n{out}")
+        _update(brain, "--apply")
+        _require(alt_tpl.is_file() and
+                 alt_tpl.read_text() == (brain / "seeds" / "templates" / "not-a-note.md").read_text(),
+                 "the not-a-note template was not delivered to an upgraded brain")
+        print("  ok    ...and an upgraded brain receives the not-a-note template it lacked")
+
+        # ...and the exception is exactly those two files. A real note must survive untouched.
         canary = brain / "vault" / "resources" / "my-own-note.md"
         canary.write_text("---\ntags: [mine]\n---\n\n# Mine\n\nDo not touch.\n")
         _commit_all(brain, "a user note in the vault")
         _update(brain, "--apply")
         _require(canary.read_text().endswith("Do not touch.\n"),
                  "update_brain wrote into a user's note — the vault carve-out is too wide")
-        print("  ok    ...and it is the ONLY file written inside vault/")
+        print("  ok    ...and vault/templates/ is the ONLY place written inside vault/")
 
     finally:
         shutil.rmtree(parent, ignore_errors=True)

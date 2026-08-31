@@ -45,7 +45,11 @@ sys.path.insert(0, str(TOOLS))
 from generate import generate  # noqa: E402
 
 PASSPHRASE = "round-trip gate passphrase"
-NOTE_TEMPLATE = "vault/templates/new-note.md"
+# Everything under vault/templates/ is devkit-owned, not a note, and deliberately left
+# unencrypted (encrypt_vault.content_notes excludes the whole directory). Match that rule
+# rather than naming one file: a second template shipping would otherwise read as a note
+# whose blob went missing.
+TEMPLATE_DIR = "vault/templates/"
 
 # Two notes with disjoint, distinctive vocabulary. Each query below must find its own.
 NOTES = {
@@ -123,7 +127,7 @@ def main() -> int:
         expected = {rel: (work / rel).read_bytes()
                     for rel in sorted(p.relative_to(work).as_posix()
                                       for p in (work / "vault").rglob("*.md")
-                                      if p.relative_to(work).as_posix() != NOTE_TEMPLATE)}
+                                      if not p.relative_to(work).as_posix().startswith(TEMPLATE_DIR))}
         ok(f"built an encrypted brain with {len(expected)} note(s)")
 
         # --- push, then destroy the original -----------------------------------
@@ -143,7 +147,7 @@ def main() -> int:
             return 1
 
         notes_in_clone = [p.relative_to(fresh).as_posix() for p in (fresh / "vault").rglob("*.md")
-                          if p.relative_to(fresh).as_posix() != NOTE_TEMPLATE]
+                          if not p.relative_to(fresh).as_posix().startswith(TEMPLATE_DIR)]
         if notes_in_clone:
             fail(f"the clone arrived with PLAINTEXT notes: {notes_in_clone[:5]} — nothing was "
                  f"encrypted, and the remote is holding them in the clear")

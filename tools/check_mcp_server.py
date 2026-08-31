@@ -119,12 +119,15 @@ async def drive(brain: Path, env: dict) -> list[str]:
             await s.initialize()
             tools = {t.name: t for t in (await s.list_tools()).tools}
 
-            # 1. exact tool surface (nine: #20 glossary pair, #5 write path, #25 add_glossary_term,
-            #    #27 list_tags)
+            # 1. exact tool surface (fourteen: #20 glossary pair, #5 write path,
+            #    #25 add_glossary_term, #27 list_tags, #7 the four PDF tools + the
+            #    elicitation-guided ingest)
             expected = {"search_second_brain", "get_note",
                         "list_glossary_terms", "lookup_glossary_term",
                         "add_note", "list_vault", "get_note_template",
-                        "add_glossary_term", "list_tags"}
+                        "add_glossary_term", "list_tags",
+                        "list_inbox_pdfs", "add_pdf", "search_pdf_passages",
+                        "get_pdf_passage", "add_pdf_guided"}
             if set(tools) != expected:
                 fails.append(f"tools/list = {sorted(tools)}, expected {sorted(expected)}")
 
@@ -424,6 +427,17 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                 fails.append("get_note_template does not carry the 'what earns a note' gate — a "
                              "Desktop assistant has no bar for what deserves to be a note at all "
                              "(CLAUDE.md is invisible over MCP; the template is the only route)")
+            # The not-a-note variant (#45) must be REACHABLE. If it is not, a client cannot
+            # opt out at all and every note an assistant creates embeds — and it fails
+            # silently, because a plausible embedded file appears either way.
+            alt = "".join(_texts(await s.call_tool("get_note_template", {"variant": "not-a-note"})))
+            if "embed: false" not in alt:
+                fails.append(f"get_note_template('not-a-note') did not return the opt-out "
+                             f"template: {alt[:100]!r}")
+            if alt == tpl:
+                fails.append("get_note_template ignored the variant and served the note template")
+            if not (await s.call_tool("get_note_template", {"variant": "nope"})).isError:
+                fails.append("get_note_template accepted an unknown variant instead of refusing")
 
             # --- the happy path: create -> commit -> push -> searchable ---------------------
             # The body mentions a planted glossary term ("ablation"), so with glossary_autolink ON
@@ -487,6 +501,44 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                                                  "body": "x"})
             if not bad.isError:
                 fails.append("add_note accepted a non-PARA root — a note could land anywhere")
+
+            # --- colocation + the opt-out, over MCP (#45) -----------------------------------
+            # Both were unreachable from a client before: add_note hardcoded the PARA root and
+            # asserted the parent, so a subfolder was refused outright, and there was no way to
+            # write the opt-out key at all.
+            col = await s.call_tool("add_note", {
+                "title": "Algebra", "para_root": "projects", "folder": "algebra",
+                "body": "Entry note for the algebra project.", "tags": ["math"]})
+            if col.isError:
+                fails.append(f"add_note refused a subfolder: {' '.join(_texts(col))[:160]}")
+            elif not (brain / "vault" / "projects" / "algebra" / "algebra.md").is_file():
+                fails.append("add_note(folder=...) did not file the note in the subfolder")
+
+            mat = await s.call_tool("add_note", {
+                "title": "Algebra Progress", "para_root": "projects", "folder": "algebra",
+                "body": "Scratch that is not a note.", "embed": False})
+            mat_path = brain / "vault" / "projects" / "algebra" / "algebra-progress.md"
+            report = " ".join(_texts(mat))
+            if mat.isError:
+                fails.append(f"add_note(embed=False) failed: {report[:160]}")
+            elif "embed: false" not in mat_path.read_text(encoding="utf-8"):
+                fails.append("add_note(embed=False) did not write the opt-out key")
+            elif (mat_path.parent / ".algebra-progress.embed.json").exists():
+                fails.append("add_note(embed=False) embedded the file anyway")
+            # ...and it must not shout. The "committed but NOT embedded" warning exists to catch
+            # missing git hooks; firing it on a file excluded ON PURPOSE trains the user to
+            # ignore the one message that matters when the hooks really are off.
+            if "WARNING" in report or "ACTION NEEDED" in report:
+                fails.append(f"add_note(embed=False) reported a deliberate exclusion as a "
+                             f"failure: {report[:200]}")
+            if "excluded" not in report.lower():
+                fails.append(f"add_note(embed=False) did not say the file is excluded and not "
+                             f"searchable: {report[:200]}")
+
+            esc = await s.call_tool("add_note", {"title": "Nope", "para_root": "projects",
+                                                 "folder": "../../../etc", "body": "x"})
+            if not esc.isError:
+                fails.append("add_note accepted a traversal payload in `folder`")
 
             # --- traversal in the TITLE cannot escape the vault ----------------------------
             # The title is model/attacker-controlled text that becomes a filename. The slug is a
@@ -722,7 +774,7 @@ def main() -> int:
                 print(f"  FAIL  {f}")
             print(f"\nMCP tier FAILED: {len(fails)} assertion(s) regressed")
             return 1
-        print("  ok    tools/list = the seven-tool surface (search, get_note, list_vault, "
+        print("  ok    tools/list = the fourteen-tool surface (search, get_note, list_vault, "
               "get_note_template, the glossary pair, add_note)")
         print("  ok    no outputSchema on any tool (Claude Desktop-safe)")
         print("  ok    search returns absolute vault paths; get_note reads a hit")
@@ -739,6 +791,8 @@ def main() -> int:
               "searchable at once (the commit is what embeds it)")
         print("  ok    add_note refuses a duplicate/non-PARA root, cannot escape the vault via "
               "the title, and never sweeps the user's staged work into its commit")
+        print("  ok    add_note files into a subfolder, writes the embed: false opt-out without "
+              "embedding it, reports the exclusion calmly, and refuses a traversal folder")
         print("  ok    add_note recovers from a non-fast-forward push (rebase + retry — the "
               "multi-client case)")
         print("  ok    list_vault browses the PARA roots; get_note_template returns the vault "
