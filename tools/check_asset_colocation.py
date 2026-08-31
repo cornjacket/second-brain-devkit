@@ -41,6 +41,7 @@ Devkit tool; never emitted.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -132,31 +133,63 @@ def check_payload(brain: Path, env: dict, fails: list[str]) -> None:
         os.chdir(cwd)
         return
     try:
-        m.add_note("Algebra", "projects", "The algebra project.", ["math"], subpath="algebra")
-        m.add_note("Chapter 1", "projects",
-                   "Tessellation of the plane.\n\n![a tiling](tile-pattern-cpm-source.svg)",
-                   ["math"], subpath="algebra/chapter-1")
-        m.add_asset("projects", "algebra/chapter-1", "tile-pattern-cpm-source.svg", SVG)
+        # Built the way the docs say to build it: structure via entry=, never in the title.
+        # The titles here are deliberately plain headings — "Chapter 1", not
+        # "Algebra 1--Chapter 1" — which is the readability the decoupling buys.
+        #
+        # Wrapped: a regression here raises rather than returning, and an unhandled traceback
+        # is a worse failure report than a named assertion. It also stops the rest of the gate
+        # running, so one break hides every other result.
+        try:
+            m.add_note("Algebra 1", "projects", "The algebra project.", ["math"],
+                       subpath="algebra-1", entry=True)
+            m.add_note("Chapter 1", "projects",
+                       "Tessellation of the plane.\n\n![a tiling](tile-pattern-cpm-source.svg)",
+                       ["math"], subpath="algebra-1/algebra-1--chapter-1", entry=True)
+            m.add_note("Worked Solutions", "projects", "The answers.", ["math"],
+                       subpath="algebra-1/algebra-1--chapter-1", descriptor="worked-solutions")
+            m.add_asset("projects", "algebra-1/algebra-1--chapter-1",
+                        "tile-pattern-cpm-source.svg", SVG)
+        except Exception as exc:
+            fails.append(f"building the documented payload FAILED — the example in the docs "
+                         f"cannot be executed: {type(exc).__name__}: {str(exc)[:220]}")
+            return
 
-        svg = brain / "vault/projects/algebra/chapter-1/tile-pattern-cpm-source.svg"
-        note = brain / "vault/projects/algebra/chapter-1/chapter-1.md"
+        base = "vault/projects/algebra-1/algebra-1--chapter-1"
+        svg = brain / base / "tile-pattern-cpm-source.svg"
+        note = brain / base / "algebra-1--chapter-1.md"
+        if not (brain / base / "algebra-1--chapter-1--worked-solutions.md").is_file():
+            fails.append("descriptor= did not scope the filename under its folder — the `--` "
+                         "join was collapsed, which is the bug the parameter exists to avoid")
+        if note.is_file() and "# Chapter 1" not in note.read_text(encoding="utf-8"):
+            fails.append("the H1 is not the title — entry= is supposed to free the heading "
+                         "from the filename, which is half the reason it exists")
         if not svg.is_file():
             fails.append("the asset was not written")
         if not note.is_file():
             fails.append("the nested note was not written")
         if (svg.parent / f".{svg.name}.embed.json").exists():
             fails.append("the asset was EMBEDDED — only Markdown is ever eligible")
-        if not (note.parent / ".chapter-1.embed.json").exists():
+        if not (note.parent / ".algebra-1--chapter-1.embed.json").exists():
             fails.append("the nested note was not embedded — nesting broke the pipeline")
         if not _git(brain, "ls-files", "--error-unmatch", "--",
                     str(svg.relative_to(brain)), env=env).returncode == 0:
             fails.append("the asset was not committed, so a clone would not have it")
 
         # --- refusals -----------------------------------------------------------------
-        def refuses(label: str, fn) -> None:
+        def refuses(label: str, fn, expect: str = "") -> None:
+            """Refused, AND for the stated reason.
+
+            Matching any ValueError is too weak: `add_note` refuses an existing note too, so a
+            probe aimed at a path that already exists passes on the wrong error and the real
+            check never runs. `expect` pins which rule did the refusing.
+            """
             try:
                 fn()
-            except ValueError:
+            except ValueError as exc:
+                if expect and expect.lower() not in str(exc).lower():
+                    fails.append(f"{label}: refused, but for the wrong reason (wanted "
+                                 f"{expect!r}): {str(exc)[:160]}")
                 return
             except Exception as exc:
                 fails.append(f"{label}: raised the wrong error type ({exc!r})")
@@ -164,14 +197,27 @@ def check_payload(brain: Path, env: dict, fails: list[str]) -> None:
             fails.append(f"{label}: was ALLOWED")
 
         refuses("an orphan asset (no note in the folder)",
-                lambda: m.add_asset("projects", "algebra/chapter-9", "x.svg", SVG))
+                lambda: m.add_asset("projects", "algebra-1/algebra-1--chapter-9", "x.svg", SVG))
         refuses("an asset named *.md",
-                lambda: m.add_asset("projects", "algebra/chapter-1", "x.md", "hi"))
+                lambda: m.add_asset("projects", "algebra-1/algebra-1--chapter-1", "x.md", "hi"))
         refuses("a path traversal in the asset filename",
-                lambda: m.add_asset("projects", "algebra/chapter-1", "../../x.svg", SVG))
+                lambda: m.add_asset("projects", "algebra-1/algebra-1--chapter-1", "../../x.svg", SVG))
         refuses("overwriting an existing asset",
-                lambda: m.add_asset("projects", "algebra/chapter-1",
+                lambda: m.add_asset("projects", "algebra-1/algebra-1--chapter-1",
                                     "tile-pattern-cpm-source.svg", SVG))
+        refuses("a title whose slug does not fit its folder (the guardrail)",
+                lambda: m.add_note("Chapter 2", "projects", "b",
+                                   subpath="algebra-1/algebra-1--chapter-1"),
+                expect="does not belong")
+        # A folder with no note in it yet, so "already exists" cannot mask the real refusal.
+        refuses("entry and descriptor together",
+                lambda: m.add_note("X", "projects", "b",
+                                   subpath="algebra-1/algebra-1--chapter-7",
+                                   entry=True, descriptor="y"),
+                expect="not both")
+        refuses("entry without a subpath",
+                lambda: m.add_note("X", "projects", "b", entry=True),
+                expect="require subpath")
         for root in ("resources", "areas"):
             refuses(f"a subpath under {root}/",
                     lambda r=root: m.add_note("X", r, "body", subpath="nested"))
@@ -206,6 +252,7 @@ def check_tool_descriptions(brain: Path, fails: list[str]) -> None:
         print("        optional 'mcp' SDK absent — tool descriptions were NOT checked")
         os.chdir(cwd)
         return
+    globals()["m"] = m
     try:
         import asyncio
         # Collapse whitespace: a description is a wrapped docstring, so a phrase that reads as
@@ -260,32 +307,43 @@ def check_tool_descriptions(brain: Path, fails: list[str]) -> None:
                              f"line is all a collapsed tool index shows, so the capability is "
                              f"invisible until someone already knows to look for it")
 
-    # Every example filename must be REACHABLE by the tool that is supposed to create it.
-    # `_slugify` collapses any run of non-alphanumerics to ONE hyphen, so no title can ever
-    # produce `--` — which means a documented `{folder}--{descriptor}.md` is a convention
-    # add_note cannot follow. That shipped and went unnoticed because the examples were only
-    # ever eyeballed; this is the mechanical version of reading them.
+    # A documented filename is executable specification: every example must be PRODUCIBLE by
+    # the tool meant to create it. The `{folder}--{descriptor}` convention shipped for weeks
+    # while being literally unreachable, because the examples were eyeballed and never run.
+    # This is the mechanical version of reading them — it asks the composer, not a human.
     import re as _re
     for tool, desc in tools.items():
-        for name in _re.findall(r"[A-Za-z0-9][A-Za-z0-9._/-]*\.md", desc):
-            stem = name.rsplit("/", 1)[-1][:-3]
-            if "--" in stem:
+        for name in _re.findall(r"[a-z0-9][a-z0-9./-]*\.md", desc):
+            if "/" not in name:
+                continue
+            folder, stem = name.rsplit("/", 1)[0].rsplit("/", 1)[-1], name.rsplit("/", 1)[-1][:-3]
+            if stem == folder:
+                produced = m.compose_note_filename("any title", f"x/{folder}", entry=True)
+            elif stem.startswith(f"{folder}--"):
+                produced = m.compose_note_filename(
+                    "any title", f"x/{folder}", descriptor=stem[len(folder) + 2:])
+            else:
+                fails.append(f"{tool}'s description shows {name!r}, which does not fit its own "
+                             f"folder — add_note's guardrail would REFUSE the very example the "
+                             f"description gives")
+                continue
+            if produced != stem:
                 fails.append(f"{tool}'s description shows {name!r}, which add_note cannot "
-                             f"create: _slugify collapses runs of non-alphanumerics to a "
-                             f"single hyphen, so no title slugifies to a double dash")
+                             f"produce (it composes {produced!r} instead)")
 
     # The nested example must be SCOPED to its parent, or the canonical example teaches
     # exactly the name the uniqueness rule rejects — the two sections contradict each other
     # and whoever follows the example hits the hook the day a second subject has a chapter 1.
     for tool in ("add_note",):
         d = tools.get(tool, "")
-        if "algebra/chapter-1/chapter-1.md" in d or "/chapter-1/chapter-1.md" in d:
+        if "/chapter-1/chapter-1.md" in d:
             fails.append(f"{tool}'s entry-note example uses a bare `chapter-1/chapter-1.md` — "
                          f"a generic name that collides the moment a second project has a "
                          f"chapter 1, which is precisely what the uniqueness rule forbids")
-        if "algebra-chapter-1" not in d:
-            fails.append(f"{tool}'s entry-note example is not scoped to its parent, so it does "
-                         f"not demonstrate the naming rule it states")
+        for probe in ("entry=True", "descriptor", "algebra-1--chapter-1"):
+            if probe not in d:
+                fails.append(f"{tool}'s description does not mention {probe!r} — that is how a "
+                             f"caller names a file in a folder, and it cannot be guessed")
 
     # A stale memory outranks a correct description unless the description says otherwise.
     for tool in ("add_note", "add_asset"):
@@ -338,28 +396,76 @@ def check_overview(brain: Path, fails: list[str]) -> None:
         fails.append("second_brain_overview's entry-note example uses a bare "
                      "`chapter-1/chapter-1.md`, contradicting the uniqueness rule printed a "
                      "few lines below it")
-    for rule in ("subpath", "algebra-chapter-1", "unique", "add_asset", "embed: false"):
+    for rule in ("subpath", "algebra-1--chapter-1", "entry=True", "descriptor",
+                 "unique", "add_asset", "embed: false"):
         if rule not in text:
             fails.append(f"second_brain_overview omits {rule!r} from the conventions it claims "
                          f"to carry")
 
 
+def check_hint_round_trips(brain: Path, env: dict, fails: list[str]) -> None:
+    """The hint's suggested call, executed, must produce the filename the hint claims.
+
+    The previous hint INVERTED the slug — it guessed a title by mapping hyphens back to spaces
+    — and so advised a call that could not work: for a `--` folder it suggested a double-SPACE
+    title, which slugifies to a single hyphen. Compose forward, never invert; this is the
+    assertion that keeps it honest.
+    """
+    sys.path.insert(0, str(brain / "scripts"))
+    cwd = os.getcwd()
+    os.chdir(brain)
+    try:
+        import mcp_server as m
+        report = m.add_note("Some Heading", "projects", "body.",
+                            subpath="algebra-1/algebra-1--chapter-3", descriptor="scratch")
+        hint = [l for l in report.splitlines() if "FOLDER HINT" in l]
+        if not hint:
+            fails.append("no FOLDER HINT when writing into a folder with no entry note — the "
+                         "convention would go unmentioned exactly when it is being broken")
+            return
+        claimed = re.search(r"creates (\S+?\.md)", hint[0])
+        if not claimed:
+            fails.append(f"the FOLDER HINT does not name the file it would create: {hint[0]}")
+            return
+        made = m.add_note("A Readable Heading", "projects", "body.",
+                          subpath="algebra-1/algebra-1--chapter-3", entry=True)
+        created = re.search(r"created (\S+?\.md)", made)
+        if not created:
+            fails.append("the hint's own suggested call did not create a note")
+        elif Path(created.group(1)).name != claimed.group(1):
+            fails.append(f"the FOLDER HINT promised {claimed.group(1)} but its suggested call "
+                         f"produced {Path(created.group(1)).name} — the hint is inverting a "
+                         f"slug rather than composing forward")
+    except ImportError:
+        return
+    finally:
+        os.chdir(cwd)
+
+
 def check_uniqueness_blocks_a_commit(brain: Path, env: dict, fails: list[str]) -> None:
     """The hook must REFUSE, not warn. A duplicate misroutes links silently and forever."""
-    dup = brain / "vault" / "projects" / "geometry" / "chapter-1"
+    # Collide with a note the payload really created, by hand rather than through add_note —
+    # the hook is the backstop for every writer, including a human with an editor, and it is
+    # the only thing standing between two same-named notes and silently misrouted wikilinks.
+    dup = brain / "vault" / "projects" / "geometry" / "algebra-1--chapter-1"
     dup.mkdir(parents=True, exist_ok=True)
-    (dup / "chapter-1.md").write_text("---\ntags: [t]\n---\n\n# Chapter 1\n\nA second one.\n",
-                                      encoding="utf-8")
+    (dup / "algebra-1--chapter-1.md").write_text(
+        "---\ntags: [t]\n---\n\n# Chapter 1\n\nA second one.\n", encoding="utf-8")
     _git(brain, "add", "-A", env=env)
     c = _git(brain, "commit", "-m", "a colliding note", env=env)
     out = c.stdout + c.stderr
     if c.returncode == 0:
-        fails.append("a duplicate note filename COMMITTED — every [[chapter-1]] in the vault is "
-                     "now ambiguous, and Obsidian will silently resolve it to one of them")
-    elif "chapter-1.md" not in out:
+        fails.append("a duplicate note filename COMMITTED — every [[algebra-1--chapter-1]] in "
+                     "the vault is now ambiguous, and Obsidian resolves it to one of them "
+                     "silently")
+    elif "algebra-1--chapter-1.md" not in out:
         fails.append(f"the commit was refused without naming the colliding file: {out[-200:]}")
+    # Leave the tree CLEAN: the encryption check that follows refuses to migrate a dirty tree,
+    # so a leftover staged deletion here fails a later assertion for an unrelated reason.
     _git(brain, "reset", "-q", env=env)
+    shutil.rmtree(dup, ignore_errors=True)
     shutil.rmtree(dup.parent, ignore_errors=True)
+    _git(brain, "checkout", "-q", "--", ".", env=env)
 
 
 def check_encrypted_refuses(brain: Path, env: dict, fails: list[str]) -> None:
@@ -377,7 +483,7 @@ def check_encrypted_refuses(brain: Path, env: dict, fails: list[str]) -> None:
     try:
         import mcp_server as m
         try:
-            m.add_asset("projects", "algebra/chapter-1", "second.svg", SVG)
+            m.add_asset("projects", "algebra-1/algebra-1--chapter-1", "second.svg", SVG)
         except ValueError as exc:
             if "encrypt" not in str(exc).lower():
                 fails.append(f"refused for the wrong reason: {exc}")
@@ -391,11 +497,28 @@ def check_encrypted_refuses(brain: Path, env: dict, fails: list[str]) -> None:
         os.chdir(cwd)
 
 
+def _step(label: str, ok_line: str, fails: list[str], fn, *args) -> None:
+    """Run one check; print its ok line if it added nothing.
+
+    An unexpected exception becomes a NAMED failure rather than a traceback. Several of these
+    checks drive `add_note`, which raises on a bad write by design — so a regression in the
+    thing under test surfaces as an exception, and an unhandled one both reads worse than an
+    assertion and aborts every check that would have run after it, hiding the rest of the
+    picture behind the first break.
+    """
+    before = len(fails)
+    try:
+        fn(*args)
+    except Exception as exc:
+        fails.append(f"{label} raised {type(exc).__name__}: {str(exc)[:220]}")
+    if len(fails) == before:
+        print(f"  ok    {ok_line}")
+
+
 def main() -> int:
     fails: list[str] = []
-    check_projection(fails)
-    if not fails:
-        print("  ok    an asset filename never reaches a vector; its alt text always does")
+    _step("the canonical-view check", "an asset filename never reaches a vector; its alt text "
+          "always does", fails, check_projection, fails)
 
     env = {**os.environ, "SECOND_BRAIN_EMBEDDER": "test",
            "SECOND_BRAIN_PASSPHRASE": "asset gate passphrase",
@@ -405,36 +528,29 @@ def main() -> int:
     try:
         brain = parent / "brain"
         _setup(brain, env)
-        before = len(fails)
-        check_payload(brain, env, fails)
-        if len(fails) == before:
-            print("  ok    a nested note plus a sibling SVG land, commit, and only the note "
-                  "embeds; every bad path and orphan is refused")
-        before = len(fails)
-        check_tool_descriptions(brain, fails)
-        if len(fails) == before:
-            print("  ok    the naming, uniqueness and image-syntax rules reach the MCP client "
-                  "in add_note's own description")
-        before = len(fails)
-        check_overview(brain, fails)
-        if len(fails) == before:
-            print("  ok    second_brain_overview lists every live tool, leads with what "
-                  "changed, and carries the conventions")
-        before = len(fails)
-        check_uniqueness_blocks_a_commit(brain, env, fails)
-        if len(fails) == before:
-            print("  ok    a duplicate note filename is REFUSED at commit, by name")
-        before = len(fails)
+        _step("the payload", "a nested note plus a sibling SVG land, commit, and only the note "
+              "embeds; every bad path and orphan is refused",
+              fails, check_payload, brain, env, fails)
+        _step("the tool-description check", "the naming, uniqueness and image-syntax rules "
+              "reach the MCP client in add_note's own description",
+              fails, check_tool_descriptions, brain, fails)
+        _step("the FOLDER HINT round-trip", "the FOLDER HINT's suggested call really produces "
+              "the filename it claims (composed forward, never inverted)",
+              fails, check_hint_round_trips, brain, env, fails)
+        _step("the overview check", "second_brain_overview lists every live tool, leads with "
+              "what changed, and carries the conventions",
+              fails, check_overview, brain, fails)
+        _step("the uniqueness check", "a duplicate note filename is REFUSED at commit, by name",
+              fails, check_uniqueness_blocks_a_commit, brain, env, fails)
         try:
             import cryptography  # noqa: F401
         except ImportError:
             print("        optional 'cryptography' absent — the encrypted refusal was NOT "
                   "exercised")
         else:
-            check_encrypted_refuses(brain, env, fails)
-            if len(fails) == before:
-                print("  ok    add_asset refuses on an encrypted brain rather than reporting a "
-                      "success that commits nothing (#49)")
+            _step("the encrypted-refusal check", "add_asset refuses on an encrypted brain "
+                  "rather than reporting a success that commits nothing (#49)",
+                  fails, check_encrypted_refuses, brain, env, fails)
     finally:
         shutil.rmtree(parent, ignore_errors=True)
 

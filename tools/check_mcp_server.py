@@ -515,16 +515,19 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
             elif not (brain / "vault" / "projects" / "algebra" / "algebra.md").is_file():
                 fails.append("add_note(subpath=...) did not file the note in the subfolder")
 
+            # `descriptor`, not a scoped title: `--` encodes structure and the slugifier
+            # collapses it, so the name has to be composed server-side (#53).
             mat = await s.call_tool("add_note", {
-                "title": "Algebra Progress", "para_root": "projects", "subpath": "algebra",
+                "title": "Progress", "para_root": "projects", "subpath": "algebra",
+                "descriptor": "progress",
                 "body": "Scratch that is not a note.", "embed": False})
-            mat_path = brain / "vault" / "projects" / "algebra" / "algebra-progress.md"
+            mat_path = brain / "vault" / "projects" / "algebra" / "algebra--progress.md"
             report = " ".join(_texts(mat))
             if mat.isError:
                 fails.append(f"add_note(embed=False) failed: {report[:160]}")
             elif "embed: false" not in mat_path.read_text(encoding="utf-8"):
                 fails.append("add_note(embed=False) did not write the opt-out key")
-            elif (mat_path.parent / ".algebra-progress.embed.json").exists():
+            elif (mat_path.parent / ".algebra--progress.embed.json").exists():
                 fails.append("add_note(embed=False) embedded the file anyway")
             # ...and it must not shout. The "committed but NOT embedded" warning exists to catch
             # missing git hooks; firing it on a file excluded ON PURPOSE trains the user to

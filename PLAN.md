@@ -1707,33 +1707,51 @@ has no feedback loop because it never touches retrieval.
       rename to `subpath`, so the live MCP tier had been red since #50 — CI never runs it (the
       `mcp` SDK is an optional dep), which is precisely why it drifted.
 
-## The canonical example taught the name the rule rejects (task #52, FIXED 2026-08-31)
-- [x] **The entry-note example and the uniqueness rule contradicted each other, three
-      paragraphs apart.** Reported by a live client, not by a test. ENTRY NOTES showed
-      `projects/algebra/chapter-1/chapter-1.md`; UNIQUENESS then said to scope a generic name
-      rather than reuse a bare one. So the canonical example demonstrated precisely the name the
-      next rule refuses, and anyone following it literally hits the pre-commit hook the day a
-      second subject has a chapter 1.
-      **Checking the proposed fix exposed an older bug behind it.** The suggested form used a
-      double dash (`algebra-1--chapter-1`), matching the `{folder}--{descriptor}` convention
-      shipped in #45 — but `_slugify` collapses any run of non-alphanumerics to **one** hyphen,
-      so **no title can ever produce `--`**. That convention was never reachable through
-      `add_note` at all. It shipped and survived because the examples were only ever eyeballed;
-      nothing compared a documented filename against what the tool can actually emit.
-      **One rule now covers both:** a child is named after its parent, `{parent}-{descriptor}`,
-      for a nested folder and a plain file alike (`algebra-chapter-1/`, `algebra-progress.md`).
-      Reachable by slugify, and unique **by construction** rather than by luck — the entry-note
-      rule turns every folder name into a note name, so scoping the folder is what keeps the
-      note name unique. Fixed in all four pipes plus the generated `FOLDER HINT`, which had been
-      suggesting the colliding name.
-      **Gated mechanically, which is the transferable part.** Gate 23 now extracts every `*.md`
-      filename from every tool description and rejects any containing `--`, because that is
-      unreachable by the tool meant to create it; and rejects an entry-note example that is not
-      scoped to its parent. **A documented example is executable specification — compare it
-      against what the code can produce, rather than reading it.**
-      Third time this week that the *interface text* was wrong while the mechanism was right
-      (#50's missing rules, #51's stale-memory gap, this). The mechanism gets gates by habit;
-      the text did not, until now.
+## Filename is composed server-side; `title` is the H1 (tasks #52 + #53, BUILT 2026-08-31)
+- [x] **`{folder}--{descriptor}.md` was documented in three places and impossible to produce.**
+      Two reports, one root cause. A client first noticed that the entry-note example
+      (`projects/algebra/chapter-1/chapter-1.md`) demonstrated exactly the name the uniqueness
+      rule below it rejects. Checking the proposed fix found the real problem underneath:
+      `_slugify` collapses every run of non-alphanumerics to **one** hyphen, so **no title can
+      ever produce a double dash** — the convention had never been reachable through `add_note`
+      at all, in any form.
+      **The first fix was wrong and is superseded.** It changed the convention to a single dash
+      (`{parent}-{descriptor}`) to make it reachable without new parameters. That worked, but
+      solved the wrong problem: it removed the separator instead of removing the reason it was
+      unreachable, and left `title` doing two jobs.
+      **The root cause is the coupling.** `title` was the H1 *and* the filename, through a lossy
+      transform. But `--` is not prose — it encodes *structure* ("this file is scoped to its
+      folder"). Making a caller smuggle structure through a display string is what created the
+      bug, and no amount of slugifier tuning removes it: a double space collapses identically,
+      and even if it did not it would be invisible in a diff, trimmed by editors, and
+      undictatable. **Pass structure as structure.**
+      **Built:** `add_note` gains `entry=True` (filename := the last `subpath` segment) and
+      `descriptor=...` (filename := `{leaf}--{descriptor}`), mutually exclusive, both requiring
+      `subpath`, with the `--` join inserted **after** slugification. With neither, behaviour is
+      byte-identical to before — the regression guard for every flat note in every existing
+      vault. `title` is now the H1 alone, which also fixes a second problem nobody had named: a
+      file that must be called `algebra-1--chapter-1.md` no longer has to be *titled* that.
+      **Guardrail, because there is no undo.** With `subpath` set, the composed name must be the
+      last segment or start with it plus `--`, checked **before** anything is written. `add_note`
+      commits and pushes and this interface has no rename or delete, so post-hoc detection is
+      worthless.
+      **Compose forward, never invert.** The `FOLDER HINT` used to guess a title by mapping
+      hyphens back to spaces, and so advised a call that could not work — for a `--` folder it
+      suggested a double-*space* title. It now runs the real composition function and prints the
+      arguments that produced the answer, the same principle that makes `second_brain_overview`
+      trustworthy (generated from the live registry, so it cannot describe what is not there).
+      A gate executes the hint's own suggestion and compares.
+      **What the negative controls taught, and it is the durable part.** Four mutations; two
+      initially passed. The "every tool appears in the overview" assertion searched the whole
+      document, and tool names also occur in the prose — scoping it to the tool-list section is
+      what made it able to fail. The "entry+descriptor is refused" assertion matched *any*
+      `ValueError`, so it passed on "note already exists" while the rule under test was gutted;
+      it now pins the expected reason. **An assertion that cannot fail is worse than none,
+      because it also reports success.** Separately, three checks crashed with a traceback
+      instead of failing, hiding every later result — each check now runs under a wrapper that
+      turns an exception into a named failure.
+      Also fixed: `check_mcp_server`'s #45 assertions, which CI never runs (the `mcp` SDK is
+      optional) and which had drifted twice — once on the `folder`->`subpath` rename, once here.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
