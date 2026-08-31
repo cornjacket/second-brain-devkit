@@ -1632,6 +1632,47 @@ has no feedback loop because it never touches retrieval.
       open-ended: **a git-ignored vault answers "what changed?" with an empty list, not an
       error, so the failure is silent by construction.**
 
+## Colocate assets with notes (task #50, BUILT 2026-08-30) → [docs/asset-colocation.md](docs/asset-colocation.md)
+- [x] **Write a note AND its material into a nested project folder.** `projects/algebra/chapter-1/`
+      now holds `chapter-1.md` and `tile-pattern-cpm-source.svg`, and archives as one unit.
+      **Two tools, never one `add(filetype=...)`.** An asset is a *sub-feature* of a note, not a
+      peer: it needs the note to be meaningful and an orphan of it is unreachable, which fails
+      the orthogonality test outright. A merged tool would branch on `filetype` for frontmatter,
+      the H1, kebab renaming, the note gate and whether to embed — five behaviours on one
+      parameter. `encoding` *inside* `add_asset` is fine; that is one level down.
+      **`subpath` (renamed from `folder`), restricted to `projects/` and `archive/`.** Only
+      goal-bound work has the archive-as-one-unit motive that justifies nesting; a resource is
+      filed by topic and an area never ends, so both refuse loudly. `add_pdf` took the same
+      rename — in that module `folder` already meant a PDF *source* folder outside the vault,
+      and one word for two locations is how a wrong path gets written.
+      **The slug rule bites the entry-note convention.** `add_note(title="Chapter 1")` produces
+      `chapter-1.md`, so the folder must be `chapter-1/`, not `chapter1/` as first sketched.
+      Name folders as the title slugifies. `add_note` emits an advisory `FOLDER HINT` when it
+      writes into a folder with no matching entry note — never a refusal (a one-note folder is a
+      legitimate exception), but never silent either.
+      **Filename uniqueness is now enforced** (`scripts/check_unique_names.py`, pre-commit).
+      Option (a) of the two, because (b) — Obsidian's absolute-path link setting — governs only
+      links Obsidian itself creates, and `add_note`, `add_asset` and Claude Code all bypass it.
+      It **blocks** rather than warns, unlike the neighbouring line-count guard: a long note is
+      visible when you open it, a misrouted link is invisible for months and gets blamed on
+      Obsidian. Vault was clean at the time (52 notes, 0 duplicates), so no migration cost.
+      **Assets never embed, twice over.** The *file* was already structural — every walker globs
+      `*.md`, which is why the `embed: false` frontmatter opt-out was never the mechanism here
+      (SVG has no frontmatter to put a flag in). The *reference* was leaking:
+      `![alt](tile.svg)` put the filename in the note's vector, so notes displaying diagrams
+      resembled each other by how their files were named. `strip_asset_links` removes the target
+      and keeps the alt text — a human wrote it to describe the picture, and it is often the only
+      description the embedder ever sees. **Consequence to expect on upgrade:** the canonical
+      view of any note referencing an asset changes, so `doctor` reports those stale and
+      `--repair` re-embeds them. Correct, but not a no-op.
+      **Recommended image syntax: `![alt](file.svg)`, not `![[file.svg]]`.** Both render in
+      Obsidian; the relative form also renders on GitHub and resolves by *path*, so it does not
+      spend the vault's one basename namespace, which the entry-note convention already claims.
+      CI **gate 23** (`tools/check_asset_colocation.py`), plus 13 unit tests.
+      **Blocked half, deferred to #49:** `add_asset` **refuses** on an encrypted brain, because
+      the vault is git-ignored and only `*.md` is encrypted, so the file would reach no commit in
+      any form. Refusing beats a success that pushes nothing.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one

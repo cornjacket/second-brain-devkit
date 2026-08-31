@@ -41,6 +41,15 @@ spec so they cannot drift.
   selectors, #47, this): **a git-ignored vault answers "what changed?" with an empty list, not an
   error.** Every `git diff`-shaped call in the emitted scripts has now been audited; this was the
   last blind one. → [docs/encrypted-commit-indexing.md](docs/encrypted-commit-indexing.md)
+- Asset colocation — a note and the material it displays live in one nested project folder, e.g.
+  `projects/algebra/chapter-1/` holding `chapter-1.md` and `tile-pattern.svg` (task #50, built; CI
+  gate 23 `tools/check_asset_colocation.py`). `subpath` on `add_note`/`add_pdf`, restricted to
+  `projects/` and `archive/` (only goal-bound work has the archive-as-one-unit motive); a separate
+  `add_asset` tool, because an asset is a **sub-feature of a note, not a peer** — five behaviours
+  would otherwise branch on one `filetype` parameter. Note filenames are now **enforced unique**
+  vault-wide (pre-commit, blocking) — Obsidian resolves `[[wikilinks]]` by basename and subfolders
+  silently removed the accident that used to guarantee it. Asset *filenames* are stripped from the
+  embed input while alt text is kept. → [docs/asset-colocation.md](docs/asset-colocation.md)
 - Moving a note — `git mv` used to remove a note from the brain (task #47, fixed; CI gate 21
   `tools/check_note_move.py`). Git labels a staged move **`R`** and the pre-commit selector
   whitelisted only `ACM`, so nothing re-embedded it at the new path; the fix is `ACMR`. No
