@@ -257,27 +257,38 @@ def step_embed_opt_out() -> bool:
     return _run([PY, str(TOOLS / "check_embed_opt_out.py")])
 
 
+def step_note_move() -> bool:
+    # Archiving a note used to remove it from the brain (#47): git labels a staged move `R`,
+    # the pre-commit selector whitelisted only `ACM`, so nothing re-embedded it at the new
+    # path and the post-commit update dropped the old row and died on the missing sidecar.
+    # The fix is one letter, which is exactly why this is gated — a one-character regression
+    # restores a bug whose symptom appears a commit later, in a different tool, as a note
+    # that is simply not there. Covers both modes; they reach the move through different code.
+    return _run([PY, str(TOOLS / "check_note_move.py")])
+
+
 STEPS = [
-    ("1/20 manifest partition", step_partition),
-    ("2/20 template in sync with golden", step_template_in_sync),
-    ("3/20 emitted scripts compile", step_py_compile),
-    ("4/20 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/20 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/20 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/20 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/20 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/20 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/20 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/20 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/20 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/20 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/20 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/20 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
-    ("16/20 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
-    ("17/20 encryption (mechanism + a commit path that does not go blind)", step_encryption),
-    ("18/20 content classification (every .md is content or machinery)", step_classification),
-    ("19/20 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
-    ("20/20 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
+    ("1/21 manifest partition", step_partition),
+    ("2/21 template in sync with golden", step_template_in_sync),
+    ("3/21 emitted scripts compile", step_py_compile),
+    ("4/21 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/21 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/21 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/21 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/21 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/21 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/21 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/21 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/21 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/21 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/21 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/21 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/21 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
+    ("17/21 encryption (mechanism + a commit path that does not go blind)", step_encryption),
+    ("18/21 content classification (every .md is content or machinery)", step_classification),
+    ("19/21 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
+    ("20/21 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
+    ("21/21 note moves (archiving a note keeps it in the brain)", step_note_move),
 ]
 
 

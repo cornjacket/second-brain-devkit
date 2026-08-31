@@ -1537,8 +1537,8 @@ has no feedback loop because it never touches retrieval.
       load-bearing half; asserting the other walkers' `rglob` would test the implementation
       rather than a behaviour.
 
-## Moving a note breaks its index entry (task #47, backlog, surfaced 2026-08-30)
-- [ ] **A renamed or moved note is never re-embedded, and the post-commit cache update then dies
+## Moving a note breaks its index entry (task #47, FIXED 2026-08-30) → [docs/note-moves.md](docs/note-moves.md)
+- [x] **A renamed or moved note is never re-embedded, and the post-commit cache update then dies
       on the missing sidecar.** Three pieces interact, none wrong alone:
       `note_selection.staged_notes` filters `--diff-filter=ACM` — **`R` is excluded**, so a pure
       `git mv` with no content edit is invisible to the pre-commit hook and nothing re-embeds.
@@ -1557,6 +1557,50 @@ has no feedback loop because it never touches retrieval.
       Likely fix: include `R` in the selector and treat a rename as a re-embed at the new path,
       leaving `update_cache` to drop the old row. Check `encrypt_vault.py` too — the same move
       question exists for a blob whose path is inside its envelope.
+      **FIXED 2026-08-30.** `--diff-filter=ACM` → `ACMR`, exactly as sketched; `update_cache`
+      already handled renames and needed no change. CI **gate 21**
+      (`tools/check_note_move.py`) plus five selector tests, three of which go red on `ACM`.
+      **One correction to the diagnosis above:** there is no orphan sidecar on a *plaintext*
+      brain — `update_cache.delete()` unlinks it as part of dropping the old row, so the end
+      state is a note with no sidecar anywhere, not an orphan. The orphan is real on an
+      **encrypted** brain, where that delete never runs, and `hydrate_cache` (which rebuilds
+      *from sidecars*) then inserts a row for a file that no longer exists. Fixed with
+      `embed_staged.prune_orphan_sidecars()`.
+      **The encryption check the entry asked for, answered:** the blob half was already
+      correct (`orphan_blobs` explicitly covers "the old half of a rename"), and selection was
+      immune to the `R` bug because #42 made it read the working tree. Also worth knowing:
+      **`git mv` cannot be used at all** on an encrypted brain — the vault is git-ignored, so
+      the source is "not under version control".
+      **A third defect, found by reproducing rather than reading:** the post-commit failure
+      message told the user to run `hydrate_cache.py`, which rebuilds *from sidecars* and so
+      cannot fix a missing one — it prints "hydrated N note(s)" and leaves the note just as
+      unsearchable. Now names `doctor.py --repair`. Recovery advice that reports success
+      without fixing anything is worse than none, because the user stops looking.
+      **Not fixed here, filed as #48:** an encrypted brain never updates its cache on commit
+      at all.
+
+## Encrypted brains never update the cache on commit (task #48, backlog, surfaced 2026-08-30)
+- [ ] **On an encrypted brain a committed note is embedded but not searchable, contradicting
+      the promise the README and `CLAUDE.md` both make.** `update_cache.py --from-commit HEAD`
+      asks `git diff-tree` what the commit touched. With encryption on that is
+      `enc/<opaque>.md.enc` — not a PARA note — so `is_para_note` rejects it, the tool prints
+      "no PARA-note changes in HEAD", and **exits 0**. Nothing is wrong-looking anywhere: the
+      pre-commit hook really did embed the note and write its sidecar, the commit really did
+      land, and the post-commit hook really did succeed. The note simply is not in the cache
+      until someone runs `hydrate_cache.py` by hand.
+      **Same class as #42's four blinded selectors and as #47** — a component asking git a
+      question a git-ignored vault cannot answer, and getting a plausible empty answer rather
+      than an error. That this keeps recurring is the actual lesson: **every `git diff`-shaped
+      question in this repo is a candidate**, and the fix each time is to stop asking git.
+      Two candidate fixes, and picking between them is the work: teach `update_cache` to map a
+      blob name back to its path (the name is a keyed HMAC, so it is computable from the live
+      note set, the same trick `orphan_blobs` uses), or have `--from-commit` fall back to the
+      working-tree comparison `note_selection.unencrypted_notes` already implements. The second
+      reuses an existing answer; the first keeps the incremental "only the changed rows"
+      property that stops a big vault rehydrating on every commit.
+      Surfaced while building gate 21 for #47 — the gate's encrypted scenario could not assert
+      the cache, which is how the gap became visible. Gate 21 deliberately leaves it
+      un-asserted so its green never implies this is closed.
 
 ## Test corpus (task #16, BUILT 2026-07-09): seed + tear down a large multi-topic note set
 - [x] **A devkit testing utility: populate a target brain with a large, realistic note corpus,

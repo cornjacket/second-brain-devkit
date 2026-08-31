@@ -31,6 +31,15 @@ spec so they cannot drift.
   `embed_vault` drops the sidecar on the bulk path. Ships `vault/templates/not-a-note.md` and
   `get_note_template(variant)` / `add_note(folder, embed)` / `add_pdf(folder)`.
   → [docs/embed-opt-out.md](docs/embed-opt-out.md)
+- Moving a note — `git mv` used to remove a note from the brain (task #47, fixed; CI gate 21
+  `tools/check_note_move.py`). Git labels a staged move **`R`** and the pre-commit selector
+  whitelisted only `ACM`, so nothing re-embedded it at the new path; the fix is `ACMR`. No
+  user-side workaround existed (`git mv` == `mv` + `git rm` + `git add`; the rename is inferred
+  at *diff* time) and no wrapper script would help — Obsidian moves notes without calling
+  anything a brain ships, so the hook is the only choke point. On an **encrypted** brain the
+  selector was already immune (#42 made it read the working tree) but the old sidecar was
+  orphaned, and `hydrate_cache` rebuilds *from sidecars* — so it resurrected a dead path.
+  → [docs/note-moves.md](docs/note-moves.md)
 - Tag hygiene — deterministic detector + backfill applier + write-time near-miss warning, emitted into every brain (task #32, Stages 1–6 done; CI gate 13 `tools/check_tag_lint.py`; read-only MCP tool deferred) → [docs/tag-hygiene.md](docs/tag-hygiene.md)
 - Claude Desktop e2e — canned prompts + side-effect verifiers, human-driven (task #33; not a CI gate) → [docs/desktop-e2e.md](docs/desktop-e2e.md)
 - Desktop e2e against a real brain — disposable-branch setup/teardown so the suite runs against a brain with no Desktop reconfig, then reverts byte-identical (task #34) → [docs/desktop-e2e-disposable-branch.md](docs/desktop-e2e-disposable-branch.md)
