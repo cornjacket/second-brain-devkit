@@ -1798,6 +1798,50 @@ has no feedback loop because it never touches retrieval.
       instability is edge churn before tuning forces to hide it.
       Surfaced while using the live brain, not by a failure.
 
+## Fence a region out of the VECTOR but keep it lexically searchable (task #55, backlog — design pending review, surfaced 2026-09-01)
+- [ ] **One marker currently controls two exclusions, and they should be separable.**
+      `update_cache.index_fts` indexes `canonical_body(text)` — the *same* projection the
+      embedder uses — so a `no-embed` block is cut from the vector, the content hash **and** the
+      FTS5 lexical row. That was deliberate in #39 and is right for what #39 was about
+      (decorative ASCII art: if it carries no meaning it should not be retrievable either).
+      It is **wrong for reference data.** IDs, phone numbers, account names and dates are
+      exactly what BM25 is good at and embeddings are bad at — an identifier is a token, not a
+      meaning. Sending them to the lexical half *only* plays to both halves' strengths.
+      Surfaced on the live brain: `substitute-permit.md` was at **1722 of 1800** embed tokens
+      (96% — one paragraph from failing to embed at all). Fencing its four operational sections
+      brought it to 857, and made checkbox edits free (the block leaves the content hash, so no
+      re-embed). But it also took `TRDS92FI`, `408-453-6767`, `Ridder Park` and the CTC username
+      out of keyword search, which is a real loss and the reason this task exists.
+      **Why the timing works, which is what makes this viable:** `index_fts` runs on *every*
+      upsert, independent of the embed hash gate in `write_sidecar`. So a lexical-only region
+      can be re-indexed on every commit while the vector never moves. No re-embedding, still
+      findable by name.
+      **PROPOSED DESIGN — pending review, do not build yet:**
+      - A second marker pair. Working name `second-brain:lexical-only:begin/end`, chosen over
+        `no-vector` because it names the *outcome* ("findable by exact words, not by meaning")
+        rather than the mechanism — and because `no-embed` / `no-vector` sound like the same
+        thing and would be mixed up.
+      - Two projections. `canonical_body()` (vector + content hash) strips **both** markers;
+        a new `lexical_body()` (FTS only) strips `no-embed` **and keeps** `lexical-only`.
+      - **The main design risk, named:** #39's lesson was that one choke point is what keeps
+        the embedding, the hash and the lexical index agreeing. This deliberately introduces a
+        second projection, so the two must share the `no-embed` strip and differ *only* on the
+        new marker. Anything else and they desynchronise the way excluding at the embed call
+        would have.
+      - Unpaired-marker detection (`has_unpaired_no_embed`) must cover the new pair too — an
+        unclosed `lexical-only` would silently embed the region it was meant to keep out.
+      **Three cases this has to serve**, and the middle one is the new one:
+      1. *decorative* (ASCII art, diagrams) — out of vector AND lexical. `no-embed`, unchanged.
+      2. *reference data* (IDs, numbers, contacts) — out of vector, IN lexical. The new marker.
+      3. *volatile status* (checkboxes, progress tables) — out of vector because they churn and
+         carry no semantic change; lexical is free (FTS re-indexes anyway) and "TB test" is a
+         phrase worth finding. Also the new marker.
+      Note cases 2 and 3 want the *same* treatment, so this is **one** new marker, not two.
+      **Migration:** once it lands, all four fenced sections of `substitute-permit.md` should
+      move from `no-embed` to the new marker — none of them are art. That is the test case.
+      **Open:** should `lexical_body()` keep wikilink target text (searching a linked term)
+      where `canonical_body` strips the brackets? Probably yes, but it is a separate decision.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
