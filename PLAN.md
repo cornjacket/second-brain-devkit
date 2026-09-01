@@ -1753,6 +1753,51 @@ has no feedback loop because it never touches retrieval.
       Also fixed: `check_mcp_server`'s #45 assertions, which CI never runs (the `mcp` SDK is
       optional) and which had drifted twice — once on the `folder`->`subpath` rename, once here.
 
+## A graph view that stays put between sessions (task #54, backlog, surfaced 2026-09-01)
+- [ ] **Obsidian's graph re-runs its force simulation on every open, so the same vault draws a
+      different picture each time — evaluate what a brain can ship to make the view stable.**
+      **Verified, not assumed:** the live brain's `vault/.obsidian/graph.json` stores forces and
+      filters (`centerStrength`, `repelStrength`, `linkStrength`, `linkDistance`, `scale`,
+      `search`, `showTags`, …) and **no node coordinates at all**. There is nowhere for a
+      position to persist, so this is not a setting anyone has failed to find — core Obsidian
+      does not model it. Dragging a node pins it *within the open session* (d3-force fixes a
+      dragged node) and that is lost on close.
+      **This is a devkit task, not advice**, so the deliverable is whatever a *generated brain*
+      should ship. Four candidates, none chosen:
+      - **(a) Track `graph.json`, narrowly.** `/vault/.obsidian/` is gitignored on purpose — it
+        is per-machine UI state and one `git add -A` otherwise sweeps `workspace.json` into the
+        brain. A single negation (`!/vault/.obsidian/graph.json`) would make tuned forces and
+        filters travel to a new clone. Cheap and real, but it does **not** stabilise layout —
+        it only stops you re-tuning on every machine. Note this is the *same* pattern as the
+        `!/vault/templates/new-note.md` exception, and #49 is open precisely because that
+        exception list silently drops anything not named in it: adding a second entry should be
+        weighed against fixing the classification instead.
+      - **(b) Ship a Canvas.** First-party, positions persist in a `.canvas` file, and unlike
+        graph settings it is **vault content** — committed, synced, diffable, and it survives a
+        clone by construction. This is the honest answer to "I want a consistent view", because
+        what people usually want is a *curated map*, not a stable force layout. Open: does the
+        devkit seed a starter canvas, or just document the pattern? A seeded canvas that nobody
+        maintains is worse than none. Check first whether `.canvas` needs a `.gitignore` change
+        and whether `check_content_classification` (gate 18, which walks `*.md` only) has an
+        opinion — an unclassified new file type under `vault/` is exactly the #49 shape.
+      - **(c) Tune the shipped defaults.** The live brain currently runs `repelStrength: 10`
+        (max) with `linkDistance: 250`, which produces a wide, sparse, wobbly layout — about
+        the least repeatable configuration available. A tighter default (lower repel, shorter
+        links, higher centre) settles into a *similar* shape run to run. Does not fix it;
+        materially reduces it, and costs nothing.
+      - **(d) A community plugin.** Alternative graph engines exist with layout persistence and
+        node pinning — **Juggl** is the one to look at first. **Unverified: check the current
+        community plugin list rather than trusting this entry**, which was written from
+        recollection and may name a plugin that is abandoned, renamed, or superseded. A brain
+        should almost certainly not *depend* on one either way (local-first, minimal deps), so
+        the most this can be is a documented pointer.
+      **One churn source is ours, not Obsidian's.** `autolink.py` rewrites `related_auto:`
+      frontmatter, and every edge it adds or removes changes the graph's topology — so the
+      layout moves for a real reason, not just simulation noise. #8's own record notes a single
+      pass rewriting 23 of 33 notes in one day. Worth measuring how much of the perceived
+      instability is edge churn before tuning forces to hide it.
+      Surfaced while using the live brain, not by a failure.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
