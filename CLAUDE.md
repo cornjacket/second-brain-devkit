@@ -41,6 +41,16 @@ spec so they cannot drift.
   selectors, #47, this): **a git-ignored vault answers "what changed?" with an empty list, not an
   error.** Every `git diff`-shaped call in the emitted scripts has now been audited; this was the
   last blind one. → [docs/encrypted-commit-indexing.md](docs/encrypted-commit-indexing.md)
+- Lexical-only fence — a region can leave the **vector** while staying in **keyword** search
+  (task #55, built; CI gate 24 `tools/check_lexical_fence.py`). Search is hybrid, and the halves
+  are good at different things: an ID or phone number is a *token*, not a meaning, so it dilutes
+  an embedding and is exactly what BM25 nails. `no-embed` still cuts both halves (art has no
+  meaning to retrieve by either way). **The safety property is narrowness** — `lexical_body`
+  differs from `canonical_body` in exactly ONE way, asserted by the gate, because #39 showed
+  these drift apart the moment they differ in more than one place. Editing inside the fence
+  re-indexes without re-embedding: the region is outside the content hash, while `index_fts`
+  runs on every upsert. Fences never nest, and a malformed one blocks the commit — it excludes
+  nothing and says so nowhere. → [docs/lexical-fence.md](docs/lexical-fence.md)
 - Asset colocation — a note and the material it displays live in one nested project folder, e.g.
   `projects/algebra/chapter-1/` holding `chapter-1.md` and `tile-pattern.svg` (task #50, built; CI
   gate 23 `tools/check_asset_colocation.py`). `subpath` on `add_note`/`add_pdf`, restricted to

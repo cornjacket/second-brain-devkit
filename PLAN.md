@@ -1798,8 +1798,8 @@ has no feedback loop because it never touches retrieval.
       instability is edge churn before tuning forces to hide it.
       Surfaced while using the live brain, not by a failure.
 
-## Fence a region out of the VECTOR but keep it lexically searchable (task #55, backlog — design pending review, surfaced 2026-09-01)
-- [ ] **One marker currently controls two exclusions, and they should be separable.**
+## Fence a region out of the VECTOR but keep it lexically searchable (task #55, BUILT 2026-09-01) → [docs/lexical-fence.md](docs/lexical-fence.md)
+- [x] **One marker controlled two exclusions; they are now separable.**
       `update_cache.index_fts` indexes `canonical_body(text)` — the *same* projection the
       embedder uses — so a `no-embed` block is cut from the vector, the content hash **and** the
       FTS5 lexical row. That was deliberate in #39 and is right for what #39 was about
@@ -1839,8 +1839,33 @@ has no feedback loop because it never touches retrieval.
       Note cases 2 and 3 want the *same* treatment, so this is **one** new marker, not two.
       **Migration:** once it lands, all four fenced sections of `substitute-permit.md` should
       move from `no-embed` to the new marker — none of them are art. That is the test case.
-      **Open:** should `lexical_body()` keep wikilink target text (searching a linked term)
-      where `canonical_body` strips the brackets? Probably yes, but it is a separate decision.
+      **BUILT 2026-09-01, design reviewed first.** `lexical-only` shipped as proposed. The
+      open wikilink question turned out to be a non-question: `strip_wikilinks` already removes
+      the *brackets* and keeps the *text*, and both projections call it — so a linked term was
+      always searchable in both halves. The docstring claiming a difference there was simply
+      wrong and was corrected before the code was written.
+      **Two refinements from review.** No nesting, one layer only, of either kind — which is
+      what makes validity a single pass over the markers in document order and also catches
+      *interleaving* (balanced by count, still meaningless). And a shared validator,
+      `note_view.fence_errors()`, behind both `scripts/check_fences.py` and the pre-commit
+      hook: the scanner and the hook disagreeing about what "valid" means would be this
+      feature's own central risk one level down.
+      **The #39 risk was overstated in the proposal above and is recorded here corrected.** The
+      nasty failure in #39 was the *vector* and the *content hash* reading different views —
+      which makes editing an excluded region re-embed the note AND report it stale forever.
+      Both still come from `canonical_body`, so that coupling is preserved by construction. The
+      lexical index diverging is a milder bug (art becomes keyword-searchable). The narrowness
+      rule still holds and gate 24 asserts it — a note with no `lexical-only` region must
+      project byte-identically through both — but it guards a smaller thing than claimed.
+      **A broken fence blocks the commit**, unlike the neighbouring line-count guard: a fence
+      that never closes excludes *nothing*, and the note commits and renders correctly either
+      way, so nothing else would ever mention it.
+      **Both FTS writers** (`update_cache.index_fts` and `hydrate_cache`) share the new
+      projection; those two disagreeing would make a row's contents depend on which path last
+      touched it.
+      CI **gate 24** (`tools/check_lexical_fence.py`) plus 15 unit tests; four negative controls
+      all go red. Migration of `substitute-permit.md` from `no-embed` to the new fence is the
+      real-world test case.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed

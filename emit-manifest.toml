@@ -71,6 +71,7 @@ paths = [
   "scripts/add_pdf.py",
   "scripts/autolink.py",
   "scripts/check_line_count.py",
+  "scripts/check_fences.py",
   "scripts/check_unique_names.py",
   "scripts/chunker.py",
   "scripts/db.py",
@@ -174,6 +175,7 @@ paths = [
   "tests/test_note_view.py",
   "tests/test_embed_opt_out.py",
   "tests/test_asset_colocation.py",
+  "tests/test_lexical_fence.py",
   "tests/test_tag_hygiene.py",
   "tests/test_chunker.py",
   "tests/test_pdf_extract.py",
@@ -198,6 +200,7 @@ paths = [
 "tests/test_note_view.py" = "dev-only regression test for the canonical view's embed-excluded (no-embed) block (task #39) — pins the edges the brain's own self_test invariant does not: several blocks per note, unpaired markers, the Obsidian-benign marker shape, and the token estimator. Stdlib-only; a brain ships the projection, not its test. Run in CI against the vendored copy (gate 15)."
 "tests/test_embed_opt_out.py" = "dev-only regression test for the `embed: false` frontmatter opt-out (task #45) — pins which way the parser FAILS: only an explicit false/no/off excludes, and a missing key, a typo, an unterminated frontmatter or a mention in prose all mean embed. Also asserts the shipped not-a-note template really carries the key. Stdlib-only; a brain ships the projection, not its test. Run in CI against the vendored copy (gate 20)."
 "tests/test_asset_colocation.py" = "dev-only regression test for colocated assets and nested notes — pins that an asset filename is cut from the embed input while its alt text survives, and that duplicate note basenames are detected across subfolders and across PARA roots (the uniqueness that used to hold only by accident). Stdlib-only; a brain ships the checker, not its test. Run in CI against the vendored copy (gate 23)."
+"tests/test_lexical_fence.py" = "dev-only regression test for the `lexical-only` fence (task #55) — pins that the region leaves the vector and the content hash while staying in the lexical index, that the two projections differ in EXACTLY one way, and that a nested or interleaved fence is refused. Stdlib-only; a brain ships the projection and the validator, not their tests. Run in CI (gate 24)."
 "tests/test_tag_hygiene.py" = "dev-only regression test for the tag-hygiene detector/applier (task #32) — builds fixtures in a tempdir; a brain ships the tools, not their tests. Run in CI against the vendored copy (gate 13)."
 "tests/test_chunker.py" = "dev-only regression test for the PDF chunker (task #7, M1) — stdlib-only, self-contained; a brain ships the tool, not its test."
 "tests/test_pdf_extract.py" = "dev-only regression test for pdf_extract (task #7, M1) — builds a PDF in a tempdir, skips when pypdf is absent; a brain ships the tool, not its test."

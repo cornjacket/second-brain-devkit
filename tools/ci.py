@@ -284,30 +284,40 @@ def step_asset_colocation() -> bool:
     return _run([PY, str(TOOLS / "check_asset_colocation.py")])
 
 
+def step_lexical_fence() -> bool:
+    # Search is hybrid, and the two halves are good at different things. `lexical-only` keeps a
+    # region out of the VECTOR while leaving it in KEYWORD search — for IDs, contacts and
+    # checklists, which are tokens rather than meanings (#55). The safety property is
+    # narrowness: lexical_body must differ from canonical_body in exactly one way, or the
+    # embedding, the content hash and the lexical index drift apart the way #39 showed.
+    return _run([PY, str(TOOLS / "check_lexical_fence.py")])
+
+
 STEPS = [
-    ("1/23 manifest partition", step_partition),
-    ("2/23 template in sync with golden", step_template_in_sync),
-    ("3/23 emitted scripts compile", step_py_compile),
-    ("4/23 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/23 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/23 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/23 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/23 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/23 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/23 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/23 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/23 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/23 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/23 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/23 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
-    ("16/23 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
-    ("17/23 encryption (mechanism + a commit path that does not go blind)", step_encryption),
-    ("18/23 content classification (every .md is content or machinery)", step_classification),
-    ("19/23 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
-    ("20/23 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
-    ("21/23 note moves (archiving a note keeps it in the brain)", step_note_move),
-    ("22/23 a committed note is searchable, in both modes", step_commit_indexes),
-    ("23/23 asset colocation (nested note + sibling asset, unique names)", step_asset_colocation),
+    ("1/24 manifest partition", step_partition),
+    ("2/24 template in sync with golden", step_template_in_sync),
+    ("3/24 emitted scripts compile", step_py_compile),
+    ("4/24 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/24 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/24 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/24 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/24 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/24 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/24 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/24 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/24 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/24 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/24 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/24 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/24 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
+    ("17/24 encryption (mechanism + a commit path that does not go blind)", step_encryption),
+    ("18/24 content classification (every .md is content or machinery)", step_classification),
+    ("19/24 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
+    ("20/24 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
+    ("21/24 note moves (archiving a note keeps it in the brain)", step_note_move),
+    ("22/24 a committed note is searchable, in both modes", step_commit_indexes),
+    ("23/24 asset colocation (nested note + sibling asset, unique names)", step_asset_colocation),
+    ("24/24 lexical-only fence (out of the vector, in keyword search)", step_lexical_fence),
 ]
 
 
