@@ -250,6 +250,22 @@ def drive(brain: Path, env: dict, fails: list[str]) -> None:
         fails.append("deleting the key did not put the file back in the brain — the opt-out is "
                      "one-way, so a mistake is unrecoverable without a manual rebuild")
 
+    # 7. The 300-line readability nudge does not fire on an opted-out file (task #57). Material
+    # is *meant* to be long — a textbook transcription runs to thousands of lines — so the nudge
+    # was noise on every commit that touched one, and noise is how a warning stops being read.
+    long_body = "\n".join(f"line {i}" for i in range(400))
+    material.write_text(MATERIAL + long_body + "\n", encoding="utf-8")
+    note.write_text(NOTE + long_body + "\n", encoding="utf-8")
+    r = _py("check_line_count.py", brain, env, str(material))
+    if "📏" in r.stdout or r.returncode != 0:
+        fails.append("the line-count nudge fired on an embed: false file — material is meant to "
+                     f"be long and splitting it serves nothing:\n{r.stdout.strip()[:200]}")
+    # ...and still fires on a real note of the same length, or the skip above proves nothing.
+    r = _py("check_line_count.py", brain, env, str(note))
+    if "📏" not in r.stdout:
+        fails.append("the line-count nudge stopped firing on a long NOTE — the opt-out skip was "
+                     "meant to narrow it, not disable it")
+
 
 def main() -> int:
     fails: list[str] = []

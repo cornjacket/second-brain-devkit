@@ -1906,6 +1906,33 @@ has no feedback loop because it never touches retrieval.
       other: a dashboard that never arrives looks like a brain that has none, and one that gets
       overwritten looks like a successful update until you open it. Mutation-tested.
 
+## Nothing watched the embed ceiling across the vault (task #57, BUILT 2026-09-22) → [docs/embed-budget-audit.md](docs/embed-budget-audit.md)
+- [x] **A note over the budget does not degrade — it fails to embed**, and so is absent from
+      semantic search entirely. `embed_staged.py` has warned since #39, but only about the note
+      in front of it, so a vault nears the ceiling one untouched file at a time and the first
+      news is a commit that will not embed. Measured on the live brain: **six notes above 85% of
+      budget**, the largest ~87 words from the hard limit, none of it visible anywhere.
+- [x] **The ceiling is 2048, measured not read.** `ollama show` reports architecture context
+      2048 *and* a Modelfile `num_ctx` of 8192; binary search settles it — 2031 words embed,
+      2046 fail, so the embeddings endpoint honours the architecture. The shipped
+      `EMBED_TOKEN_BUDGET = 1800` was already the right margin and is unchanged. It **fails
+      loudly** (`the input length exceeds the context length`) rather than truncating, which is
+      the good outcome: a silent truncation would leave a note findable by its opening and
+      invisible by its end.
+- [x] **Most of this already existed** — budget, `estimate_tokens`, fence-aware
+      `canonical_body`, the per-note warning. The gaps were narrow: no standing audit, and the
+      300-line nudge firing on `embed: false` files where splitting serves nothing.
+- [x] **doctor now names notes at ≥85% of budget**, worst first, counted over `canonical_body`
+      so fenced regions and opted-out files correctly cost nothing.
+- [x] **`Report.needs_edit` keeps the closing hint true.** Every prior problem was
+      machine-fixable so the summary could always promise `--repair`; an over-budget note is the
+      first that cannot be. Telling someone to run a flag that reports the identical problem
+      again is how a hint stops being believed, so the tail now says *these need a note edited*.
+- [x] **Gated both sides and mutation-tested.** Gate 11 asserts the note is named, `--repair` is
+      not offered, and fencing the bulk clears it; gate 20 asserts the nudge skips an opted-out
+      file **and still fires on a real note of the same length** — without that half, deleting
+      the check entirely would also pass.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one

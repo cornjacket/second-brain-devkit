@@ -101,6 +101,45 @@ def main() -> int:
         if "stale embedding" not in out:
             fails.append("a sidecar whose stored content_hash no longer matches the view was NOT "
                          "flagged stale (this is the #26 upgrade case)")
+
+        # Embed-budget audit (task #57). A note over budget does not degrade — it fails to
+        # embed outright — and embed_staged only ever speaks about the note being committed,
+        # so without this a vault reaches the ceiling with nothing having said so.
+        #
+        # Clear the stale sidecar above first: the --repair assertion below is about a brain
+        # whose ONLY problem is over-budget. With a repairable problem also pending, offering
+        # --repair is the correct thing to do, and the assertion would be testing the fixture
+        # rather than the behaviour.
+        _doctor(brain, env, repair=True)
+        import random
+        words = ["alpha", "bravo", "delta", "echo", "gamma", "harbor", "ivory", "juniper"]
+        body = " ".join(random.Random(3).choice(words) for _ in range(1800))
+        (brain / "vault" / "resources" / "huge.md").write_text(
+            f"---\ntags: [test]\n---\n\n# Huge\n\n{body}\n", encoding="utf-8")
+        _run([sys.executable, "-B", "scripts/embed_vault.py"], brain, env)
+        _run([sys.executable, "-B", "scripts/hydrate_cache.py"], brain, env)
+        rc, out = _doctor(brain, env)
+        if "over the" not in out or "huge.md" not in out:
+            fails.append(f"a note past the embed budget was not named by doctor — the ceiling is "
+                         f"hard, so this note has no vector at all:\n{out[-400:]}")
+        # Matching "re-run with --repair", not bare "--repair": the correct message names the
+        # flag in order to rule it out ("not --repair"), so a naive substring test fails on the
+        # very wording it is meant to require.
+        if "re-run with --repair" in out.split("doctor:")[-1]:
+            fails.append("doctor offered --repair for an over-budget note; nothing but editing "
+                         "the note fixes it, and a hint that does not work teaches distrust")
+
+        # Fenced bulk is invisible to the budget — that is the entire point of the fences.
+        fenced = (f"---\ntags: [test]\n---\n\n# Huge\n\n"
+                  f"<!-- second-brain:lexical-only:begin -->\n{body}\n"
+                  f"<!-- second-brain:lexical-only:end -->\n")
+        (brain / "vault" / "resources" / "huge.md").write_text(fenced, encoding="utf-8")
+        _run([sys.executable, "-B", "scripts/embed_vault.py"], brain, env)
+        _run([sys.executable, "-B", "scripts/hydrate_cache.py"], brain, env)
+        rc, out = _doctor(brain, env)
+        if "over the" in out:
+            fails.append("fencing the bulk did not clear the budget warning — the audit is "
+                         "counting the file rather than the embed input")
     finally:
         shutil.rmtree(parent, ignore_errors=True)
 
@@ -113,6 +152,8 @@ def main() -> int:
     print("  ok    an edited-but-unembedded note is flagged stale (and exits non-zero)")
     print("  ok    --repair re-embeds it and the brain goes green")
     print("  ok    a sidecar whose stored hash predates the current view is flagged stale (#26)")
+    print("  ok    a note past the embed budget is named, and --repair is not offered for it")
+    print("  ok    ...and fencing the bulk clears it — the audit counts the embed input")
     print("\ndoctor-stale OK: stale embeddings are detected and repairable")
     return 0
 
