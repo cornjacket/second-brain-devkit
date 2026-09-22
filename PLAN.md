@@ -1867,6 +1867,45 @@ has no feedback loop because it never touches retrieval.
       all go red. Migration of `substitute-permit.md` from `no-embed` to the new fence is the
       real-world test case.
 
+## The brain cannot report its own state (task #56, BUILT 2026-09-22) → [docs/dashboard-index.md](docs/dashboard-index.md)
+- [x] **Four ways to relate notes, none to report state.** A folder says what archives
+      together, a tag says what a note is about, an embedding says what is similar, a wikilink
+      says what is related. None of them knows a checkbox is unticked or that a project has
+      been waiting three weeks on someone else. **Similarity is not state**, so "where am I?"
+      meant opening notes one at a time — the work a second brain exists to remove. Surfaced on
+      the live brain, which had 26 open checkboxes across two notes and no way to see that
+      without knowing to look in those two files.
+- [x] **`vault/dashboard-index.md`, at the vault ROOT — outside every PARA root.** The indexer
+      walks `vault/{projects,areas,resources,archive}`, so a file at the root is never embedded
+      **by construction**. Deliberately not an `embed: false` opt-out (#45): a flag can be
+      forgotten or mistyped and the parser fails open, so a mistake silently joins the status
+      table to the corpus. Placement cannot be mistyped. It should not be searchable anyway —
+      you never need to *search* for a file whose path is a constant, and a churning table of
+      project names is a bad vector that would compete against the notes holding the knowledge.
+- [x] **The contract is point, don't copy.** One row per active effort: next action,
+      blocked-on, last touched, linking to the note that owns each task. A mirrored checklist
+      has two homes and starts **lying** the first time the wrong one is ticked. What earns a
+      row is what exists nowhere else — the judgment about what comes next, and the blocked-on,
+      which is invisible inside the notes.
+- [x] **`VAULT_SEEDED`: a third `update_brain` behaviour — create if absent, never overwrite.**
+      `VAULT_OWNED` would clobber the user's live status on every upgrade (maintenance becomes
+      data loss); `PRESERVE` would mean an existing brain never receives it, defeating the point
+      of shipping it from the devkit. The accepted cost, named in the doc rather than
+      discovered: **a seeded file never receives an improvement** — which is right, because the
+      contract worth keeping current lives in the managed `CLAUDE.md` block that every brain
+      does get. `_is_preserved()` still answers True: it declares *ownership*, and the file is
+      the user's the moment it lands.
+- [x] **Encryption refuses it, and gate 18 is what found that.** Encryption covers the *whole*
+      vault, so it owns this file — correctly, since a list of your projects and who you are
+      waiting on is what encryption is for. But an encrypted brain git-ignores `vault/` and
+      commits ciphertext, so a plaintext file written there is neither encrypted nor committed:
+      **present on disk and silently unbacked-up**. Unforeseen; `check_content_classification.py`
+      caught it on the first run after `_is_preserved` was loosened. Encrypted brains now SKIP
+      with a reason. Third time a gate has caught a new write path breaking an old invariant.
+- [x] **Gated both directions** (`check_claude_block.py`), because each failure hides in the
+      other: a dashboard that never arrives looks like a brain that has none, and one that gets
+      overwritten looks like a successful update until you open it. Mutation-tested.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one

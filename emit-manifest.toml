@@ -107,6 +107,7 @@ paths = [
   "skill/second-brain/query.py",
   "seeds/archive/.gitkeep",
   "seeds/areas/knowledge-management.md",
+  "seeds/dashboard-index.md",
   "seeds/glossary/.gitkeep",
   "seeds/projects/second-brain.md",
   "seeds/resources/embeddings.md",
@@ -147,6 +148,7 @@ paths = [
 paths = [
   "vault/archive/.gitkeep",
   "vault/areas/knowledge-management.md",
+  "vault/dashboard-index.md",
   "vault/glossary/.gitkeep",
   "vault/projects/second-brain.md",
   "vault/resources/embeddings.md",

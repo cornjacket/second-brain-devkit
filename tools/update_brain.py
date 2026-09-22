@@ -34,7 +34,9 @@ What it does:
     searched). ``new-note.md`` also carries the note gate CI keeps in sync with
     ``CLAUDE.md``, so freezing it let an upgraded brain violate a build-time invariant.
     Named as explicit paths rather than by relaxing the ``vault/`` rule, so the promise
-    stays auditable.
+    stays auditable. A second, weaker exception (``VAULT_SEEDED``) writes a file only when
+    the brain lacks it — ``vault/dashboard-index.md``, which exists to hold your own status
+    and so must never be overwritten once you have touched it.
   • **Dry-run by default** (shows NEW / CHANGED / preserved). ``--apply`` writes the
     files and records a single, git-revertable commit in the brain's own repo.
 
@@ -53,6 +55,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -131,8 +134,34 @@ VAULT_OWNED = {
     "vault/templates/not-a-note.md": "seeds/templates/not-a-note.md",
 }
 
+# Seeded, not owned: written ONLY when the brain does not already have the file, and never
+# overwritten afterwards. A third behaviour, because the first two both get this file wrong.
+#
+# `vault/dashboard-index.md` is shipped so a brain starts with a dashboard instead of a blank
+# page and an instruction to invent one — but unlike the note templates it is **guaranteed** to
+# be edited: holding the user's live status IS the feature. VAULT_OWNED would clobber that on
+# every upgrade, turning routine tooling maintenance into data loss; PRESERVE would mean an
+# existing brain never receives the file at all, which is the whole reason it lives in the devkit.
+#
+# So the rule is create-if-absent. A brain that has one keeps it, byte for byte, forever — the
+# file is reported SKIP with the reason, never CHANGED, so it cannot appear in the write list.
+# The cost is accepted and real: **a seeded file never receives an improvement.** If the
+# dashboard contract is revised later, brains created before the revision keep the old text, and
+# only a new brain sees the new one. That is the correct trade here because the contract worth
+# keeping current lives in the managed CLAUDE.md block, which every brain does get — the file
+# itself is a starting point, not a source of truth.
+VAULT_SEEDED = {
+    "vault/dashboard-index.md": "seeds/dashboard-index.md",
+}
+
 
 def _is_preserved(rel: str) -> bool:
+    # VAULT_SEEDED is deliberately absent here. This function declares *ownership* — whether a
+    # path is the user's or the devkit's — and a seeded file is the user's from the moment it
+    # lands. Only its first creation comes from the devkit, and that is handled as an explicit
+    # pass in plan() rather than by claiming the path. Saying False here would also assert the
+    # file is machinery, which check_content_classification.py reads to mean "encryption must
+    # not cover it" — the opposite of true for a file holding your project status.
     if rel in VAULT_OWNED:
         return False
     return rel in PRESERVE_FILES or rel.startswith(PRESERVE_DIRS)
@@ -157,6 +186,21 @@ def _differs(src: Path, dst: Path) -> str:
     if src.read_bytes() != dst.read_bytes():
         return "changed"
     return "same"
+
+
+def _encrypted(brain: Path) -> bool:
+    """Whether this brain commits ciphertext instead of notes (config/features.toml).
+
+    Read straight out of the target's TOML rather than by importing its ``features`` module:
+    that module resolves its config path from its own location, so importing it here would
+    answer for whichever brain was imported first — and update_brain is pointed at a brain
+    from outside it. A missing or malformed file means the default, False.
+    """
+    try:
+        with (brain / "config" / "features.toml").open("rb") as fh:
+            return tomllib.load(fh).get("encryption") is True
+    except (OSError, tomllib.TOMLDecodeError):
+        return False
 
 
 def _write(src: Path, dst: Path) -> None:
@@ -285,6 +329,28 @@ def plan(brain: Path, adopt: bool = False) -> tuple[list[str], list[str], list[t
             new.append(dest)
         elif verdict == "changed":
             changed.append(dest)
+
+    # Seeded files: 'new' is the only verdict that may write. A brain that already has the file
+    # keeps it untouched no matter how far it has diverged, so 'changed' becomes a SKIP rather
+    # than an edit — the divergence IS the user's content, not drift to be corrected.
+    #
+    # An ENCRYPTED brain is skipped outright. Seeding writes a plaintext file into vault/, which
+    # is safe only while the vault is plaintext and committed. On an encrypted brain the vault is
+    # git-ignored and its committed form is ciphertext, so a file written here would be neither
+    # encrypted nor committed — it would look present and silently stop being backed up, which is
+    # the failure mode encrypt_vault's own docstring calls the hard one to notice.
+    for dest, source in VAULT_SEEDED.items():
+        src = TEMPLATE / source
+        if not src.is_file():
+            continue
+        if _encrypted(brain):
+            skipped.append((dest, "encrypted brain — the vault is yours alone; create it yourself"))
+            continue
+        verdict = _differs(src, brain / dest)
+        if verdict == "new":
+            new.append(dest)
+        elif verdict == "changed":
+            skipped.append((dest, "seeded once; yours now, never overwritten"))
     return new, changed, skipped
 
 
@@ -313,8 +379,9 @@ def update_brain(target, *, apply: bool = False, adopt: bool = False) -> int:
         print(f"  CHANGED  {rel}")
     for rel, reason in skipped:
         print(f"  SKIP     {rel} — {reason}")
-    print("\npreserved (never touched): vault/ (except the devkit-owned note template), "
-          "data/, config/,\n   your space outside the CLAUDE.md/README.md markers, git history")
+    print("\npreserved (never touched): vault/ (except the devkit-owned note template, and the "
+          "dashboard\n   which is only ever created if missing), data/, config/,\n   your space "
+          "outside the CLAUDE.md/README.md markers, git history")
 
     # Migration notice (#30). These files define the *embed input* — what a note's vector is
     # computed over. If one of them changes, every existing vector was produced by the OLD
@@ -369,6 +436,10 @@ def update_brain(target, *, apply: bool = False, adopt: bool = False) -> int:
             (brain / rel).write_text(text)
         elif rel in VAULT_OWNED:
             _write(TEMPLATE / VAULT_OWNED[rel], brain / rel)
+        elif rel in VAULT_SEEDED:
+            # Only ever reached with verdict 'new' — plan() downgrades a seeded file that
+            # already exists to SKIP, so this cannot overwrite one.
+            _write(TEMPLATE / VAULT_SEEDED[rel], brain / rel)
         else:
             _write(TEMPLATE / rel, brain / rel)
         print(f"  wrote {rel}")

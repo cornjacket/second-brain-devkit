@@ -249,6 +249,34 @@ def run_checks() -> None:
                  "update_brain wrote into a user's note — the vault carve-out is too wide")
         print("  ok    ...and vault/templates/ is the ONLY place written inside vault/")
 
+        # The dashboard is SEEDED, not owned (#56): created when missing, never overwritten.
+        # Both halves need asserting, because each failure is invisible in the other direction —
+        # a dashboard that never arrives looks like a brain that simply has no dashboard, and one
+        # that gets overwritten looks like a successful update until you open it.
+        dash = brain / "vault" / "dashboard-index.md"
+        _require(dash.is_file(), "a generated brain has no vault/dashboard-index.md")
+        mine = "# My dashboard\n\n| Project | Next action |\n| --- | --- |\n| thing | do it |\n"
+        dash.write_text(mine)
+        _commit_all(brain, "the user makes the dashboard their own")
+        out = _update(brain)
+        _require("CHANGED  vault/dashboard-index.md" not in out,
+                 f"an edited dashboard was queued for overwrite — it holds the user's status:\n{out}")
+        _update(brain, "--apply")
+        _require(dash.read_text() == mine,
+                 "update_brain overwrote an edited dashboard — seeding must never clobber")
+        print("  ok    an edited dashboard is never overwritten")
+
+        dash.unlink()
+        _commit_all(brain, "a brain that predates the dashboard")
+        out = _update(brain)
+        _require("vault/dashboard-index.md" in out,
+                 f"a brain missing the dashboard was not offered one:\n{out}")
+        _update(brain, "--apply")
+        _require(dash.is_file() and
+                 dash.read_text() == (brain / "seeds" / "dashboard-index.md").read_text(),
+                 "the dashboard was not seeded into a brain that lacked it")
+        print("  ok    ...and a brain that lacks one is seeded from the shipped baseline")
+
     finally:
         shutil.rmtree(parent, ignore_errors=True)
 
