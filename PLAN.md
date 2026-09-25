@@ -1933,8 +1933,8 @@ has no feedback loop because it never touches retrieval.
       file **and still fires on a real note of the same length** — without that half, deleting
       the check entirely would also pass.
 
-## The front door does not know what shipped (tasks #58 + #59, surfaced 2026-09-24)
-- [ ] **#58 — a doc-coverage gate, so a feature cannot ship while the README does not know it.**
+## The front door does not know what shipped (task #58 BUILT, #59 partly done, 2026-09-24)
+- [x] **#58 — a doc-coverage gate, so a feature cannot ship while the README does not know it.**
       Reviewing the top-level docs found `README.md` describing roughly the mid-2026 product.
       Missing entirely: encryption at rest (#42, 3 gates), the `embed: false` opt-out (#45),
       asset colocation and `add_asset` (#50), the filename-uniqueness hook, the `lexical-only`
@@ -1963,6 +1963,12 @@ has no feedback loop because it never touches retrieval.
       dashboard index did exactly this, and sat ungated until someone asked. Mechanism cannot fix
       it; the repo's own rule that features ship with gates can, and this gate is what turns that
       rule from habit into something enforced.
+      **BUILT 2026-09-24.** CI **gate 26** (`tools/check_doc_coverage.py`). The partition is the
+      load-bearing part and it works: adding an unclassified page to `docs/` fails the gate, so
+      the classification cannot quietly omit a topic the way a hand-kept list would. 32 pages —
+      13 product capabilities that must be reachable from the README, 19 internal pages each
+      exempted with a written reason, the discipline `EXPECTED_UNENCRYPTED` already uses.
+      It found 9 shipped capabilities the README never mentioned, which #59 then wrote up.
 - [ ] **#59 — refresh README.md and SPEC.md, and give them a current diagram.**
       Do this **after** #58, which produces the list rather than requiring it be reconstructed by
       hand. The README's one diagram is `Obsidian → SQLite vec0 → AI`: no FTS5/RRF, no MCP, no
@@ -1978,6 +1984,13 @@ has no feedback loop because it never touches retrieval.
       scheduled for mothball (G4). There is no single document describing what a generated brain
       does. Either promote the product spec now or add a `docs/` index; OQ-4 ties promotion to
       mothball, but the review suggests the need arrives first.
+      **PARTLY DONE 2026-09-24.** README gained a "What a generated brain can do" section
+      covering all 13 product capabilities, grouped by what they are *for* rather than by ship
+      date — capture/retrieval, the three embedding-exclusion mechanisms, organising a growing
+      vault, and where a brain lives. Gate 26 keeps it honest from here.
+      **Still open:** the stale architecture diagram (`Obsidian → SQLite vec0 → AI`, predating
+      FTS5, MCP, sidecars and encryption), diagrams for the 21 `docs/` pages without one, and
+      the SPEC question — the product is still specified only in the golden that G4 will mothball.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed

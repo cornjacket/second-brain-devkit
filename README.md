@@ -147,6 +147,64 @@ byte-identical.
   detection). Design + rationale: [docs/pdf-ingestion.md](docs/pdf-ingestion.md); the interactive
   picker in [docs/pdf-elicitation.md](docs/pdf-elicitation.md).
 
+## What a generated brain can do
+
+Every capability below ships in **every** brain the generator makes, is guarded by a CI gate,
+and has a design page explaining why it exists. Nothing here is optional scaffolding you wire
+up afterwards.
+
+**Capture and retrieval**
+
+- **Hybrid search** — BM25 keyword matching (SQLite FTS5) fused with dense-vector similarity
+  (`sqlite-vec`) by Reciprocal Rank Fusion. The two halves are good at different things: an
+  identifier is a token, an idea is a direction. → [docs/retrieval-quality.md](docs/retrieval-quality.md)
+- **Glossary** — a controlled-vocabulary layer, deliberately excluded from semantic search
+  because a definition sitting beside every mention of its term becomes a retrieval hub.
+  → [docs/glossary.md](docs/glossary.md)
+- **PDF ingestion** — long documents chunked and embedded so a hit points at *the passage on
+  page 12*. → [docs/pdf-ingestion.md](docs/pdf-ingestion.md)
+- **Auto-linking** — vector neighbourhoods materialised as Obsidian-graphable `related_auto:`
+  frontmatter. → [docs/auto-linking.md](docs/auto-linking.md)
+
+**Controlling what gets embedded** — three mechanisms, because they exclude different things
+
+- **`no-embed` block** — a fenced region left out of the vector *and* keyword search. For
+  content with no meaning to retrieve by: ASCII art, diagrams. Also leaves the content hash, so
+  redrawing a diagram re-embeds nothing. → [docs/embed-excluded-block.md](docs/embed-excluded-block.md)
+- **`lexical-only` fence** — out of the vector, **kept** in keyword search. For reference data:
+  IDs, phone numbers, contact lists, volatile checklists. Editing inside it re-indexes without
+  re-embedding. → [docs/lexical-fence.md](docs/lexical-fence.md)
+- **`embed: false` frontmatter** — a whole Markdown file that lives under a PARA root without
+  being a note. Opt-out, never opt-in, and the parser fails **open**: a wrong inclusion shows up
+  in a search result, a wrong exclusion is invisible.
+  → [docs/embed-opt-out.md](docs/embed-opt-out.md)
+- **Embed-budget audit** — `doctor.py` reports notes approaching the embedder's context ceiling,
+  before one silently fails to embed. → [docs/embed-budget-audit.md](docs/embed-budget-audit.md)
+
+**Organising a vault that grows**
+
+- **Asset colocation** — a note and the material it displays in one nested project folder, so
+  the folder archives as one unit. Adds `subpath`, `add_asset`, and a pre-commit check that
+  refuses duplicate note filenames — which Obsidian's `[[wikilink]]` resolution quietly depends
+  on. → [docs/asset-colocation.md](docs/asset-colocation.md)
+- **Tag hygiene** — near-miss detection (`ml` vs `machine-learning`), a backfill applier, and a
+  write-time warning, so the vocabulary does not silently split.
+  → [docs/tag-hygiene.md](docs/tag-hygiene.md)
+- **Dashboard index** — the one view that reports *state* rather than relatedness. A folder says
+  what archives together and an embedding says what is similar; neither knows a checkbox is
+  unticked. → [docs/dashboard-index.md](docs/dashboard-index.md)
+
+**Where a brain lives**
+
+- **MCP server** — sixteen tools exposing the brain to Claude Desktop, including the only
+  writer, `add_note`, which commits and pushes. → [docs/mcp-server.md](docs/mcp-server.md)
+- **Remote-backed brains** — `--remote` connects a new brain to a git remote at creation.
+  → [docs/remote-backed-brains.md](docs/remote-backed-brains.md)
+- **Encrypted notes at rest** — opt-in encryption of the committed form, **bodies and filenames
+  both**, while the working tree stays plaintext `.md` so Obsidian and search are untouched.
+  Governs future commits only: a brain that has ever committed plaintext cannot be made
+  retroactively private. → [docs/encrypted-notes.md](docs/encrypted-notes.md)
+
 ## The Kit's Mission
 
 This repository is a **generator**. Spinning up a new Second Brain with it should
