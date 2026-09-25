@@ -1988,9 +1988,47 @@ has no feedback loop because it never touches retrieval.
       covering all 13 product capabilities, grouped by what they are *for* rather than by ship
       date — capture/retrieval, the three embedding-exclusion mechanisms, organising a growing
       vault, and where a brain lives. Gate 26 keeps it honest from here.
-      **Still open:** the stale architecture diagram (`Obsidian → SQLite vec0 → AI`, predating
-      FTS5, MCP, sidecars and encryption), diagrams for the 21 `docs/` pages without one, and
-      the SPEC question — the product is still specified only in the golden that G4 will mothball.
+      **Remaining scope, DECIDED 2026-09-24 — three items, not the whole sweep.**
+      1. **Replace the README architecture diagram.** The current one (`Obsidian → SQLite vec0
+         → AI`) predates FTS5/RRF, MCP, sidecars, the hooks and encryption, and muddles its own
+         axes — "Human Interface" and "Machine Interface" as parallel arrows is not a real
+         distinction. Replace with the shape prose does badly: the **write path**
+         (`note.md → pre-commit → sidecar → post-commit → cache`), the **read path**
+         (`query → FTS5/BM25 + vector KNN → RRF`), the two client surfaces (CLI/skill and MCP),
+         and encryption sitting at the *git* layer rather than the note layer.
+      2. **Three `docs/` diagrams, not twenty-one.** The test is not "does this page lack one"
+         but **"is flow the concept here?"** Most pages without a diagram are bug write-ups, and
+         a box-and-arrow picture of a fixed bug is decoration. Earning one:
+         `lexical-fence.md` (one text → two projections → two indexes is inherently a picture,
+         and 107 lines of prose does it badly), `encrypted-notes.md` (plaintext working tree vs
+         encrypted committed form is two worlds), `embed-opt-out.md` (the retraction path).
+         **The argument against the other eighteen is maintenance:** every diagram is content
+         that must be kept true, and a wrong diagram is worse than none. Put them in `no-embed`
+         fences — the mechanism this repo built for exactly this.
+      3. **Not gated.** Coverage is gateable (#58 does it); *accuracy* of a diagram is not, and
+         a check that asserted which words appear in a picture would fight every future redesign.
+      **Split out:** the SPEC-pointer problem turned out to be a different defect — see #60.
+
+## The devkit's spec references leave the repo (task #60, surfaced 2026-09-24)
+- [ ] **Five references point at `../second-brain-test/SPEC.md`, a path outside this repo.**
+      Found while asking whether the product spec needs promoting into the devkit (OQ-4). It
+      does not — **the content is already here.** `vendor_golden.py` copies every tracked golden
+      file, so `tests/golden/SPEC.md` is a 310-line vendored copy sitting in this repo today.
+      The defect is narrower and more concrete than "the spec lives elsewhere": the *pointers*
+      leave. `SPEC.md` (×4), `README.md` and `CLAUDE.md` all reference `../second-brain-test/`,
+      a sibling path that **is not there** for anyone who clones only the devkit — which
+      includes **CI**, deliberately self-contained since OQ-1 Option A. A reader following the
+      link gets nothing, and the link dies outright at G4 mothball.
+      **Fix: repoint the reading references at `tests/golden/SPEC.md`**, noting it is a snapshot
+      — while the live golden exists it stays the editable surface, and `vendor_golden.py`
+      refreshes the copy. Then add "promote `tests/golden/SPEC.md` to a canonical product spec"
+      to G4's mothball checklist, where OQ-4 already says it belongs.
+      **Why this is not OQ-4.** OQ-4 asks *when ownership transfers*; that answer is unchanged
+      and still "at mothball". This asks why a self-contained repo has links that only resolve
+      on the machine that happens to have a sibling checkout. The two were conflated because the
+      same file is involved.
+      Small — roughly twenty minutes — but it is the kind of thing that only ever gets found by
+      someone reading the docs from a fresh clone, which nobody does.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
