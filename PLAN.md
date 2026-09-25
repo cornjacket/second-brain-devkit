@@ -1933,6 +1933,52 @@ has no feedback loop because it never touches retrieval.
       file **and still fires on a real note of the same length** — without that half, deleting
       the check entirely would also pass.
 
+## The front door does not know what shipped (tasks #56 + #57, surfaced 2026-09-24)
+- [ ] **#56 — a doc-coverage gate, so a feature cannot ship while the README does not know it.**
+      Reviewing the top-level docs found `README.md` describing roughly the mid-2026 product.
+      Missing entirely: encryption at rest (#42, 3 gates), the `embed: false` opt-out (#45),
+      asset colocation and `add_asset` (#50), the filename-uniqueness hook, the `lexical-only`
+      fence (#55), tag hygiene (#32), the desktop e2e suite (#33-36), the dashboard index.
+      **The cause is structural, not carelessness.** Every feature since #45 shipped with a gate
+      that touches the *emitted* docs, so `template/README.md` and `template/CLAUDE.md` stayed
+      current. Nothing forces the devkit's own README, so it drifted for four months with no
+      signal. The emitted docs are honest because something checks them.
+      **A gate, not a generator.** Generating a feature list from `docs/` would make the README
+      machine-written, and its job is to *explain* — which needs judgment about what matters. The
+      failure was forgetting, not bad writing. So the check asserts consistency between artifacts
+      that already exist and leaves the prose alone, the same shape as gate 9 (note-gate drift)
+      and gate 23 (a capability missing from a tool description).
+      **The objection that shapes the design: a gate needs a source, and a hand-kept source can
+      omit a topic too — the gate then stays green and catches nothing.** So chain only to
+      sources that are themselves hard to forget, and cross-check them:
+      - `emit-manifest.toml` — **cannot** be incomplete: gate 1 walks the golden and fails on any
+        unclassified file. Hole: it lists *files*, and a file is not a feature.
+      - `tools/ci.py` STEPS — load-bearing, since a gate not listed does not run. Hole: a feature
+        that ships with **no gate**.
+      - `docs/*.md` — written when a feature ships. Hole: a feature with **no doc**.
+      Assert every `ci.py` gate has a `docs/` page and every `docs/` page is named in the README.
+      Forgetting then has to happen twice in one commit rather than once.
+      **State the residual hole rather than implying it is closed.** A feature shipped with no
+      doc, no gate and no README line is invisible to every check. That is not hypothetical — the
+      dashboard index did exactly this, and sat ungated until someone asked. Mechanism cannot fix
+      it; the repo's own rule that features ship with gates can, and this gate is what turns that
+      rule from habit into something enforced.
+- [ ] **#57 — refresh README.md and SPEC.md, and give them a current diagram.**
+      Do this **after** #56, which produces the list rather than requiring it be reconstructed by
+      hand. The README's one diagram is `Obsidian → SQLite vec0 → AI`: no FTS5/RRF, no MCP, no
+      sidecars, no encryption. It predates most of the system.
+      **Diagram coverage is inverted** — the deepest doc has the best pictures and the entry
+      points have almost none. `SPEC.md` has three good ones (the note→sidecar→cache→search chain,
+      the Mode A/Mode B generator split); `README.md` has one stale one; `template/CLAUDE.md` has
+      none; **21 of 32 `docs/` pages have none**, including those where flow *is* the concept —
+      `lexical-fence.md` ("one text, two projections, two indexes" is a picture, and 107 lines of
+      prose does it badly), `embed-opt-out.md`, `note-moves.md`, `encrypted-notes.md`.
+      **SPEC's gaps are legitimate and a different problem.** §6 delegates per-brain contracts to
+      `../second-brain-test/SPEC.md`, so the *product* is specified only in the golden — which is
+      scheduled for mothball (G4). There is no single document describing what a generated brain
+      does. Either promote the product spec now or add a `docs/` index; OQ-4 ties promotion to
+      mothball, but the review suggests the need arrives first.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
