@@ -1933,8 +1933,8 @@ has no feedback loop because it never touches retrieval.
       file **and still fires on a real note of the same length** — without that half, deleting
       the check entirely would also pass.
 
-## The front door does not know what shipped (tasks #56 + #57, surfaced 2026-09-24)
-- [ ] **#56 — a doc-coverage gate, so a feature cannot ship while the README does not know it.**
+## The front door does not know what shipped (tasks #58 + #59, surfaced 2026-09-24)
+- [ ] **#58 — a doc-coverage gate, so a feature cannot ship while the README does not know it.**
       Reviewing the top-level docs found `README.md` describing roughly the mid-2026 product.
       Missing entirely: encryption at rest (#42, 3 gates), the `embed: false` opt-out (#45),
       asset colocation and `add_asset` (#50), the filename-uniqueness hook, the `lexical-only`
@@ -1963,8 +1963,8 @@ has no feedback loop because it never touches retrieval.
       dashboard index did exactly this, and sat ungated until someone asked. Mechanism cannot fix
       it; the repo's own rule that features ship with gates can, and this gate is what turns that
       rule from habit into something enforced.
-- [ ] **#57 — refresh README.md and SPEC.md, and give them a current diagram.**
-      Do this **after** #56, which produces the list rather than requiring it be reconstructed by
+- [ ] **#59 — refresh README.md and SPEC.md, and give them a current diagram.**
+      Do this **after** #58, which produces the list rather than requiring it be reconstructed by
       hand. The README's one diagram is `Obsidian → SQLite vec0 → AI`: no FTS5/RRF, no MCP, no
       sidecars, no encryption. It predates most of the system.
       **Diagram coverage is inverted** — the deepest doc has the best pictures and the entry
