@@ -7,7 +7,7 @@ evolves over time, and how this devkit generates and validates a brain.
 It deliberately does **not** re-specify the internals of a single brain (PARA
 layout, sidecar schema, embedding contract, search CLI). Those are *product*
 contracts and live in the canonical **product spec**
-([`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md)). This spec links
+([`tests/golden/SPEC.md`](tests/golden/SPEC.md)). This spec links
 to those contracts rather than duplicating them, so they cannot drift.
 
 ## 0. Open Items
@@ -87,7 +87,7 @@ SQLite vec0 cache  ──search──▶  AI (Claude / Gemini) gets ranked conte
 Ingestion is **not** a separate path: a "lesson" deposited into the brain is just
 a new PARA note, which flows through the same embed → hydrate → search pipeline.
 The precise contracts for each stage are in the product spec
-([`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md)).
+([`tests/golden/SPEC.md`](tests/golden/SPEC.md)).
 
 ## 4. Lifecycle & evolution
 
@@ -239,11 +239,18 @@ a machine-checked gate rather than a manual promise.
 
 | Concern | Authoritative source |
 | --- | --- |
-| Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search CLI, `register`) | [`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md) (product spec) |
-| In-brain agent memory | `../second-brain-test/CLAUDE.md` (golden reference) |
+| Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search CLI, `register`) | [`tests/golden/SPEC.md`](tests/golden/SPEC.md) (product spec) |
+| In-brain agent memory | [`tests/golden/CLAUDE.md`](tests/golden/CLAUDE.md) (vendored golden) |
 | System workflow, roles, lifecycle, generator/validation | **this file** |
 | Working *on* the devkit (build/commit/daily-plan conventions) | [CLAUDE.md](CLAUDE.md) |
 | Unresolved design decisions | [open-questions.md](open-questions.md) |
+
+> **On `tests/golden/SPEC.md`.** That is the **vendored copy**, which lives in this repo — so it
+> resolves from a clone of the devkit alone, including CI (self-contained since OQ-1 Option A).
+> These references used to point at `../second-brain-test/SPEC.md`, a sibling path absent from
+> any such clone. While the live golden exists it remains the *editable* surface and
+> `tools/vendor_golden.py` refreshes the snapshot; ownership transfers at mothball (OQ-4, G4).
+
 
 ## 7. Non-goals & boundaries
 
@@ -266,4 +273,4 @@ a machine-checked gate rather than a manual promise.
   project memory file
 
 Exact versions, dimensions, env vars, and invariants are specified in the product
-spec ([`../second-brain-test/SPEC.md`](../second-brain-test/SPEC.md)).
+spec ([`tests/golden/SPEC.md`](tests/golden/SPEC.md)).

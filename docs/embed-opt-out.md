@@ -59,6 +59,29 @@ gate 20 asserts the fail-open cases directly rather than trusting the suite alon
 
 ## 3. Retraction — the failure that looks like success
 
+<!-- second-brain:no-embed:begin -->
+```
+   ADDING `embed: false` to a file that was already indexed must RETRACT it,
+   not merely stop refreshing it. Two paths, and they are not interchangeable:
+
+   commit path                          bulk path (embed_vault)
+   ───────────                          ───────────────────────
+   update_cache.changed_in_commit       embed_staged.drop_sidecar
+        │  routes it to the                  │  unlinks the sidecar
+        ▼  DELETE side, not "drop"           ▼  because nothing follows
+   ┌──────────────┐                     ┌──────────────┐
+   │ row  REMOVED │                     │ sidecar GONE │
+   │ sidecar GONE │ ← delete() unlinks  └──────────────┘
+   └──────────────┘   it as part of
+                      removing the row
+
+   Leave the sidecar and the next hydrate_cache puts the vector straight
+   back: the exclusion appears to work, and does not.
+
+   Reversible — delete the key and the next commit re-embeds it.
+```
+<!-- second-brain:no-embed:end -->
+
 Adding the key to a file that was **already embedded** must remove its sidecar, its
 vector, and its search row — not merely stop refreshing them. Left in place, a stale
 sidecar keeps being hydrated into the cache, so the file goes on answering searches while

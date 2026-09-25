@@ -25,10 +25,28 @@ This kit creates a **symbiotic relationship** between the two interfaces instead
 of forcing a choice between them:
 
 ```
-[ Human Interface ]  --->  Obsidian (.md files)
-                                 │
-                                 ▼  (Automated Tooling / Scripts)
-[ Machine Interface ] --->  SQLite Cache (vec0)  --->  AI Agents / LLMs
+  WRITE ─ committing a note is what indexes it; there is no separate ingest step
+  ┌──────────────┐   pre-commit   ┌──────────────────┐  post-commit  ┌─────────────┐
+  │ vault/*.md   │───────────────▶│ .<note>.embed.json│──────────────▶│ data/       │
+  │ PARA folders │   embed the    │  768-dim vector   │   upsert only │ brain.db    │
+  │ (Obsidian)   │  canonical view│  DERIVED,ignored  │  changed rows │ vec0 + fts5 │
+  └──────────────┘                └──────────────────┘               └─────────────┘
+         │                                                                  ▲
+         │ encryption ON (optional): the WORKING TREE stays plaintext .md;  │
+         ▼ only the committed form is opaque — git-layer, not note-layer    │
+  ┌──────────────┐                                                          │
+  │ enc/*.md.enc │  name = keyed HMAC of the path, path inside the envelope │
+  └──────────────┘                                                          │
+                                                                            │
+  READ ─ two retrievers, fused; they are good at different things           │
+  ┌──────────┐   ┌──────────────────────┐   ┌─────┐   ┌──────────────┐      │
+  │  query   │──▶│ FTS5 / BM25  (words) │──▶│ RRF │──▶│ ranked notes │◀─────┘
+  │          │──▶│ vec0 KNN  (meaning)  │──▶│fuse │   └──────────────┘
+  └──────────┘   └──────────────────────┘   └─────┘
+                                                   ▲
+  CLIENTS ─ same retrieval underneath both         │
+    • CLI / skill   search_vault.py ───────────────┤
+    • MCP server    16 tools, Claude Desktop ──────┘
 ```
 
 You write plain Markdown. Tooling mirrors those notes — with their tags, links,
@@ -74,7 +92,7 @@ vectors — mismatched models yield incomparable results.
 
 > **Authoritative specs.** This README is an overview. The contracts live in two
 > places: the **system spec** ([SPEC.md](SPEC.md)) for the three-repo workflow,
-> roles, and lifecycle; and the **product spec** (`../second-brain-test/SPEC.md`)
+> roles, and lifecycle; and the **product spec** (`tests/golden/SPEC.md`)
 > for a single brain's PARA layout, sidecar schema, embedding contract, cache
 > DDL, search CLI, and `register`. Details below are summaries — defer to those.
 

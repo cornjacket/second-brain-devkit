@@ -5,6 +5,27 @@ not own. This feature makes the committed form of a brain unreadable — **bodie
 filenames both** — while the working tree stays exactly as it is today: plaintext
 `.md` files that Obsidian opens, `search_vault.py` searches, and the embedder embeds.
 
+<!-- second-brain:no-embed:begin -->
+```
+   WORKING TREE (yours, plaintext)          COMMITTED FORM (what a remote holds)
+   ┌────────────────────────────┐           ┌──────────────────────────────────┐
+   │ vault/projects/salary.md   │  encrypt  │ enc/NBVUHKI5WRTNX3DM….md.enc     │
+   │ vault/areas/health.md      │──────────▶│ enc/QP2F7A…│ enc/ZK9R1T…         │
+   │  ← Obsidian, search, embed │           │  name = keyed HMAC of the PATH   │
+   │    all untouched           │           │  path travels INSIDE the envelope│
+   └────────────────────────────┘           └──────────────────────────────────┘
+        .gitignore: /vault/**                        so: no manifest file,
+        (default-deny, so a new                      and two machines cannot
+         file type cannot leak)                      conflict on one
+
+   Encryption is a GIT-layer concern, not a note-layer one — which is why
+   the LEFT box is identical whether it is on or off.
+
+   Governs FUTURE commits only. A brain that has ever committed plaintext
+   cannot be made retroactively private; the history still holds it.
+```
+<!-- second-brain:no-embed:end -->
+
 **Encryption is a git-layer concern, not a note-layer one.** Nothing about how a note
 is written, embedded, linked or searched changes. What changes is what git is allowed
 to see.

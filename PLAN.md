@@ -1933,7 +1933,7 @@ has no feedback loop because it never touches retrieval.
       file **and still fires on a real note of the same length** — without that half, deleting
       the check entirely would also pass.
 
-## The front door does not know what shipped (task #58 BUILT, #59 partly done, 2026-09-24)
+## The front door does not know what shipped (tasks #58 + #59, BUILT 2026-09-24)
 - [x] **#58 — a doc-coverage gate, so a feature cannot ship while the README does not know it.**
       Reviewing the top-level docs found `README.md` describing roughly the mid-2026 product.
       Missing entirely: encryption at rest (#42, 3 gates), the `embed: false` opt-out (#45),
@@ -1969,7 +1969,7 @@ has no feedback loop because it never touches retrieval.
       13 product capabilities that must be reachable from the README, 19 internal pages each
       exempted with a written reason, the discipline `EXPECTED_UNENCRYPTED` already uses.
       It found 9 shipped capabilities the README never mentioned, which #59 then wrote up.
-- [ ] **#59 — refresh README.md and SPEC.md, and give them a current diagram.**
+- [x] **#59 — refresh README.md and SPEC.md, and give them a current diagram.**
       Do this **after** #58, which produces the list rather than requiring it be reconstructed by
       hand. The README's one diagram is `Obsidian → SQLite vec0 → AI`: no FTS5/RRF, no MCP, no
       sidecars, no encryption. It predates most of the system.
@@ -2008,9 +2008,18 @@ has no feedback loop because it never touches retrieval.
       3. **Not gated.** Coverage is gateable (#58 does it); *accuracy* of a diagram is not, and
          a check that asserted which words appear in a picture would fight every future redesign.
       **Split out:** the SPEC-pointer problem turned out to be a different defect — see #60.
+      **DONE 2026-09-24.** The README diagram now shows the write path (note → pre-commit →
+      sidecar → post-commit → cache), the read path (FTS5 + vec0 → RRF), encryption branching at
+      the *git* layer, and both client surfaces sharing one retrieval. Three `docs/` diagrams
+      added and no more: `lexical-fence.md` (one note → two projections → two indexes, with the
+      content-hash gate shown, since "one difference not two" is the safety argument and prose
+      was carrying it badly), `encrypted-notes.md` (plaintext working tree vs opaque committed
+      form side by side), `embed-opt-out.md` (the two retraction paths, which are not
+      interchangeable). All three sit in `no-embed` fences — a diagram is exactly the decorative,
+      token-dense content that mechanism exists for, and it would otherwise dilute the doc.
 
-## The devkit's spec references leave the repo (task #60, surfaced 2026-09-24)
-- [ ] **Five references point at `../second-brain-test/SPEC.md`, a path outside this repo.**
+## The devkit's spec references leave the repo (task #60, FIXED 2026-09-24)
+- [x] **Five references point at `../second-brain-test/SPEC.md`, a path outside this repo.**
       Found while asking whether the product spec needs promoting into the devkit (OQ-4). It
       does not — **the content is already here.** `vendor_golden.py` copies every tracked golden
       file, so `tests/golden/SPEC.md` is a 310-line vendored copy sitting in this repo today.
@@ -2029,6 +2038,14 @@ has no feedback loop because it never touches retrieval.
       same file is involved.
       Small — roughly twenty minutes — but it is the kind of thing that only ever gets found by
       someone reading the docs from a fresh clone, which nobody does.
+      **FIXED 2026-09-24.** All reading references now point at the vendored copies
+      (`tests/golden/SPEC.md`, `tests/golden/CLAUDE.md`), with a caveat in SPEC §6 saying the
+      snapshot is the readable copy while the live golden stays the editable one.
+      **The distinction that mattered, and it is worth keeping:** a *workflow* reference to
+      `../second-brain-test/` — "prototype the feature by hand there" — is **correct** and was
+      left alone. It names a working directory, not a document. Only *reading* references
+      ("the contract lives here") had to resolve from a clone. Sweeping all of them would have
+      broken the build loop's own instructions.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed

@@ -41,6 +41,31 @@ so churning it should never touch a vector.
 
 ## 3. Narrowness is the safety argument
 
+<!-- second-brain:no-embed:begin -->
+```
+                       one note on disk
+                              │
+          ┌───────────────────┴───────────────────┐
+          ▼                                       ▼
+   canonical_body()                        lexical_body()
+   strips: frontmatter                     strips: frontmatter
+           no-embed  ◀── art ──▶                   no-embed
+           lexical-only                            ·············  KEPT
+           asset filenames                         asset filenames
+           wikilink brackets                       wikilink brackets
+          │                                       │
+          ▼                                       ▼
+   ┌─────────────┐   content_hash            ┌──────────┐
+   │ vec0 vector │◀──── gates re-embed       │ fts5 row │  rewritten on
+   └─────────────┘                           └──────────┘  EVERY upsert
+          │                                       │
+          └──────────────▶ RRF fuse ◀─────────────┘
+
+   one difference, not two ── edit inside a lexical-only fence and the
+   hash is unchanged (no re-embed) while the fts5 row still refreshes
+```
+<!-- second-brain:no-embed:end -->
+
 `lexical_body()` differs from `canonical_body()` in **exactly one** way: `lexical-only` blocks
 are kept. Frontmatter, line endings, `no-embed` blocks, asset filenames and wikilink brackets
 are all handled identically.

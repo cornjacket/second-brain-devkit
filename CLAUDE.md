@@ -1,8 +1,11 @@
 # Second Brain Devkit — Agent Memory
 
 This is memory for working **on the devkit** — the generator and system home. It
-is *not* the memory for working inside a brain; that lives in the product repo at
-`../second-brain-test/CLAUDE.md`.
+is *not* the memory for working inside a brain; that is the emitted
+[`template/CLAUDE.md`](template/CLAUDE.md), snapshotted at
+[`tests/golden/CLAUDE.md`](tests/golden/CLAUDE.md). Both resolve from a clone of this repo
+alone; the live golden at `../second-brain-test/` is the prototyping surface, not a document to
+send a reader to.
 
 ## Where things are specified
 
@@ -11,7 +14,7 @@ spec so they cannot drift.
 
 - System workflow, roles, lifecycle, generator/validation loop → [SPEC.md](SPEC.md)
 - Per-brain contracts (PARA, sidecar schema, embedding, cache DDL, search,
-  `register`) → `../second-brain-test/SPEC.md` (canonical product spec, for now —
+  `register`) → `tests/golden/SPEC.md` (canonical product spec, for now —
   promoted into the devkit only at mothball, see [OQ-4](open-questions.md))
 - Unresolved design decisions → [open-questions.md](open-questions.md)
 - What every source file is for → [docs/source-map.md](docs/source-map.md)
