@@ -117,7 +117,7 @@ A new `[pdf]` block in `config/features.toml` (read via `scripts/features.py`, s
 
 ```toml
 [pdf]
-inbox_dirs     = ["vault/inbox"]  # source folders, priority order (first shown first)
+inbox_dirs     = ["vault/pdf-inbox"]  # source folders, priority order (first shown first)
 list_sort      = "newest"      # how folder contents are ordered: "newest" | "alphabetical"
 list_page_size = 20            # how many entries to enumerate before paginating
 chunk_tokens   = 512           # target chunk size (tokens)
@@ -144,13 +144,29 @@ tells them why.
 
 That combined with the #38 bug (a denial read as an empty folder) made this the worst kind of
 default: it pointed at the right place, failed silently, and blamed nothing. #38 fixed the
-silence; removing the default fixes the **false promise**. `vault/inbox` lives inside the brain,
+silence; removing the default fixes the **false promise**. The brain's own folder lives inside the brain,
 is not TCC-protected, and always works.
 
 The lesson generalizes: **do not ship a default that depends on a permission the software cannot
 request.** A user can add `~/Downloads` back by hand — and if they do, `doctor.py` reports it as
 unreadable and listing it raises, so the failure is now legible. Finder holds the grant and the
 user is the consenting party, so *moving the file* is the reliable path, not *reaching for it*.
+
+### 3.2 `vault/inbox` became `vault/pdf-inbox` (task #61, 2026-10-14)
+
+The folder was renamed for what it holds. A bare `inbox` reads as a general triage folder, and
+the neighbouring repos already use the word for other things — the task system's `inbox/` for
+raw ideas, and a brain owner wanting a place to leave messages for the next session. Nothing in a
+brain ever looks in this folder for anything except PDFs, so the name now says so. The code
+identifiers (`inbox_dirs`, `move_from_inbox`, `list_inbox_pdfs`) keep the word: inside the `[pdf]`
+block and a tool named for PDFs the scope is already unambiguous, and renaming them would break
+every existing config and MCP client for no gain in clarity.
+
+**An existing brain does not follow the rename on its own.** `update_brain.py` preserves
+`config/` and `vault/`, so an upgraded brain keeps `inbox_dirs = ["vault/inbox"]` and keeps
+working exactly as before. Migrating is a hand step: change that one line, then move the folder
+(`git mv` is not needed — the folder is untracked). That is the preserve rule doing its job, not
+a gap: the config is the user's, and a silent rewrite of it is the thing the rule exists to stop.
 
 ## 4. Architecture — the bolt-on schema
 

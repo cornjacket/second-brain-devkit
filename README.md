@@ -160,7 +160,7 @@ byte-identical.
   `~/Downloads`/`~/Desktop`/`~/Documents` behind per-app consent a plain script can't obtain) no
   longer masquerades as *empty*: listing fails loudly and `doctor.py` names it unreadable, so a
   permission problem never looks like "no PDFs here." The one folder configured out of the box,
-  `vault/inbox`, lives inside the brain and is always readable.
+  `vault/pdf-inbox`, lives inside the brain and is always readable.
 - **Built prototype-first** in the golden, with `doctor.py` PDF parity (stale / orphaned chunk
   detection). Design + rationale: [docs/pdf-ingestion.md](docs/pdf-ingestion.md); the interactive
   picker in [docs/pdf-elicitation.md](docs/pdf-elicitation.md).

@@ -2047,6 +2047,14 @@ has no feedback loop because it never touches retrieval.
       ("the contract lives here") had to resolve from a clone. Sweeping all of them would have
       broken the build loop's own instructions.
 
+## The PDF source folder is named like a general inbox (task #61, DONE 2026-10-14) → [docs/pdf-ingestion.md §3.2](docs/pdf-ingestion.md)
+- [x] **Rename `vault/inbox` to `vault/pdf-inbox`.** Raised from a real brain: the owner wanted an
+      inbox for leaving messages to the repo and found the name already taken by PDF ingestion,
+      while the task system's `inbox/` means a third thing. Prototyped in the live golden, vendored,
+      template rebuilt. Code identifiers (`inbox_dirs`, `list_inbox_pdfs`) deliberately unchanged.
+      Existing brains keep `vault/inbox` until their owner edits one config line — `config/` is
+      preserved by `update_brain.py`, and that is correct, not a gap.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
