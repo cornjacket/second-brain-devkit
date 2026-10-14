@@ -88,6 +88,41 @@ This was not foreseen. Gate 18 (`check_content_classification.py`) caught it on 
 after `_is_preserved` was loosened — the invariant *every `.md` is content or machinery, and
 update_brain never writes content* is precisely what a new write path is liable to break.
 
+## Drift is reported, not trusted (task #63)
+
+A curated file has a failure mode a generated one does not: **nothing forces the curation.**
+Found in a real brain three weeks after #56 shipped. A new project had collected thirty open
+checkboxes and never got a row, and nothing noticed. The file sits outside every PARA root, so no
+embedding, cache or doctor pass ever read it. A dashboard that is behind is worse than none,
+because it is the one file an agent is told to trust for "where did we leave off".
+
+Generating the dashboard would fix the drift by deleting the feature: its *next action* and
+*blocked on* columns are judgment. So the fix keeps the curation human and makes its drift
+**visible** instead. `scripts/dashboard_audit.py` checks three things that need no judgment:
+
+| Finding | Test |
+| --- | --- |
+| **stale** | git's newest commit to the row's project is later than the row's *Last touched* |
+| **missing** | a project under `vault/projects/` has open `- [ ]` items and no row links it |
+| **finished** | a row links a note now under `vault/archive/` |
+
+A row's link names a note; when that note is a folder's entry note, the row covers the whole
+folder, because that is what the entry-note convention means. Two placements, for two moments:
+
+- **post-commit hook** (`--from-commit HEAD`) names only the projects that commit touched, while
+  the work is still in your head. It never blocks; the commit has already landed.
+- **`doctor.py`** reports every finding as needing an edit, the same class as a note over the
+  embed budget, so the closing hint does not promise `--repair` can fix it.
+
+Neither one writes the file. A project with nothing open needs no row, so it is not reported.
+An unresolvable link, such as the seed's `[[example-project]]` placeholder, is ignored, so a
+fresh brain is clean. Encrypted brains are skipped: their vault is not in git, so git cannot
+date a project.
+
+Run against the real brain where the problem was found, it reported exactly the one missing
+project. Every other row's date matched git to the day. That is the precision bar: a check
+that cries wolf on a well-kept dashboard teaches people to ignore it.
+
 ## What is gated
 
 `check_claude_block.py`, both directions, because each failure hides in the other:
@@ -98,3 +133,8 @@ update_brain never writes content* is precisely what a new write path is liable 
 A dashboard that never arrives looks like a brain that simply has none; one that gets
 overwritten looks like a successful update until you open it. Mutation-tested: turning the
 skip back into a write turns the gate red.
+
+Gate 25 (`check_dashboard_index.py`) also covers #63 in a *generated* brain. It adds an open
+item to a project with no row, commits, and requires both the audit and `doctor.py` to name it.
+It also runs the vendored `test_dashboard_audit.py` suite. Mutation-tested: an audit that
+returns nothing turns two assertions red.

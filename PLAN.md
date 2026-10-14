@@ -2055,6 +2055,16 @@ has no feedback loop because it never touches retrieval.
       Existing brains keep `vault/inbox` until their owner edits one config line — `config/` is
       preserved by `update_brain.py`, and that is correct, not a gap.
 
+## Nothing keeps the dashboard honest (task #63, BUILT 2026-10-14) → [docs/dashboard-index.md](docs/dashboard-index.md)
+- [x] **Report a stale row, a missing row and a finished row.** Found in a real brain: no row
+      updated in three weeks of work, and a new project with thirty open items and no row at
+      all. The dashboard is curated by design, so the fix is to make drift visible, not to
+      generate the file. `scripts/dashboard_audit.py` is run by `doctor.py` (as needing an edit)
+      and by the post-commit hook (only the projects that commit touched, never blocking).
+      Emitted `CLAUDE.md` now says to update the row in the same commit as the work. Prototyped
+      in the live golden; gate 25 extended to exercise it in a generated brain; mutation-tested.
+      Against the brain it came from, it reported exactly the one missing project.
+
 ## Upgrading an encrypted brain un-ignores its plaintext vault (task #62, FIXED 2026-10-14) → [docs/encrypted-notes.md](docs/encrypted-notes.md)
 - [x] **`update_brain.py` overwrites `.gitignore` from the template and drops the
       `# second-brain:encryption:begin/end` block** that `encrypt_vault.py` wrote, so every

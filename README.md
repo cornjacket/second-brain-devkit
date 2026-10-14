@@ -210,7 +210,9 @@ up afterwards.
   → [docs/tag-hygiene.md](docs/tag-hygiene.md)
 - **Dashboard index** — the one view that reports *state* rather than relatedness. A folder says
   what archives together and an embedding says what is similar; neither knows a checkbox is
-  unticked. → [docs/dashboard-index.md](docs/dashboard-index.md)
+  unticked. Its drift is checked rather than trusted: `doctor.py` and the post-commit hook flag a
+  stale row, a project with open items and no row, and a row for an archived project.
+  → [docs/dashboard-index.md](docs/dashboard-index.md)
 
 **Where a brain lives**
 

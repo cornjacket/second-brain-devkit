@@ -95,6 +95,30 @@ def main() -> int:
             fails.append("the seeded dashboard index does not match the template seed")
         _init(brain)
 
+        # --- drift is reported, not trusted (task #63) ----------------------------------
+        # A curated file has its own failure mode: nothing forces the curation. A project
+        # that gains open items and no row must be named, by the shipped audit, in the
+        # generated brain — not just in the golden's unit test.
+        proj = brain / "vault" / "projects" / "second-brain.md"
+        proj.write_text(proj.read_text(encoding="utf-8") + "\n- [ ] an open item\n",
+                        encoding="utf-8")
+        _git(brain, "add", "-A")
+        _git(brain, "commit", "-q", "-m", "work with no dashboard row")
+        r = subprocess.run([PY, "-B", "scripts/dashboard_audit.py", "--from-commit", "HEAD"],
+                           cwd=brain, capture_output=True, text=True, timeout=120)
+        if "[[second-brain]]" not in r.stderr or "no dashboard row" not in r.stderr:
+            fails.append("a project with open items and no dashboard row was NOT reported by "
+                         f"the generated brain's dashboard_audit.py (got: {r.stderr.strip()!r})")
+        r = subprocess.run([PY, "-B", "scripts/doctor.py"], cwd=brain, capture_output=True,
+                           text=True, timeout=300)
+        if "dashboard: [[second-brain]]" not in r.stdout:
+            fails.append("doctor.py did not report the project missing from the dashboard")
+        suite = REPO_ROOT / "tests" / "golden" / "tests" / "test_dashboard_audit.py"
+        r = subprocess.run([PY, "-B", "-m", "unittest", "-q", str(suite)], capture_output=True,
+                           text=True, timeout=300)
+        if r.returncode != 0:
+            fails.append(f"the vendored dashboard-audit suite failed:\n{r.stderr[-2000:]}")
+
         # --- an upgrade must NOT touch a modified one -----------------------------------
         mine = "# My dashboard\n\n| effort | next action | blocked on |\n| --- | --- | --- |\n"
         path.write_text(mine, encoding="utf-8")
@@ -135,7 +159,8 @@ def main() -> int:
         print(f"\ndashboard-index FAILED: {len(fails)} assertion(s)", file=sys.stderr)
         return 1
     print("dashboard-index OK: seeded into a fresh brain, delivered to one that lacks it, never "
-          "overwritten once the user owns it, and unembeddable by location rather than by flag")
+          "overwritten once the user owns it, unembeddable by location rather than by flag, "
+          "and its drift is reported rather than trusted")
     return 0
 
 

@@ -41,6 +41,7 @@ Everything a generated brain owns and runs. Lives in the golden at
 ### Health, setup & housekeeping
 | File | Purpose |
 |---|---|
+| `dashboard_audit.py` | Dashboard drift audit (#63) — a row whose project changed after its *Last touched* date, a project with open items and no row, a row for an archived project. Run by `doctor.py` (every finding) and by the post-commit hook (`--from-commit HEAD`, only what that commit touched). Reports only; never writes the dashboard. |
 | `doctor.py` | "Is this brain ready?" preflight — deps, Ollama reachability/model, full vault↔sidecar↔db consistency **including stale-embedding detection** (a vector whose `content_hash` predates the note's current canonical view — #30), with `--repair`. |
 | `self_test.py` | Deterministic **structural** self-test (`test` backend, byte-exact fixtures) — a CI gate. |
 | `check_line_count.py` | Markdown line-count guard (pre-commit warning). |
