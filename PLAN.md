@@ -2055,6 +2055,21 @@ has no feedback loop because it never touches retrieval.
       Existing brains keep `vault/inbox` until their owner edits one config line — `config/` is
       preserved by `update_brain.py`, and that is correct, not a gap.
 
+## Upgrading an encrypted brain un-ignores its plaintext vault (task #62, backlog, surfaced 2026-10-14)
+- [ ] **`update_brain.py` overwrites `.gitignore` from the template and drops the
+      `# second-brain:encryption:begin/end` block** that `encrypt_vault.py` wrote, so every
+      plaintext note in an encrypted brain becomes one `git add -A` away from the remote. Found
+      while rolling #61 out to `second-brain-encrypt`; caught before anything was staged, and the
+      block restored by hand there. No gate upgrades an *encrypted* brain and then checks its
+      ignore rules — gates 17/19 only cover a brain encrypted at the current version.
+      Fix shape: treat the encryption block like the README/CLAUDE.md managed blocks (splice, keep
+      what is outside), and add a gate that upgrades an encrypted brain and asserts the vault is
+      still ignored.
+- [ ] **Same rollout, smaller facet: `vault/templates/not-a-note.md` is VAULT_OWNED but not in
+      `encrypt_vault.MACHINERY` or the ignore block's allow-list**, so an upgraded encrypted brain
+      commits it and `doctor.py` then reports it as a PLAINTEXT note. It is a devkit template, not
+      user content, so nothing leaks — but a false alarm in the one check that must never cry wolf.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
