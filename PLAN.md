@@ -2055,6 +2055,15 @@ has no feedback loop because it never touches retrieval.
       Existing brains keep `vault/inbox` until their owner edits one config line — `config/` is
       preserved by `update_brain.py`, and that is correct, not a gap.
 
+## A brain has no place to leave it a message (task #64, BUILT 2026-10-14) → [docs/inbox.md](docs/inbox.md)
+- [x] **Seed `vault/inbox.md` at the vault root; every session reads it first.** Asked for by
+      a real brain's owner, who found the word `inbox` taken by the PDF folder (#61) and the
+      task system. One line per message, under `## Messages`. The agent does each message or
+      converts it, then deletes the line in the same commit (a queue, not a log). `VAULT_SEEDED`
+      like the dashboard; `doctor.py` counts what is waiting. Brain README gained a section on
+      the dashboard (it had none), its drift audit (#63) and the inbox. Gate 28,
+      mutation-tested. Not built: an MCP `add_inbox_message` tool for Desktop.
+
 ## Nothing keeps the dashboard honest (task #63, BUILT 2026-10-14) → [docs/dashboard-index.md](docs/dashboard-index.md)
 - [x] **Report a stale row, a missing row and a finished row.** Found in a real brain: no row
       updated in three weeks of work, and a new project with thirty open items and no row at

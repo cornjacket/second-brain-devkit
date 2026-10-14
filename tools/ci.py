@@ -317,34 +317,43 @@ def step_encrypted_upgrade() -> bool:
     return _run([PY, str(TOOLS / "check_encrypted_upgrade.py")])
 
 
+
+def step_inbox() -> bool:
+    # The inbox shares the dashboard's delivery rule and so its two silent failures (#64) —
+    # waiting messages clobbered by an upgrade, or never delivered to an older brain. It adds
+    # one of its own: a message nobody is told to read is worse than no inbox.
+    return _run([PY, str(TOOLS / "check_inbox.py")])
+
+
 STEPS = [
-    ("1/27 manifest partition", step_partition),
-    ("2/27 template in sync with golden", step_template_in_sync),
-    ("3/27 emitted scripts compile", step_py_compile),
-    ("4/27 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/27 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/27 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/27 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/27 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/27 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/27 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/27 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/27 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/27 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/27 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/27 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
-    ("16/27 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
-    ("17/27 encryption (mechanism + a commit path that does not go blind)", step_encryption),
-    ("18/27 content classification (every .md is content or machinery)", step_classification),
-    ("19/27 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
-    ("20/27 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
-    ("21/27 note moves (archiving a note keeps it in the brain)", step_note_move),
-    ("22/27 a committed note is searchable, in both modes", step_commit_indexes),
-    ("23/27 asset colocation (nested note + sibling asset, unique names)", step_asset_colocation),
-    ("24/27 lexical-only fence (out of the vector, in keyword search)", step_lexical_fence),
-    ("25/27 dashboard index (seeded once, never overwritten)", step_dashboard_index),
-    ("26/27 doc coverage (a shipped feature is named in the README)", step_doc_coverage),
-    ("27/27 encrypted upgrade (the vault stays ignored, nothing in the clear)", step_encrypted_upgrade),
+    ("1/28 manifest partition", step_partition),
+    ("2/28 template in sync with golden", step_template_in_sync),
+    ("3/28 emitted scripts compile", step_py_compile),
+    ("4/28 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/28 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/28 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/28 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/28 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/28 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/28 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/28 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/28 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/28 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/28 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/28 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/28 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
+    ("17/28 encryption (mechanism + a commit path that does not go blind)", step_encryption),
+    ("18/28 content classification (every .md is content or machinery)", step_classification),
+    ("19/28 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
+    ("20/28 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
+    ("21/28 note moves (archiving a note keeps it in the brain)", step_note_move),
+    ("22/28 a committed note is searchable, in both modes", step_commit_indexes),
+    ("23/28 asset colocation (nested note + sibling asset, unique names)", step_asset_colocation),
+    ("24/28 lexical-only fence (out of the vector, in keyword search)", step_lexical_fence),
+    ("25/28 dashboard index (seeded once, never overwritten)", step_dashboard_index),
+    ("26/28 doc coverage (a shipped feature is named in the README)", step_doc_coverage),
+    ("27/28 encrypted upgrade (the vault stays ignored, nothing in the clear)", step_encrypted_upgrade),
+    ("28/28 inbox (seeded once, never overwritten, read first, counted)", step_inbox),
 ]
 
 

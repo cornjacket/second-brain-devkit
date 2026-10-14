@@ -49,7 +49,8 @@ README = REPO_ROOT / "README.md"
 # because the README is where someone deciding whether to use this finds out what it does.
 PRODUCT = {
     "asset-colocation", "auto-linking", "dashboard-index", "embed-budget-audit",
-    "embed-excluded-block", "embed-opt-out", "encrypted-notes", "glossary", "lexical-fence",
+    "embed-excluded-block", "embed-opt-out", "encrypted-notes", "glossary", "inbox",
+    "lexical-fence",
     "mcp-server", "pdf-ingestion", "remote-backed-brains", "tag-hygiene",
 }
 

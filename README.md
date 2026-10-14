@@ -213,6 +213,9 @@ up afterwards.
   unticked. Its drift is checked rather than trusted: `doctor.py` and the post-commit hook flag a
   stale row, a project with open items and no row, and a row for an archived project.
   → [docs/dashboard-index.md](docs/dashboard-index.md)
+- **Inbox** — `vault/inbox.md`, beside the dashboard, where the owner leaves messages for the next
+  agent session. Every session reads it first, does or converts each message, and deletes the
+  handled line; `doctor.py` counts what is waiting. → [docs/inbox.md](docs/inbox.md)
 
 **Where a brain lives**
 

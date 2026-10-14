@@ -109,6 +109,7 @@ paths = [
   "seeds/archive/.gitkeep",
   "seeds/areas/knowledge-management.md",
   "seeds/dashboard-index.md",
+  "seeds/inbox.md",
   "seeds/glossary/.gitkeep",
   "seeds/projects/second-brain.md",
   "seeds/resources/embeddings.md",
@@ -150,6 +151,7 @@ paths = [
   "vault/archive/.gitkeep",
   "vault/areas/knowledge-management.md",
   "vault/dashboard-index.md",
+  "vault/inbox.md",
   "vault/glossary/.gitkeep",
   "vault/projects/second-brain.md",
   "vault/resources/embeddings.md",
@@ -189,6 +191,7 @@ paths = [
   "tests/test_mcp_pdf.py",
   "tests/test_doctor_pdf.py",
   "tests/test_dashboard_audit.py",
+  "tests/test_inbox.py",
   "tests/test_pdf_gitignore.py",
   "tests/fixtures/pdf/sample.embed.json",
   "tests/test_encrypt_vault.py",
@@ -214,6 +217,7 @@ paths = [
 "tests/test_pdf_search.py" = "dev-only regression test for M4 passage search (task #7) — loads two docs into a temp cache and asserts fusion, best_per_source vs all_chunks, and the within-document scope. A brain ships the tool, not its test."
 "tests/test_add_pdf.py" = "dev-only regression test for the M5 ingest engine (task #7) — folder-first selection (pypdf-free) plus an end-to-end ingest that builds a PDF and skips when pypdf is absent. A brain ships the tool, not its test."
 "tests/test_mcp_pdf.py" = "dev-only regression test for the M6 PDF MCP tools (task #7) — the ingest security boundary plus an end-to-end list/add/search/fetch flow; skips without mcp/pypdf. A brain ships the tools, not their test."
+"tests/test_inbox.py" = "dev-only regression test for doctor's inbox count (task #64) — only `- ` lines under `## Messages` count, so the shipped seed reads as empty. A brain ships the count, not its test. Run in CI (gate 28)."
 "tests/test_dashboard_audit.py" = "dev-only regression test for the dashboard drift audit (task #63) — stale, missing and finished rows against a real throwaway git repo, and the post-commit narrowing to the projects one commit touched. A brain ships the audit, not its test. Run in CI (gate 25)."
 "tests/test_doctor_pdf.py" = "dev-only regression test for doctor's M6 PDF parity (task #7) — a PDF sidecar is never mis-flagged in the note pass, and a consistent PDF scans clean. A brain ships the tool, not its test."
 "tests/test_pdf_gitignore.py" = "dev-only guard that an ingested PDF is genuinely git-ignored, not merely untracked (task #39) — asks `git check-ignore` rather than grepping the file, so a rule that is present but wrong still fails. A brain ships the .gitignore, not its test."

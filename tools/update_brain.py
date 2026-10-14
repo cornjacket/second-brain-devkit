@@ -35,8 +35,9 @@ What it does:
     ``CLAUDE.md``, so freezing it let an upgraded brain violate a build-time invariant.
     Named as explicit paths rather than by relaxing the ``vault/`` rule, so the promise
     stays auditable. A second, weaker exception (``VAULT_SEEDED``) writes a file only when
-    the brain lacks it — ``vault/dashboard-index.md``, which exists to hold your own status
-    and so must never be overwritten once you have touched it.
+    the brain lacks it — ``vault/dashboard-index.md`` and ``vault/inbox.md``, which exist to
+    hold your own status and messages and so must never be overwritten once you have touched
+    them.
   • **``.gitignore`` keeps its encryption block (task #62).** The file is devkit-owned and
     re-emitted, but on an encrypted brain the ``# second-brain:encryption`` block is what keeps
     plaintext notes out of git, so it is re-spliced into the fresh copy — with the current body,
@@ -160,6 +161,8 @@ VAULT_OWNED = {
 # itself is a starting point, not a source of truth.
 VAULT_SEEDED = {
     "vault/dashboard-index.md": "seeds/dashboard-index.md",
+    # Task #64. Same rule for the same reason: it exists to hold the user's waiting messages.
+    "vault/inbox.md": "seeds/inbox.md",
 }
 
 
