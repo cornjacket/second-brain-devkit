@@ -2055,8 +2055,8 @@ has no feedback loop because it never touches retrieval.
       Existing brains keep `vault/inbox` until their owner edits one config line — `config/` is
       preserved by `update_brain.py`, and that is correct, not a gap.
 
-## Upgrading an encrypted brain un-ignores its plaintext vault (task #62, backlog, surfaced 2026-10-14)
-- [ ] **`update_brain.py` overwrites `.gitignore` from the template and drops the
+## Upgrading an encrypted brain un-ignores its plaintext vault (task #62, FIXED 2026-10-14) → [docs/encrypted-notes.md](docs/encrypted-notes.md)
+- [x] **`update_brain.py` overwrites `.gitignore` from the template and drops the
       `# second-brain:encryption:begin/end` block** that `encrypt_vault.py` wrote, so every
       plaintext note in an encrypted brain becomes one `git add -A` away from the remote. Found
       while rolling #61 out to `second-brain-encrypt`; caught before anything was staged, and the
@@ -2065,10 +2065,18 @@ has no feedback loop because it never touches retrieval.
       Fix shape: treat the encryption block like the README/CLAUDE.md managed blocks (splice, keep
       what is outside), and add a gate that upgrades an encrypted brain and asserts the vault is
       still ignored.
-- [ ] **Same rollout, smaller facet: `vault/templates/not-a-note.md` is VAULT_OWNED but not in
+- [x] **Same rollout, smaller facet: `vault/templates/not-a-note.md` is VAULT_OWNED but not in
       `encrypt_vault.MACHINERY` or the ignore block's allow-list**, so an upgraded encrypted brain
       commits it and `doctor.py` then reports it as a PLAINTEXT note. It is a devkit template, not
       user content, so nothing leaks — but a false alarm in the one check that must never cry wolf.
+      **FIXED 2026-10-14.** `update_brain.py` re-splices the block into the re-emitted
+      `.gitignore` whenever the brain is encrypted or already has one, with the **current**
+      `IGNORE_BODY` so older brains receive new allow-list lines. `encrypt_vault.MACHINERY` now
+      names both templates and the allow-list is generated from it (prototyped in the golden).
+      **Gate 27** (`tools/check_encrypted_upgrade.py`) ages an encrypted brain, upgrades it and
+      asserts the vault stays ignored, only MACHINERY is tracked and doctor finds no PLAINTEXT;
+      it also pins MACHINERY == VAULT_OWNED and that a plaintext brain grows no block. Verified to
+      fail 3 assertions against the pre-fix `update_brain.py`.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed

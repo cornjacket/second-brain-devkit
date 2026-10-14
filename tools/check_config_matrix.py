@@ -187,7 +187,12 @@ def check_encryption(brain: Path, env: dict) -> list[str]:
         return fails + [f"--enable failed: {(r.stderr or r.stdout).strip()[:200]}"]
 
     tracked = _git(brain, "ls-files", "vault", env=env).stdout.split()
-    if tracked != ["vault/templates/new-note.md"]:
+    # The devkit-owned templates stay tracked by design (encrypt_vault.MACHINERY); read the
+    # list from the brain's own script so this gate cannot drift from it.
+    machinery = sorted(re.findall(r'"(vault/templates/[^"]+)"', next(
+        ln for ln in (brain / "scripts" / "encrypt_vault.py").read_text().splitlines()
+        if ln.startswith("MACHINERY = "))))
+    if sorted(tracked) != machinery:
         fails.append(f"after --enable, vault/ still tracks {tracked} — the seeded notes are "
                      f"committed in the clear")
 

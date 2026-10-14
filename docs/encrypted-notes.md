@@ -75,7 +75,7 @@ about you.
 | Encrypted (content) | Plaintext (machinery) |
 | --- | --- |
 | `vault/**/*.md` — every PARA note and every `vault/glossary/<term>.md` | `README.md`, `CLAUDE.md`, `GEMINI.md`, `GLOSSARY.md` |
-| | `vault/templates/new-note.md` — the one carve-out inside the vault |
+| | `vault/templates/new-note.md`, `vault/templates/not-a-note.md` — the carve-outs inside the vault (`MACHINERY`) |
 | | `skill/`, `desktop-e2e/`, `seeds/`, `tests/fixtures/` |
 
 `vault/templates/new-note.md` is forced, not chosen: it is `update_brain.py`'s single
@@ -329,10 +329,30 @@ wrapper uses for its managed children:
 # Every note is content — default-deny. No directory under vault/ is committed:
 # a folder name is a tell even when the notes inside it are unreadable.
 /vault/**
-# Exactly one exception — the devkit-owned note template (gate 9 needs it readable).
+# The exceptions — the devkit-owned note templates (MACHINERY; gate 9 needs one readable).
 !/vault/templates/
 !/vault/templates/new-note.md
+!/vault/templates/not-a-note.md
 ```
+
+The allow-list lines are generated from `encrypt_vault.MACHINERY`, which must name exactly
+`update_brain.VAULT_OWNED` (gate 27 asserts it). It lagged once: `not-a-note.md` became
+devkit-owned under #45 but was never added, so an upgrade committed it and `doctor.py` called it
+a PLAINTEXT note (#62).
+
+### Upgrades keep the block (task #62)
+
+`.gitignore` is a devkit-owned file that `update_brain.py` re-emits, and the template carries
+no encryption block — so the first upgrade of an encrypted brain silently **dropped** it, leaving
+every plaintext note one `git add -A` from the remote. It was caught on a real brain before
+anything was staged. `update_brain.py` now re-splices the block into the fresh copy whenever the
+brain is encrypted or already has the block, with the **current** `IGNORE_BODY` so allow-list
+lines added since reach older brains too. Gate 27 (`tools/check_encrypted_upgrade.py`) ages an
+encrypted brain to the pre-#62 state, upgrades it, and asserts the vault stays ignored and
+`doctor.py` finds nothing in the clear; it also asserts a plaintext brain's upgrade grows no block.
+The lesson generalises: **a file one tool owns and another tool splices into is a managed-block
+file, whether or not anyone declared it one** — gates 17 and 19 covered encryption at the current
+version and never upgraded a brain, which is the only path that ran the two tools in sequence.
 
 Two subtleties, both of which fail **open** — get either wrong and notes leak while
 everything looks fine — so both are pinned by a test:
