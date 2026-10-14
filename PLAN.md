@@ -2055,6 +2055,23 @@ has no feedback loop because it never touches retrieval.
       Existing brains keep `vault/inbox` until their owner edits one config line — `config/` is
       preserved by `update_brain.py`, and that is correct, not a gap.
 
+## A forgotten fence lets a checklist push a note over the embed budget (task #65, backlog, surfaced 2026-10-14)
+- [ ] **Drop checkbox lines from the embed input automatically, no fence needed.** Found in a real
+      brain: two `- [ ]` items added to a project note, unfenced, took it from under the 1800-token
+      budget to over it, and the commit failed to embed. `CLAUDE.md` already says to put volatile
+      checklists in a `lexical-only` fence, but a rule that depends on remembering to fence fails
+      the first time someone forgets. Make `canonical_body` drop `- [ ]` / `- [x]` lines and their
+      indented continuation lines, the way the `lexical-only` fence does: out of the vector and
+      the content hash, still in keyword search (`lexical_body`). Then ticking a box never
+      re-embeds, and a checklist can never exceed the budget.
+      **Prototype it in `../second-brain-test/` first**, per the Development Workflow: change
+      `note_view.py`, add tests next to `test_lexical_fence.py`, confirm `doctor.py` and the
+      pre-commit budget warning, then vendor, rebuild the template and extend gate 24 (or add a
+      gate). Watch for: the view changes the content hash of every note with checkboxes, so every
+      upgraded brain will report those notes as stale embeddings once (`doctor.py --repair` fixes
+      it). Say so in the upgrade note. Update the `CLAUDE.md` fence guidance so it no longer tells
+      people to fence checklists.
+
 ## A brain has no place to leave it a message (task #64, BUILT 2026-10-14) → [docs/inbox.md](docs/inbox.md)
 - [x] **Seed `vault/inbox.md` at the vault root; every session reads it first.** Asked for by
       a real brain's owner, who found the word `inbox` taken by the PDF folder (#61) and the
