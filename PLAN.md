@@ -2072,6 +2072,14 @@ has no feedback loop because it never touches retrieval.
       it). Say so in the upgrade note. Update the `CLAUDE.md` fence guidance so it no longer tells
       people to fence checklists.
 
+## Markdown notes cannot become documents to send (task #66, backlog, surfaced 2026-10-22)
+- [ ] **A generic md2pdf tool.** Found in a real brain: a resume and a letter of introduction
+      live as vault notes, and each PDF sent to an employer was rendered by hand (an HTML copy
+      plus a headless-Chrome command written into the note). Build one tool that renders a note,
+      or the part of a note below a `---` rule, to PDF, and document it in a `tools.md`. The
+      detailed build prompt is held outside this plan. **Prototype it in `../second-brain-test/`
+      first**, per the Development Workflow.
+
 ## A brain has no place to leave it a message (task #64, BUILT 2026-10-14) → [docs/inbox.md](docs/inbox.md)
 - [x] **Seed `vault/inbox.md` at the vault root; every session reads it first.** Asked for by
       a real brain's owner, who found the word `inbox` taken by the PDF folder (#61) and the
