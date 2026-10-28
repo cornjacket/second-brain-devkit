@@ -2122,6 +2122,46 @@ has no feedback loop because it never touches retrieval.
       it also pins MACHINERY == VAULT_OWNED and that a plaintext brain grows no block. Verified to
       fail 3 assertions against the pre-fix `update_brain.py`.
 
+## An MCP client can create a note but not change one (task #67, surfaced 2026-10-27)
+- [ ] **Add `replace_note`, so Claude Desktop can edit an existing note.** Today the server only
+      creates: `add_note` refuses to overwrite and nothing else writes. Design agreed in a
+      second-brain session 2026-10-27.
+      **The hash must be a WHOLE-FILE digest, not `content_hash`.** This is the one design point
+      that changed on inspection. `content_hash` runs over `canonical_body`, which strips fenced
+      regions — so it is blind by design to an edit inside a `no-embed` or `lexical-only` fence.
+      Measured: after ticking a checkbox inside a `lexical-only` fence the content hash is
+      **equal** and a whole-file sha256 differs. Using it would let Desktop write over a
+      checkbox someone ticked in Obsidian and report success, which is precisely the failure the
+      hash exists to prevent. Use sha256 of the working-tree bytes, frontmatter included.
+      **`get_note` shape — least breaking.** Keep the default return byte-identical and add
+      `with_hash: bool = False`; when true, return a JSON object as *text*
+      (`source_file`/`hash`/`content`), so the declared return type stays `str` and no current
+      caller changes. Two alternatives rejected: appending the hash to the Markdown pollutes the
+      text the client then writes back, and a separate `get_note_hash` tool **races** — the file
+      can change between the two calls, yielding a hash for content nobody read.
+      **Order of operations in `replace_note`**, and the order is the design: check the target is
+      allowed → refuse a missing file (never create; that stays `add_note`) → hash on disk and
+      refuse a mismatch → run `fence_errors` on the **new** body *before writing*, so a
+      malformed fence never reaches disk → write → reuse `add_note`'s tail (encrypt when on,
+      pathspec add/commit, re-add after hooks, push). **On commit failure, restore the previous
+      bytes** — `add_note` unlinks on failure, but an edit has something to put back.
+      **Targets:** `.md` under the four PARA roots, plus `vault/dashboard-index.md` and
+      `vault/inbox.md`. Refused: the glossary (it has `add_glossary_term`, which link-cascades —
+      a raw edit would bypass that), `templates/`, non-`.md` assets, sidecars, anything outside
+      `vault/`.
+      **The dashboard stays need-to-know.** It is in the allowlist and **not** named in the
+      docstring or `second_brain_overview`; a client reaches it with
+      `get_note("vault/dashboard-index.md")`. Refusal messages name what was refused, never the
+      whole allowlist, because a docstring that lists allowed targets advertises it.
+      **Encryption:** `get_note` reads the working tree, which is plaintext even on an encrypted
+      brain, so the hash and the write agree by construction. Tested explicitly rather than
+      asserted.
+      **Where the logic lives, and why it is not in `mcp_server.py`.** `check_mcp_server.py` is
+      **not in `ci.py`** — the `mcp` SDK is an optional dependency — and it has drifted twice in
+      one session for exactly that reason. So the allowlist, the hash and the pre-write check go
+      in a new emitted module (`scripts/note_edit.py`) that imports nothing optional, gated
+      hermetically; the MCP-level assertions go in the manual tier on top.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one
