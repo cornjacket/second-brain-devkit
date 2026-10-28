@@ -106,6 +106,7 @@ into a commit you didn't write, and it won't overwrite an existing note. See
 [mcp-server.md §3.1](mcp-server.md).
 
 ## Not covered (by design)
-**Editing or deleting** a note from Desktop — `add_note` is create-only; changing a note
-you wrote stays a human/Obsidian job. Web chat (claude.ai) — a browser can't reach a local
-stdio server; out of scope ([mcp-server.md §2](mcp-server.md)).
+**Deleting or renaming** a note from Desktop. Editing *is* covered now — `replace_note`,
+guarded by a read-token so it cannot overwrite a change you made in Obsidian after Desktop read
+the note ([mcp-server.md §3.6](mcp-server.md)). Web chat (claude.ai) — a browser can't reach a
+local stdio server; out of scope ([mcp-server.md §2](mcp-server.md)).

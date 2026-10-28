@@ -107,11 +107,62 @@ Everything that follows is a consequence of writing to a repo a **human also use
 | No remote configured | Commit, and say the brain is local-only. Not an error. |
 | Credentials needed, no terminal | `GIT_TERMINAL_PROMPT=0`. The server is headless under Desktop, so a credential prompt has nowhere to appear and would **hang the tool call forever**. Fail fast instead. |
 | A traversal payload in the title | The filename comes from a strict **allow-list** slug (`[a-z0-9-]` only), so `../../../etc/passwd` collapses to a plain stem. A resolve-based guard backs it up (defense in depth — and the negative suite confirms *each* layer independently blocks an escape). |
-| The note already exists | Refused. `add_note` is **create-only**; editing stays a human/Obsidian job. |
+| The note already exists | Refused. `add_note` is **create-only**; use `replace_note` to change an existing note (§3.6). |
 | The hooks aren't installed | Then the commit lands but the note is **not** embedded — a silent, confusing failure. Detected via the missing sidecar and reported loudly. |
 
-**Still not offered:** editing or deleting a note. Create-only is the smallest surface that closes
-the gap, and an agent that can silently rewrite a note you authored is a different risk class.
+**Still not offered:** deleting or renaming a note. Both are destructive in a way an edit is
+not — a wrong edit is visible in `git diff` and recoverable from the previous commit, while a
+delete removes the thing you would compare against.
+
+### 3.6 `replace_note` — changing an existing note (task #67, 2026-10-27)
+
+`add_note` creates and refuses to overwrite. `replace_note` is the other half: it changes a note
+that already exists, and never creates one.
+
+**The risk it introduces is a stale write, not a bad one.** A client reads a note, the owner
+edits it in Obsidian, the client writes the version it read — and the owner's change is gone,
+under a success message. So an edit carries a token:
+
+1. `get_note(source_file, with_hash=True)` returns `{"source_file", "hash", "content"}`.
+2. `replace_note(source_file, body, expected_hash)` refuses unless the file still hashes to
+   `expected_hash`.
+
+**The token is a whole-file sha256, not `note_view.content_hash`.** This is the one place the
+agreed design changed on inspection. `content_hash` runs over the *canonical view*, which strips
+`no-embed` and `lexical-only` regions — deliberately, so that editing inside a fence costs no
+re-embed. That makes it **blind** to the edits a fence invites: a ticked checkbox, a corrected
+phone number. Measured: after ticking a box inside a `lexical-only` fence the content hash is
+**equal** while a whole-file digest differs. Used as the token it would have admitted exactly
+the write it exists to stop.
+
+**One call, not two.** There is no `get_note_hash` tool, because two calls race: the file can
+change between them and hand back a token for content nobody read.
+
+**Order of operations**, and the order is the design:
+
+| Step | Why there |
+| --- | --- |
+| Resolve + allow-list | Before anything else; "not editable" and "does not exist" are different answers |
+| Refuse a missing file | Creating is `add_note`'s job, and silently creating would hide a wrong path |
+| Compare the token | The stale-write guard |
+| `fence_errors(body)` | On the **new string**, so a malformed fence never reaches disk. A fence that never closes excludes *nothing*, silently — the note still commits and still renders |
+| Write | — |
+| Encrypt, commit, push | Shares `add_note`'s tail exactly, so there is one write path to keep correct |
+| On commit failure, **restore** | `add_note` unlinks a half-written new note; an edit has a previous version, and leaving an uncommitted rewrite behind is worse than the failed commit |
+
+**Editable targets are an allow-list:** Markdown notes under the four PARA roots, plus a small
+set of files at the vault root. A deny-list would admit every file type nobody thought of.
+Refused: the **glossary** (it has `add_glossary_term`, which cascades a term's links across the
+vault — a raw edit would leave that graph stale), `templates/`, non-`.md` assets, sidecars, and
+anything resolving outside `vault/`.
+
+**Encryption needs no special case.** `get_note` reads the working tree, which stays plaintext,
+so the token describes the bytes a write replaces. Gate 27 asserts that rather than assuming it.
+
+**Where the logic lives.** The allow-list and the token are in `scripts/note_edit.py`, which
+imports nothing optional — not in `mcp_server.py`. CI cannot import that module, because the
+`mcp` SDK is an optional dependency, so rules left there are checked only by a by-hand tier.
+That tier has drifted twice. Gate 27 covers the rules; `check_mcp_server.py` covers the tool.
 
 - **`add_glossary_term(term, definition, aliases)`** *(**BUILT** — task #25, 2026-07-14; §3.3).*
   The write path for the **glossary** — define a term, link it across the vault, commit and push.

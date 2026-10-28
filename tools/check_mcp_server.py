@@ -119,16 +119,16 @@ async def drive(brain: Path, env: dict) -> list[str]:
             await s.initialize()
             tools = {t.name: t for t in (await s.list_tools()).tools}
 
-            # 1. exact tool surface (sixteen: #20 glossary pair, #5 write path,
+            # 1. exact tool surface (seventeen: #20 glossary pair, #5 write path,
             #    #25 add_glossary_term, #27 list_tags, #7 the four PDF tools + the
-            #    elicitation-guided ingest, #50 add_asset + second_brain_overview)
+            #    elicitation-guided ingest, #50 add_asset + second_brain_overview, #67 replace_note)
             expected = {"search_second_brain", "get_note",
                         "list_glossary_terms", "lookup_glossary_term",
                         "add_note", "list_vault", "get_note_template",
                         "add_glossary_term", "list_tags",
                         "list_inbox_pdfs", "add_pdf", "search_pdf_passages",
                         "get_pdf_passage", "add_pdf_guided",
-                        "add_asset", "second_brain_overview"}
+                        "add_asset", "second_brain_overview", "replace_note"}
             if set(tools) != expected:
                 fails.append(f"tools/list = {sorted(tools)}, expected {sorted(expected)}")
 
@@ -580,6 +580,66 @@ async def drive_write(brain: Path, bare: Path, env: dict) -> list[str]:
                 _git(brain, "reset", "-q", "--", ".", env=env)
                 _git(brain, "checkout", "-q", "--", "vault/areas/knowledge-management.md", env=env)
 
+            # --- replace_note: the edit path, and what it must refuse (#67) -----------------
+            # The risk here is a STALE write, not a bad one: a client overwriting what the
+            # owner changed in Obsidian after its read, and reporting success.
+            import json as _json
+            read = _json.loads("".join(_texts(await s.call_tool(
+                "get_note", {"source_file": "vault/resources/embeddings.md",
+                             "with_hash": True}))))
+            if not {"source_file", "hash", "content"} <= set(read):
+                fails.append(f"get_note(with_hash=True) did not return a token object: {read}")
+            plain = "".join(_texts(await s.call_tool(
+                "get_note", {"source_file": "vault/resources/embeddings.md"})))
+            if plain != read.get("content"):
+                fails.append("get_note's DEFAULT return changed shape — existing clients that "
+                             "never pass with_hash must see byte-identical Markdown")
+
+            edited = read["content"].rstrip("\n") + "\n\nAdded by replace_note.\n"
+            r = await s.call_tool("replace_note", {
+                "source_file": "vault/resources/embeddings.md", "body": edited,
+                "expected_hash": read["hash"]})
+            if r.isError:
+                fails.append(f"replace_note failed on a valid edit: {' '.join(_texts(r))[:200]}")
+            else:
+                on_disk = (brain / "vault/resources/embeddings.md").read_text(encoding="utf-8")
+                if "Added by replace_note." not in on_disk:
+                    fails.append("replace_note reported success without changing the file")
+                side = brain / "vault/resources/.embeddings.embed.json"
+                if side.exists() and read["content"].split()[-1] in side.read_text():
+                    fails.append("the sidecar still holds the pre-edit text — the commit did "
+                                 "not re-embed, so search answers from the old version")
+
+            # Re-sending the SAME token must now fail: that is the stale-write case itself.
+            stale = await s.call_tool("replace_note", {
+                "source_file": "vault/resources/embeddings.md", "body": read["content"],
+                "expected_hash": read["hash"]})
+            if not stale.isError:
+                fails.append("replace_note accepted a STALE token — a client could silently "
+                             "revert an edit made in Obsidian after its read")
+
+            fresh = _json.loads("".join(_texts(await s.call_tool(
+                "get_note", {"source_file": "vault/resources/embeddings.md",
+                             "with_hash": True}))))
+            for label, args in (
+                ("a missing file", {"source_file": "vault/resources/nope.md",
+                                    "body": "x", "expected_hash": fresh["hash"]}),
+                ("a glossary term", {"source_file": "vault/glossary/ablation.md",
+                                     "body": "x", "expected_hash": fresh["hash"]}),
+                ("a path outside the vault", {"source_file": "README.md",
+                                              "body": "x", "expected_hash": fresh["hash"]}),
+                ("a malformed fence", {"source_file": "vault/resources/embeddings.md",
+                                       "body": fresh["content"] + "\n<!-- second-brain:"
+                                               "lexical-only:begin -->\nunclosed\n",
+                                       "expected_hash": fresh["hash"]}),
+            ):
+                if not (await s.call_tool("replace_note", args)).isError:
+                    fails.append(f"replace_note accepted {label}")
+            after = (brain / "vault/resources/embeddings.md").read_text(encoding="utf-8")
+            if after != fresh["content"]:
+                fails.append("a refused replace_note still changed the file — a refusal must "
+                             "write nothing at all")
+
             # --- the multi-client case: the remote moved ahead, so rebase and retry ---------
             peer = brain.parent / "peer"
             subprocess.run(["git", "clone", "-q", str(bare), str(peer)], check=True)
@@ -778,7 +838,7 @@ def main() -> int:
                 print(f"  FAIL  {f}")
             print(f"\nMCP tier FAILED: {len(fails)} assertion(s) regressed")
             return 1
-        print("  ok    tools/list = the sixteen-tool surface (search, get_note, list_vault, "
+        print("  ok    tools/list = the seventeen-tool surface (search, get_note, list_vault, "
               "get_note_template, the glossary pair, add_note)")
         print("  ok    no outputSchema on any tool (Claude Desktop-safe)")
         print("  ok    search returns absolute vault paths; get_note reads a hit")
@@ -797,6 +857,9 @@ def main() -> int:
               "the title, and never sweeps the user's staged work into its commit")
         print("  ok    add_note files into a subfolder, writes the embed: false opt-out without "
               "embedding it, reports the exclusion calmly, and refuses a traversal folder")
+        print("  ok    replace_note edits an existing note, refuses a stale token, a missing "
+              "file, a non-editable target and a malformed fence, and writes nothing when it "
+              "refuses")
         print("  ok    add_note recovers from a non-fast-forward push (rebase + retry — the "
               "multi-client case)")
         print("  ok    list_vault browses the PARA roots; get_note_template returns the vault "

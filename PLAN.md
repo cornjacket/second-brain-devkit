@@ -2122,8 +2122,8 @@ has no feedback loop because it never touches retrieval.
       it also pins MACHINERY == VAULT_OWNED and that a plaintext brain grows no block. Verified to
       fail 3 assertions against the pre-fix `update_brain.py`.
 
-## An MCP client can create a note but not change one (task #67, surfaced 2026-10-27)
-- [ ] **Add `replace_note`, so Claude Desktop can edit an existing note.** Today the server only
+## An MCP client can create a note but not change one (task #67, BUILT 2026-10-27) → [docs/mcp-server.md](docs/mcp-server.md) §3.6
+- [x] **Add `replace_note`, so Claude Desktop can edit an existing note.** Today the server only
       creates: `add_note` refuses to overwrite and nothing else writes. Design agreed in a
       second-brain session 2026-10-27.
       **The hash must be a WHOLE-FILE digest, not `content_hash`.** This is the one design point
@@ -2161,6 +2161,22 @@ has no feedback loop because it never touches retrieval.
       one session for exactly that reason. So the allowlist, the hash and the pre-write check go
       in a new emitted module (`scripts/note_edit.py`) that imports nothing optional, gated
       hermetically; the MCP-level assertions go in the manual tier on top.
+      **BUILT 2026-10-27.** CI **gate 29** (`tools/check_note_edit.py`) plus 18 unit tests and
+      `replace_note` assertions in the manual MCP tier. Three negative controls go red: making
+      the token `content_hash`, making the glossary editable, turning the allow-list into a
+      deny-list.
+      **Verified live in the golden** before productizing — a real edit, a real commit, the hook
+      re-embedding, and the same token refused on a second attempt.
+      **Two things the work itself taught.**
+      1. **Proving the write path end to end pushes.** `replace_note` pushes by design, exactly
+         as `add_note` does, so the probe edit reached the golden's remote before I had thought
+         about it. The probe was reverted, but the lesson generalises: *testing a push-on-write
+         tool in a repo with a remote is a push*, and the only safe rehearsal surface is a brain
+         with no remote or a bare one.
+      2. **Gate 23 caught a regression I introduced while documenting this one.** Adding "use
+         `replace_note`" to `add_note`'s first description line pushed `embed=False` out of it,
+         and that line is all a collapsed tool index shows. The gate failed, which is precisely
+         the job it was built for in #51.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
