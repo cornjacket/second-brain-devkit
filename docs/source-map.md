@@ -92,7 +92,7 @@ Lives only here, under `tools/`. Never copied into a brain.
 ### Validation guards (all run by `ci.py`)
 | File | Purpose |
 |---|---|
-| `tools/ci.py` | The full acceptance gate (12) — one entry point for local **≡** CI (partition → template-in-sync → Mode-A → Mode-B smoke → note-gate → config-matrix → doctor-stale → hang-safety). |
+| `tools/ci.py` | The full acceptance gate (30 gates, fail-fast) — one entry point for local **≡** CI; the `STEPS` list is the authoritative order. Two run-wide rules (task #68): `OLLAMA_HOST` points at an unreachable address on every run, so a gate that reaches a real Ollama fails locally as it would in CI; and with `CI=true` a step 0 requires every package in `template/requirements*.txt`, and a gate that skips for a missing package fails. |
 | `tools/check_manifest_partition.py` | Verify `emit-manifest.toml` partitions the golden's tracked files exactly. |
 | `tools/check_no_forbidden_refs.py` | Grep the emitted tree against the denylist (`ai-project-status`) — zero hits. |
 | `tools/check_structural_diff.py` | The Mode-A acceptance oracle — generated tree **==** golden, byte-for-byte. |

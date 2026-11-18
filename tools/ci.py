@@ -9,7 +9,9 @@ network at test time — just Python 3.11+ with the brain's ``template/requireme
 installed (CI installs them at setup). Locally, a gate whose optional dep is absent prints
 SKIP and passes. With ``CI=true`` (GitHub Actions sets it) a skip **fails**: a preflight
 step 0 requires every package in the requirements files, and any gate output that reports a
-dependency skip turns that gate red (task #68).
+dependency skip turns that gate red (task #68). On every run, local or CI, ``OLLAMA_HOST``
+points at an unreachable address, so a gate that reaches a real Ollama fails on a dev
+machine exactly as it would in CI, which has none (task #68).
 
 Gate (fail-fast on any red):
   1. **Manifest partition** — emit-manifest.toml partitions the vendored golden.
@@ -78,6 +80,14 @@ GIT_IDENTITY = {
 # skip is a green gate that ran nothing, which is how gates 11-29 went unexercised for four
 # months. GitHub Actions sets CI=true; set it yourself to reproduce CI's rule locally.
 IN_CI = os.environ.get("CI", "").strip().lower() in {"true", "1", "yes"}
+
+# No gate may reach a real embedder (task #68). CI has no Ollama, so a gate that quietly talks to
+# one passes on a dev machine and fails in CI — gate 23 did exactly that. For the whole run,
+# OLLAMA_HOST (the only embedder endpoint a brain reads: scripts/embedder.py and scripts/doctor.py)
+# points at the discard port, where a connection is refused at once. Every gate inherits it, so a
+# gate that forgets SECOND_BRAIN_EMBEDDER=test fails locally too. A gate that needs its own
+# endpoint (gate 12's wedged Ollama) still sets one explicitly and wins.
+UNREACHABLE_OLLAMA = "http://127.0.0.1:9"
 
 # Every way a gate reports "my optional package is absent". Matched per line of a gate's output.
 # Anchored and specific on purpose: "(SKIP, unchanged ...)" in gate 8 is a behaviour under test,
@@ -449,6 +459,8 @@ STEPS = [
 
 
 def main() -> int:
+    os.environ["OLLAMA_HOST"] = UNREACHABLE_OLLAMA
+    print(f"OLLAMA_HOST={UNREACHABLE_OLLAMA} — no gate may reach a real embedder")
     results: list[tuple[str, bool]] = []
     steps = STEPS
     if IN_CI:

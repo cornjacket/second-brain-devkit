@@ -2260,6 +2260,17 @@ has no feedback loop because it never touches retrieval.
             (empty clone) turns it red before either assertion runs; a pass-through cipher fails
             on the canaries with no false `ok`. Full `tools/ci.py` with `CI=true` and
             `init.defaultBranch=master` forced: 31/31.
+      - [x] Second CI run (`44250521785`): steps 0–22 green, **gate 23 red**. Several of its
+            checks import `mcp_server` into the gate's own process, and `add_note`'s commit hook
+            ran with that process's environment, which lacked `SECOND_BRAIN_EMBEDDER=test`. So
+            the hook embedded through a real Ollama — present on the dev machine, absent in CI.
+            These checks had never run in CI, because `mcp` was not installed. Fixed by
+            applying the gate's env to `os.environ` around the in-process calls. **Guard:**
+            `tools/ci.py` now points `OLLAMA_HOST` (the only embedder endpoint a brain reads) at
+            an unreachable address for every run, so a gate that reaches a real Ollama fails on
+            a dev machine too. Proven with Ollama running: the unfixed gate passes run directly
+            and fails under the guard with CI's exact three failures. Full `tools/ci.py` with
+            `CI=true` and `master` forced: 31/31.
       - [ ] Confirm the first fully green CI run.
 
 ## The MCP server only runs on mcp 1.x (task #69, backlog, surfaced 2026-11-17)

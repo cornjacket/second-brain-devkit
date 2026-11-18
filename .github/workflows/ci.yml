@@ -7,7 +7,10 @@ name: CI
 # them gate 10 failed on `import sqlite_vec` from 2026-07-14 on, and every later
 # gate never ran (task #68). Optional deps (crypt, mcp, pdf) are installed too,
 # because a gate whose dependency is absent prints SKIP and passes having run
-# nothing. See tools/ci.py (the same entry point runs locally).
+# nothing; with CI=true (set by Actions) tools/ci.py turns such a skip into a
+# failure. tools/ci.py also points OLLAMA_HOST at an unreachable address on every
+# run, so a gate that reaches a real Ollama fails locally too. See tools/ci.py
+# (the same entry point runs locally).
 
 on:
   push:

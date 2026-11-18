@@ -525,6 +525,12 @@ def main() -> int:
            "GIT_AUTHOR_NAME": "Asset Check", "GIT_AUTHOR_EMAIL": "asset@example.invalid",
            "GIT_COMMITTER_NAME": "Asset Check", "GIT_COMMITTER_EMAIL": "asset@example.invalid"}
     parent = Path(tempfile.mkdtemp(prefix="asset-coloc-"))
+    # `env` reaches subprocesses only. Several checks import mcp_server INTO this process and call
+    # add_note, whose `git commit` runs the pre-commit hook with THIS process's environment. Without
+    # this, that hook embedded through the brain's configured backend — a real Ollama — so the gate
+    # passed on a dev machine with Ollama running and failed in CI, which has none (task #68).
+    saved_environ = dict(os.environ)
+    os.environ.update(env)
     try:
         brain = parent / "brain"
         _setup(brain, env)
@@ -552,6 +558,8 @@ def main() -> int:
                   "rather than reporting a success that commits nothing (#49)",
                   fails, check_encrypted_refuses, brain, env, fails)
     finally:
+        os.environ.clear()
+        os.environ.update(saved_environ)
         shutil.rmtree(parent, ignore_errors=True)
 
     if fails:
