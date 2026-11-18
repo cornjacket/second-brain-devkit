@@ -10,7 +10,30 @@ Distinct from:
 
 Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
-## ▶ Next up (2026-08-13)
+## ▶ Next up (2026-11-17)
+
+Open work only. Each line points at the section that owns it; the detail lives there.
+
+1. **#68 — make CI green again: decide the `mcp` version.** CI now installs the brain's
+   dependencies and runs all 30 gates. It fails at gate 23 because `mcp>=1.2` resolves to mcp 2.x,
+   which renamed `FastMCP`. A brain set up from its README today gets an MCP server that cannot
+   start. Decide: pin `mcp<2` (prototype in the golden, vendor) or port `mcp_server.py` to 2.x.
+   Then consider failing a dependency SKIP when `CI=true`.
+2. **#49 — encrypted brains drop every non-`.md` vault file.** Instance A is live in shipped
+   brains and is a one-line fix (`!/vault/templates/not-a-note.md`). Instance B blocks assets on
+   an encrypted brain.
+3. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
+   unfenced checkboxes pushed a note over the embed budget.
+4. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
+5. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
+   cross-session test (#36); the review of the #28 partial-commit fix (§6 of
+   [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)); the
+   glossary tail (#19, needs an Obsidian window).
+6. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
+   auto-link calibration, #12 feature toggles + ablation, #14 Medium post, #11 project rename,
+   OQ-5 writer lock, G4 lifecycle, big-brain roadmap.
+
+## Earlier "Next up" entries (2026-07 to 2026-08-14, kept for provenance)
 - **Done 2026-08-14 — #42, a brain's committed form is unreadable: bodies and filenames both.**
   All nine steps shipped; **19 CI gates green**. The working tree stays plaintext `.md`, so
   Obsidian, search, embedding and auto-linking are untouched — **encryption is a git-layer
