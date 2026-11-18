@@ -14,22 +14,21 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 Open work only. Each line points at the section that owns it; the detail lives there.
 
-1. **#68 — make CI green again: decide the `mcp` version.** CI now installs the brain's
-   dependencies and runs all 30 gates. It fails at gate 23 because `mcp>=1.2` resolves to mcp 2.x,
-   which renamed `FastMCP`. A brain set up from its README today gets an MCP server that cannot
-   start. Decide: pin `mcp<2` (prototype in the golden, vendor) or port `mcp_server.py` to 2.x.
-   Then consider failing a dependency SKIP when `CI=true`.
-2. **#49 — encrypted brains drop every non-`.md` vault file.** Instance A is live in shipped
+1. **#68 — make CI green again.** CI now installs the brain's dependencies and runs all 30
+   gates. The `mcp` SDK is pinned below 2.x (decided 2026-11-17), and a dependency SKIP fails
+   the run when `CI=true`. Remaining: push, then confirm the first green CI run.
+2. **#69 — port `mcp_server.py` to the mcp 2.x API** and lift the `<2` pin.
+3. **#49 — encrypted brains drop every non-`.md` vault file.** Instance A is live in shipped
    brains and is a one-line fix (`!/vault/templates/not-a-note.md`). Instance B blocks assets on
    an encrypted brain.
-3. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
+4. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
    unfenced checkboxes pushed a note over the embed budget.
-4. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
-5. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
+5. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
+6. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
    cross-session test (#36); the review of the #28 partial-commit fix (§6 of
    [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)); the
    glossary tail (#19, needs an Obsidian window).
-6. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
+7. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
    auto-link calibration, #12 feature toggles + ablation, #14 Medium post, #11 project rename,
    OQ-5 writer lock, G4 lifecycle, big-brain roadmap.
 
@@ -2201,7 +2200,7 @@ has no feedback loop because it never touches retrieval.
          and that line is all a collapsed tool index shows. The gate failed, which is precisely
          the job it was built for in #51.
 
-## CI has not run gates 11–29 since 2026-07-14 (task #68, in progress, surfaced 2026-11-17)
+## CI has not run gates 11–29 since 2026-07-14 (task #68, BUILT 2026-11-17, awaiting push + green run)
 - [~] **Make CI run every gate, with the optional dependencies installed.** The question was
       whether gates 19, 23 and 27 skip in CI because `cryptography` is absent. The answer is
       worse: **CI never reaches them.** The workflow installs no packages, so `scripts/db.py`
@@ -2238,10 +2237,30 @@ has no feedback loop because it never touches retrieval.
             each through its own gate: a pass-through cipher turns gate 19 red (canaries
             readable in the clone); dropping the `.gitignore` encryption block on upgrade (#62)
             turns gate 27 red; removing `get_note`'s path guard turns gate 30 red.
-      - [ ] Decide: pin `mcp<2`, or port to mcp 2.x.
-      - [ ] **Residual:** `check_mcp_server.py` and the encryption gates print SKIP and exit 0
-            when their dependency is absent. In CI that is a green gate that ran nothing.
-            Consider failing a skip when `CI=true`.
+      - [x] Decided 2026-11-17: **pin now, port later.** The pin is golden `81e77a3`, vendored
+            into the devkit; the port is task #69.
+      - [x] **A skip fails in CI** (decided 2026-11-17). With `CI=true`, `tools/ci.py` runs a
+            step 0 that requires every package in `template/requirements*.txt` and imports every
+            module the gates probe; `_run` fails any gate whose output reports a dependency skip.
+            Both are needed: gate 14 discards its PDF suites' output, so a `pypdf` skip there is
+            never printed. Locally a skip stays a skip. Proven: pinned clean venv 30/30 local and
+            31/31 with `CI=true`; with `cryptography` removed the `CI=true` run fails at step 0,
+            gate 19 alone fails under `CI=true` and passes locally; gate 30 fails under `CI=true`
+            with `mcp` removed.
+      - [ ] Push (leader pushes the golden first), then confirm the first green CI run.
+
+## The MCP server only runs on mcp 1.x (task #69, backlog, surfaced 2026-11-17)
+- [ ] **Port `scripts/mcp_server.py` to the mcp 2.x API, then lift the `<2` pin.** mcp 2.x renamed
+      `FastMCP` to `MCPServer` (`from mcp.server.mcpserver import MCPServer`) and changed other
+      APIs; see the SDK's v2 migration guide. #68 pinned `mcp>=1.2,<2` in `requirements-mcp.txt`
+      so a fresh install works today, but a pin only delays the break: mcp 1.x stops getting
+      fixes, and a user who already has 2.x installed for another tool hits a conflict.
+      **Prototype it in `../second-brain-test/` first**, per the Development Workflow, then
+      vendor. Check every 2.x change against the contracts the MCP tier pins: no tool advertises
+      an `outputSchema` (older Desktop clients drop such tools), tool descriptions reach the
+      client unchanged (gate 23), and elicitation still works for `add_pdf_guided`. Gates 23 and
+      30 must pass against 2.x with the pin removed; run them with 1.x too if the pin keeps a
+      lower bound.
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
