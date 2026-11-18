@@ -2,8 +2,12 @@ name: CI
 
 # Self-contained regression gate. Checks out ONLY this repo — the golden lives
 # in-repo at tests/golden/ (OQ-1 Option A), and the whole gate uses the
-# deterministic `test` embedder, so no external repo / network / packages are
-# needed. See tools/ci.py (the same entry point runs locally).
+# deterministic `test` embedder, so no external repo, no Ollama and no network
+# at test time. The brain's own requirements ARE installed, at setup: without
+# them gate 10 failed on `import sqlite_vec` from 2026-07-14 on, and every later
+# gate never ran (task #68). Optional deps (crypt, mcp, pdf) are installed too,
+# because a gate whose dependency is absent prints SKIP and passes having run
+# nothing. See tools/ci.py (the same entry point runs locally).
 
 on:
   push:
@@ -20,6 +24,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"   # tomllib (stdlib) requires 3.11+
+
+      - name: Install the brain's dependencies (base + every optional tier)
+        run: >
+          python3 -m pip install
+          -r template/requirements.txt
+          -r template/requirements-crypt.txt
+          -r template/requirements-mcp.txt
+          -r template/requirements-pdf.txt
 
       - name: Run the acceptance gate
         run: python3 tools/ci.py

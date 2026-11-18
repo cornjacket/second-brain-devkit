@@ -35,8 +35,8 @@ Known gap (out of scope): a **symlink** inside `vault/` pointing out would resol
 and so be refused by the same guard, but nothing in a brain ever creates one, so it is
 not exercised here.
 
-**Opt-in and mcp-gated** — NOT part of the portable CI acceptance gate (which stays
-stdlib-only). If the `mcp` SDK isn't installed it prints SKIP and exits 0. It uses the
+**mcp-gated** — gate 30 of `tools/ci.py` (task #68); CI installs `requirements-mcp.txt`
+so it runs there. If the `mcp` SDK isn't installed it prints SKIP and exits 0. It uses the
 deterministic `test` backend, so it needs **no Ollama**.
 
     python3 tools/check_mcp_server.py
@@ -780,7 +780,7 @@ def main() -> int:
     ready, why = mcp_available()
     if not ready:
         print(f"SKIP MCP tier — {why}")
-        print("  (opt-in, mcp-gated; not part of the CI acceptance gate)")
+        print("  (mcp-gated; CI installs requirements-mcp.txt so this runs there)")
         return 0
 
     env = {**os.environ, "SECOND_BRAIN_EMBEDDER": "test"}  # deterministic, no Ollama

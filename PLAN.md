@@ -2178,6 +2178,48 @@ has no feedback loop because it never touches retrieval.
          and that line is all a collapsed tool index shows. The gate failed, which is precisely
          the job it was built for in #51.
 
+## CI has not run gates 11–29 since 2026-07-14 (task #68, in progress, surfaced 2026-11-17)
+- [~] **Make CI run every gate, with the optional dependencies installed.** The question was
+      whether gates 19, 23 and 27 skip in CI because `cryptography` is absent. The answer is
+      worse: **CI never reaches them.** The workflow installs no packages, so `scripts/db.py`
+      fails on `import sqlite_vec` and gate 10 goes red. Every push since 2026-07-14 failed
+      there — 63 runs, last green run `29362278031` on `698d412`. The local gate was green on a
+      dev machine with the packages installed, so "local ≡ CI" held for the commands and not
+      for the environment. Evidence, from run `43359055774` (`f06c5c8`, 2026-11-13):
+
+      ```
+      === 10/29 config matrix (every toggle exercised off its default) ===
+        FAIL  hybrid_search: default true -> exercised at '0'
+        FAIL  rrf_k: default 60 -> exercised at '10'
+          (skipped: optional 'cryptography' not installed)
+        FAIL  hybrid_search=0: hydrate_cache failed
+        FAIL  rrf_k=10: hydrate_cache failed
+      ✗ CI FAILED at step: 10/29 config matrix (every toggle exercised off its default)
+      ```
+
+      Reproduced locally in a bare venv: `hydrate_cache.py` → `ModuleNotFoundError: No module
+      named 'sqlite_vec'`. `tools/check_mcp_server.py` is not in `tools/ci.py` at all.
+      **Fix (small).** The workflow installs the brain's own `template/requirements*.txt` (base,
+      crypt, mcp, pdf) at setup, and `tools/ci.py` gains the MCP tier as gate 30. CI's
+      principle still holds: no network at test time, no Ollama, no external repo — a PyPI
+      install happens at setup, not in a gate.
+      **Second finding — needs a decision.** With the dependencies installed as a user would
+      install them, `mcp>=1.2` resolves to **mcp 2.3.0**, which renamed `FastMCP`. The emitted
+      `scripts/mcp_server.py` then fails to import, so gate 23 and gate 30 go red. A brain
+      created today and set up from its README gets a Claude Desktop server that cannot start.
+      With `mcp<2` installed, all 29 gates and the MCP tier are green locally. Options: pin
+      `mcp>=1.2,<2` in `requirements-mcp.txt` (prototyped in the golden, then vendored), or
+      port `mcp_server.py` to the 2.x API. Until one lands, CI fails at gate 23 — truthfully.
+      - [x] Workflow installs the four requirement files; MCP tier is gate 30. Local, with the
+            deps installed and `mcp<2`: **30/30 green**, no dependency skips. Mutation-tested,
+            each through its own gate: a pass-through cipher turns gate 19 red (canaries
+            readable in the clone); dropping the `.gitignore` encryption block on upgrade (#62)
+            turns gate 27 red; removing `get_note`'s path guard turns gate 30 red.
+      - [ ] Decide: pin `mcp<2`, or port to mcp 2.x.
+      - [ ] **Residual:** `check_mcp_server.py` and the encryption gates print SKIP and exit 0
+            when their dependency is absent. In CI that is a green gate that ran nothing.
+            Consider failing a skip when `CI=true`.
+
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
       at all — not encrypted, not in the clear, just gone from the repo.** Two instances, one

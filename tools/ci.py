@@ -4,8 +4,9 @@
 ``.github/workflows/ci.yml`` runs exactly this, so a green ``python3 tools/ci.py``
 locally predicts a green CI run (local ≡ CI). Everything here is self-contained:
 it uses only the in-repo vendored golden (``tests/golden/``, OQ-1 Option A) and the
-deterministic ``test`` embedder, so it needs no external golden, no network, and
-no third-party packages — just Python 3.11+.
+deterministic ``test`` embedder, so it needs no external golden, no Ollama and no
+network at test time — just Python 3.11+ with the brain's ``template/requirements*.txt``
+installed (CI installs them at setup; a gate whose optional dep is absent prints SKIP).
 
 Gate (fail-fast on any red):
   1. **Manifest partition** — emit-manifest.toml partitions the vendored golden.
@@ -333,36 +334,45 @@ def step_note_edit() -> bool:
     return _run([PY, str(TOOLS / "check_note_edit.py")])
 
 
+def step_mcp_tier() -> bool:
+    # The only gate that starts the emitted stdio server and talks to it as Claude Desktop does.
+    # It sat outside this list because `mcp` is optional, ran by hand, and drifted three times
+    # (#67). CI installs requirements-mcp.txt so it runs. Without `mcp` it prints SKIP and
+    # exits 0 — locally that is a convenience; in CI it would be a green gate that ran nothing.
+    return _run([PY, str(TOOLS / "check_mcp_server.py")])
+
+
 STEPS = [
-    ("1/29 manifest partition", step_partition),
-    ("2/29 template in sync with golden", step_template_in_sync),
-    ("3/29 emitted scripts compile", step_py_compile),
-    ("4/29 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
-    ("5/29 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
-    ("6/29 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
-    ("7/29 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
-    ("8/29 README managed block (update_brain splices, preserves user space)", step_readme_block),
-    ("9/29 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
-    ("10/29 config matrix (every toggle exercised off its default)", step_config_matrix),
-    ("11/29 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
-    ("12/29 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
-    ("13/29 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
-    ("14/29 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
-    ("15/29 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
-    ("16/29 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
-    ("17/29 encryption (mechanism + a commit path that does not go blind)", step_encryption),
-    ("18/29 content classification (every .md is content or machinery)", step_classification),
-    ("19/29 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
-    ("20/29 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
-    ("21/29 note moves (archiving a note keeps it in the brain)", step_note_move),
-    ("22/29 a committed note is searchable, in both modes", step_commit_indexes),
-    ("23/29 asset colocation (nested note + sibling asset, unique names)", step_asset_colocation),
-    ("24/29 lexical-only fence (out of the vector, in keyword search)", step_lexical_fence),
-    ("25/29 dashboard index (seeded once, never overwritten)", step_dashboard_index),
-    ("26/29 doc coverage (a shipped feature is named in the README)", step_doc_coverage),
-    ("27/29 encrypted upgrade (the vault stays ignored, nothing in the clear)", step_encrypted_upgrade),
-    ("28/29 inbox (seeded once, never overwritten, read first, counted)", step_inbox),
-    ("29/29 note edit (a stale write cannot pass the token)", step_note_edit),
+    ("1/30 manifest partition", step_partition),
+    ("2/30 template in sync with golden", step_template_in_sync),
+    ("3/30 emitted scripts compile", step_py_compile),
+    ("4/30 autolink emits Obsidian-graphable frontmatter", step_autolink_format),
+    ("5/30 Mode-A harness (generate + guard + self-test + diff)", step_mode_a),
+    ("6/30 Mode-B smoke (create_second_brain ≡ Mode-A)", step_mode_b_smoke),
+    ("7/30 remote-sync (--remote connect/push/clone, bare repo)", step_remote_sync),
+    ("8/30 README managed block (update_brain splices, preserves user space)", step_readme_block),
+    ("9/30 note-gate in sync (CLAUDE.md == note template)", step_note_gate),
+    ("10/30 config matrix (every toggle exercised off its default)", step_config_matrix),
+    ("11/30 doctor detects a stale embedding (and --repair fixes it)", step_doctor_stale),
+    ("12/30 hang-safety (embedder timeout + non-interactive git)", step_hang_safety),
+    ("13/30 tag hygiene (emitted detector correct + lint CLI wires up)", step_tag_lint),
+    ("14/30 pdf ingestion (emitted chunk/extract/cache/search/ingest/mcp suite)", step_pdf),
+    ("15/30 embed-excluded block (no-embed cut from both view and hash)", step_embed_excluded),
+    ("16/30 upgraded brain receives its docs (CLAUDE.md block + --adopt)", step_claude_block),
+    ("17/30 encryption (mechanism + a commit path that does not go blind)", step_encryption),
+    ("18/30 content classification (every .md is content or machinery)", step_classification),
+    ("19/30 encrypted round-trip (push, destroy, clone, decrypt, search)", step_encrypted_roundtrip),
+    ("20/30 embed opt-out (embed: false excludes, retracts, and fails open)", step_embed_opt_out),
+    ("21/30 note moves (archiving a note keeps it in the brain)", step_note_move),
+    ("22/30 a committed note is searchable, in both modes", step_commit_indexes),
+    ("23/30 asset colocation (nested note + sibling asset, unique names)", step_asset_colocation),
+    ("24/30 lexical-only fence (out of the vector, in keyword search)", step_lexical_fence),
+    ("25/30 dashboard index (seeded once, never overwritten)", step_dashboard_index),
+    ("26/30 doc coverage (a shipped feature is named in the README)", step_doc_coverage),
+    ("27/30 encrypted upgrade (the vault stays ignored, nothing in the clear)", step_encrypted_upgrade),
+    ("28/30 inbox (seeded once, never overwritten, read first, counted)", step_inbox),
+    ("29/30 note edit (a stale write cannot pass the token)", step_note_edit),
+    ("30/30 MCP tier (drive the emitted stdio server with a real client)", step_mcp_tier),
 ]
 
 
