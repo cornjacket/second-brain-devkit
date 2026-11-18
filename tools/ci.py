@@ -6,7 +6,10 @@ locally predicts a green CI run (local ≡ CI). Everything here is self-containe
 it uses only the in-repo vendored golden (``tests/golden/``, OQ-1 Option A) and the
 deterministic ``test`` embedder, so it needs no external golden, no Ollama and no
 network at test time — just Python 3.11+ with the brain's ``template/requirements*.txt``
-installed (CI installs them at setup; a gate whose optional dep is absent prints SKIP).
+installed (CI installs them at setup). Locally, a gate whose optional dep is absent prints
+SKIP and passes. With ``CI=true`` (GitHub Actions sets it) a skip **fails**: a preflight
+step 0 requires every package in the requirements files, and any gate output that reports a
+dependency skip turns that gate red (task #68).
 
 Gate (fail-fast on any red):
   1. **Manifest partition** — emit-manifest.toml partitions the vendored golden.
@@ -45,7 +48,10 @@ This is a devkit tool; it is never emitted into a brain.
 """
 from __future__ import annotations
 
+import importlib
+import importlib.metadata
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -67,12 +73,78 @@ GIT_IDENTITY = {
 }
 
 
+# In CI a skip is a failure (task #68). Locally a gate whose optional package is absent prints a
+# SKIP and passes — a convenience for a dev machine without, say, `cryptography`. In CI the same
+# skip is a green gate that ran nothing, which is how gates 11-29 went unexercised for four
+# months. GitHub Actions sets CI=true; set it yourself to reproduce CI's rule locally.
+IN_CI = os.environ.get("CI", "").strip().lower() in {"true", "1", "yes"}
+
+# Every way a gate reports "my optional package is absent". Matched per line of a gate's output.
+# Anchored and specific on purpose: "(SKIP, unchanged ...)" in gate 8 is a behaviour under test,
+# not a dependency skip, and must not match.
+SKIP_MARKERS = re.compile(
+    r"^SKIP "                                             # check_mcp_server: SKIP MCP tier
+    r"|SKIPPED \(no "                                    # check_encrypted_roundtrip
+    r"|optional '[^']+'(?: SDK)?(?: is)? (?:absent|not installed)",  # every other gate
+    re.MULTILINE,
+)
+
+# The modules the gates probe to decide whether to skip. Checked by the CI-only preflight, which
+# catches a skip that no output reports: gate 14 runs the emitted PDF suites and discards their
+# output, so a pypdf skip inside them never reaches SKIP_MARKERS.
+PROBED_MODULES = ("sqlite_vec", "apsw", "cryptography", "mcp.server.fastmcp",
+                  "mcp.client.stdio", "pypdf")
+
+
 def _run(cmd: list[str], *, cwd: Path | None = None, env: dict | None = None) -> bool:
     result = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True)
     sys.stdout.write(result.stdout)
     if result.stderr:
         sys.stderr.write(result.stderr)
+    if IN_CI and result.returncode == 0:
+        skipped = SKIP_MARKERS.findall(result.stdout + result.stderr)
+        if skipped:
+            print(f"\nFAIL (CI=true): this gate skipped for a missing package {skipped} — "
+                  "in CI a skip is a gate that ran nothing")
+            return False
     return result.returncode == 0
+
+
+def _requirement_names() -> list[str]:
+    """Distribution names from every requirements file a brain ships (base + optional tiers)."""
+    names = []
+    for req in sorted(TEMPLATE.glob("requirements*.txt")):
+        for line in req.read_text(encoding="utf-8").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line:
+                names.append(re.split(r"[<>=!~;\[ ]", line, maxsplit=1)[0])
+    return names
+
+
+def step_ci_dependencies() -> bool:
+    # CI only. Fails before any gate if a package a brain can install is missing, so no gate can
+    # skip for it. Reads the requirements files rather than a list, so a new optional tier is
+    # covered the day its file ships.
+    missing = []
+    for name in _requirement_names():
+        try:
+            importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            missing.append(f"{name} (not installed)")
+    for mod in PROBED_MODULES:
+        try:
+            importlib.import_module(mod)
+        except Exception as exc:  # noqa: BLE001 — any import failure is a skip waiting to happen
+            missing.append(f"{mod} (import failed: {str(exc).splitlines()[0][:120]})")
+    if missing:
+        print("FAIL (CI=true): optional packages are missing, so gates would skip:")
+        for m in missing:
+            print(f"  - {m}")
+        print("  install every template/requirements*.txt (see .github/workflows/ci.yml)")
+        return False
+    print(f"dependencies OK: {len(_requirement_names())} requirement(s) installed, "
+          f"{len(PROBED_MODULES)} probed module(s) import")
+    return True
 
 
 def step_partition() -> bool:
@@ -378,7 +450,11 @@ STEPS = [
 
 def main() -> int:
     results: list[tuple[str, bool]] = []
-    for name, fn in STEPS:
+    steps = STEPS
+    if IN_CI:
+        print("CI=true — a gate that skips for a missing package FAILS")
+        steps = [("0/30 optional packages installed (CI only)", step_ci_dependencies), *STEPS]
+    for name, fn in steps:
         print(f"\n=== {name} ===")
         ok = fn()
         results.append((name, ok))
