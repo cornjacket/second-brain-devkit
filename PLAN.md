@@ -18,14 +18,17 @@ Open work only. Each line points at the section that owns it; the detail lives t
 2. **#49 — encrypted brains drop every non-`.md` vault file.** Instance A is live in shipped
    brains and is a one-line fix (`!/vault/templates/not-a-note.md`). Instance B blocks assets on
    an encrypted brain.
-3. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
+3. **#70 — on an encrypted brain, an MCP write is committed but never embedded.** Found in a
+   real encrypted brain; `add_note` blames inactive hooks and `replace_note` claims a re-embed,
+   both wrongly. Suspected: the tools encrypt before the hook asks what changed.
+4. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
    unfenced checkboxes pushed a note over the embed budget.
-4. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
-5. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
+5. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
+6. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
    cross-session test (#36); the review of the #28 partial-commit fix (§6 of
    [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)); the
    glossary tail (#19, needs an Obsidian window).
-6. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
+7. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
    auto-link calibration, #12 feature toggles + ablation, #14 Medium post, #11 project rename,
    OQ-5 writer lock, G4 lifecycle, big-brain roadmap.
 
@@ -2283,6 +2286,39 @@ has no feedback loop because it never touches retrieval.
       client unchanged (gate 23), and elicitation still works for `add_pdf_guided`. Gates 23 and
       30 must pass against 2.x with the pin removed; run them with 1.x too if the pin keeps a
       lower bound.
+
+## On an encrypted brain, an MCP write is committed but never embedded (task #70, backlog, surfaced 2026-11-17)
+- [ ] **`add_note` and `replace_note` commit a note on an encrypted brain without embedding it,
+      and both report the wrong thing.** Found rolling #67 out to `~/second-brain-encrypt`.
+      **Evidence (reported, 2026-11-17).** In a no-remote clone of the encrypted brain, with the
+      hooks active, neither tool produced an embedding file (`.<name>.embed.json`) for the note.
+      - `add_note` warned that the git hooks are not active. They were. The warning infers its
+        cause from a missing embedding file alone (`mcp_server.py`, the `sidecar.exists()`
+        branch), so any other cause is misreported as this one.
+      - `replace_note` always ends with "re-embedded by the pre-commit hook, so the new text is
+        searchable now". It checks nothing before saying so, so here the claim was false.
+      **Suspected cause — unproven, but the code supports it.** On an encrypted brain the
+      pre-commit hook asks `note_selection.notes_for_commit()`, which returns the notes "whose
+      plaintext differs from the blob committed for them" (`unencrypted_notes` →
+      `encrypt_vault.needs_encrypting`). Both tools call `_encrypt_for_commit` **before**
+      `git commit`, so the blob already matches the plaintext when the hook asks, the selector
+      returns nothing, and nothing is embedded. Same family as #42, #47 and #48: on an encrypted
+      brain "what changed?" quietly answers "nothing". A manual edit plus `git commit` does not
+      hit this, because there the hook does the encrypting.
+      **Not covered by any gate.** #42 already named this gap: "the MCP `add_note` write path
+      under encryption has no automated test". Gate 22 commits with plain `git commit`, gate 27
+      tests the upgrade, and gate 29 tests the edit token, not the embedding.
+      - [ ] Reproduce on a generated encrypted brain with no remote (a push-on-write tool in a
+            repo with a remote pushes — see #67).
+      - [ ] Add a test that fails first: after an encrypted `add_note` and an encrypted
+            `replace_note`, the note's embedding file exists and the note is found by search.
+            Extend gate 27 or add a gate. Mutation-test it.
+      - [ ] Fix the selection, either by encrypting after the hook embeds or by having the
+            selector see notes the commit stages. Prototype in the golden first.
+      - [ ] Make both messages tell the truth: `add_note` names the hooks only when they are
+            really inactive, and `replace_note` checks the embedding file before claiming a
+            re-embed.
+      Related: #49 (encryption drops non-`.md` vault files).
 
 ## Encrypted brains silently drop every non-`.md` vault file (task #49, backlog, surfaced 2026-08-30)
 - [ ] **Turn encryption on and any vault file that is not a Markdown note stops being committed
