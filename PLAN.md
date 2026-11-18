@@ -2247,7 +2247,20 @@ has no feedback loop because it never touches retrieval.
             31/31 with `CI=true`; with `cryptography` removed the `CI=true` run fails at step 0,
             gate 19 alone fails under `CI=true` and passes locally; gate 30 fails under `CI=true`
             with `mcp` removed.
-      - [ ] Push (leader pushes the golden first), then confirm the first green CI run.
+      - [x] Pushed 2026-11-17. First CI run (`44249257681`): steps 0–18 green, **gate 19 red** —
+            run for the first time since July. The test created its bare remote with git's
+            default branch and pushed `HEAD:main`; the runner's git defaults to `master`, so the
+            clone checked out nothing. Local Apple git defaults to `main`, which hid it. Fixed by
+            `--initial-branch=main`. Gates 7 and 30 also use bare remotes but push `HEAD` into a
+            default-branch bare repo, so both sides follow one default; no other gate names a
+            branch. The empty clone also exposed two vacuous assertions — "no notes in the clone"
+            and "nothing readable" both passed on nothing, and the canary loop printed `ok` after
+            a leak. Gate 19 now requires the expected blobs and a checked-out commit first, and
+            treats a `git grep` that cannot search as a failure. Mutation-tested: removing the pin
+            (empty clone) turns it red before either assertion runs; a pass-through cipher fails
+            on the canaries with no false `ok`. Full `tools/ci.py` with `CI=true` and
+            `init.defaultBranch=master` forced: 31/31.
+      - [ ] Confirm the first fully green CI run.
 
 ## The MCP server only runs on mcp 1.x (task #69, backlog, surfaced 2026-11-17)
 - [ ] **Port `scripts/mcp_server.py` to the mcp 2.x API, then lift the `<2` pin.** mcp 2.x renamed

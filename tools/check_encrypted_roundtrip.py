@@ -99,7 +99,11 @@ def main() -> int:
     parent = Path(tempfile.mkdtemp(prefix="roundtrip-"))
     bare, work, fresh = parent / "remote.git", parent / "brain", parent / "restored"
     try:
-        subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True, timeout=60)
+        # Pin the branch: the push below names `main`, and a bare repo's HEAD otherwise follows
+        # git's default. Where that is `master` (the CI runner's git), the clone checked out
+        # nothing and this gate failed in CI while passing locally (task #68).
+        subprocess.run(["git", "init", "--bare", "--initial-branch=main", "-q", str(bare)],
+                       check=True, timeout=60)
 
         # --- build and encrypt -------------------------------------------------
         generate(work)
@@ -146,6 +150,19 @@ def main() -> int:
             fail(f"clone failed: {(c.stderr or c.stdout).strip()[:200]}")
             return 1
 
+        # The clone must be NON-EMPTY before any "nothing is readable" assertion means anything:
+        # an empty clone holds no notes and no readable words, so both checks below would pass
+        # on nothing. That is exactly what happened in CI when the branch was not pinned (#68).
+        # So the blobs are checked first, and a short count stops the gate here.
+        head = git(fresh, "rev-parse", "--verify", "-q", "HEAD", env=env)
+        blobs = sorted((fresh / "enc").glob("*.md.enc"))
+        if head.returncode != 0 or not expected or len(blobs) != len(expected):
+            fail(f"the clone has {len(blobs)} blob(s) for {len(expected)} note(s)"
+                 + ("" if head.returncode == 0 else " and no checked-out commit")
+                 + " — the no-plaintext checks would pass on an empty clone, so they are not run")
+            return 1
+        ok(f"{len(blobs)} encrypted blob(s) survived the round trip")
+
         notes_in_clone = [p.relative_to(fresh).as_posix() for p in (fresh / "vault").rglob("*.md")
                           if not p.relative_to(fresh).as_posix().startswith(TEMPLATE_DIR)]
         if notes_in_clone:
@@ -154,18 +171,20 @@ def main() -> int:
         else:
             ok("the clone contains no notes at all — only the encrypted blobs")
 
-        blobs = sorted((fresh / "enc").glob("*.md.enc"))
-        if len(blobs) != len(expected):
-            fail(f"the clone has {len(blobs)} blob(s) for {len(expected)} note(s)")
-        else:
-            ok(f"{len(blobs)} encrypted blob(s) survived the round trip")
-
+        readable = []
         for canary in ("kiln-firing-schedule", "harbour-dredging-permit", "bisque", "dredging"):
             hits = subprocess.run(["git", "-C", str(fresh), "grep", "-r", "-i", canary,
                                    "HEAD"], capture_output=True, timeout=120)
+            # git grep: 0 = found, 1 = not found, anything else = it could not search at all,
+            # which must not read as "not found".
             if hits.returncode == 0:
+                readable.append(canary)
                 fail(f"'{canary}' is readable in the clone's history")
-        ok("no note name or wording is readable anywhere in the clone")
+            elif hits.returncode != 1:
+                readable.append(canary)
+                fail(f"git grep could not search the clone for '{canary}' (exit {hits.returncode})")
+        if not readable:
+            ok("no note name or wording is readable anywhere in the clone")
 
         # --- restore: the path a user with a dead laptop actually walks ---------
         r = run([sys.executable, "scripts/encrypt_vault.py", "--decrypt"], fresh, env)
