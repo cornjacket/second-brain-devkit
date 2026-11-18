@@ -14,21 +14,18 @@ Status: `[x]` done & committed · `[~]` in progress · `[ ]` not started
 
 Open work only. Each line points at the section that owns it; the detail lives there.
 
-1. **#68 — make CI green again.** CI now installs the brain's dependencies and runs all 30
-   gates. The `mcp` SDK is pinned below 2.x (decided 2026-11-17), and a dependency SKIP fails
-   the run when `CI=true`. Remaining: push, then confirm the first green CI run.
-2. **#69 — port `mcp_server.py` to the mcp 2.x API** and lift the `<2` pin.
-3. **#49 — encrypted brains drop every non-`.md` vault file.** Instance A is live in shipped
+1. **#69 — port `mcp_server.py` to the mcp 2.x API** and lift the `<2` pin.
+2. **#49 — encrypted brains drop every non-`.md` vault file.** Instance A is live in shipped
    brains and is a one-line fix (`!/vault/templates/not-a-note.md`). Instance B blocks assets on
    an encrypted brain.
-4. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
+3. **#65 — drop checkbox lines from the embed input without a fence.** Found in a real brain: two
    unfenced checkboxes pushed a note over the embed budget.
-5. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
-6. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
+4. **#66 — a generic md2pdf tool** for rendering a note to a PDF to send.
+5. **Human passes still owed:** the Desktop e2e suites (#33, #35) and the pure-client
    cross-session test (#36); the review of the #28 partial-commit fix (§6 of
    [docs/partial-commit-index-poisoning.md](docs/partial-commit-index-poisoning.md)); the
    glossary tail (#19, needs an Obsidian window).
-7. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
+6. **Backlog, unscheduled:** #43 usage log, #44 spaced resurfacing, #54 stable graph view, #8b
    auto-link calibration, #12 feature toggles + ablation, #14 Medium post, #11 project rename,
    OQ-5 writer lock, G4 lifecycle, big-brain roadmap.
 
@@ -2200,8 +2197,8 @@ has no feedback loop because it never touches retrieval.
          and that line is all a collapsed tool index shows. The gate failed, which is precisely
          the job it was built for in #51.
 
-## CI has not run gates 11–29 since 2026-07-14 (task #68, BUILT 2026-11-17, awaiting push + green run)
-- [~] **Make CI run every gate, with the optional dependencies installed.** The question was
+## CI has not run gates 11–29 since 2026-07-14 (task #68, FIXED 2026-11-17)
+- [x] **Make CI run every gate, with the optional dependencies installed.** The question was
       whether gates 19, 23 and 27 skip in CI because `cryptography` is absent. The answer is
       worse: **CI never reaches them.** The workflow installs no packages, so `scripts/db.py`
       fails on `import sqlite_vec` and gate 10 goes red. Every push since 2026-07-14 failed
@@ -2271,7 +2268,8 @@ has no feedback loop because it never touches retrieval.
             a dev machine too. Proven with Ollama running: the unfixed gate passes run directly
             and fails under the guard with CI's exact three failures. Full `tools/ci.py` with
             `CI=true` and `master` forced: 31/31.
-      - [ ] Confirm the first fully green CI run.
+      - [x] First fully green CI run: `44251479842` on `c24e5c5`, 31/31 (step 0 + 30 gates) —
+            the first green run since 2026-07-14. Closed 2026-11-17, owner confirmed.
 
 ## The MCP server only runs on mcp 1.x (task #69, backlog, surfaced 2026-11-17)
 - [ ] **Port `scripts/mcp_server.py` to the mcp 2.x API, then lift the `<2` pin.** mcp 2.x renamed
