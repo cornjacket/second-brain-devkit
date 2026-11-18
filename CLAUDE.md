@@ -176,6 +176,14 @@ Report the brain working only once you've walked the checklist and `doctor.py` i
 not merely because the files generated. If you skipped or couldn't verify an item, say so
 plainly rather than implying the brain is ready.
 
+### The user's real brain is unmanaged on purpose
+
+`~/second-brain` sits outside every git-workspace **on purpose**. No leader session covers it,
+and it does not appear in a `make status` sweep. The devkit's `tools/update_brain.py` is how it
+changes. Do not move it into a workspace: its Claude Desktop MCP registration and the
+`second-brain` skill's `query.py` both use its absolute path, so a move breaks both. A sweep
+would add little anyway — the brain commits on every write through its own pre-commit hook.
+
 ## Commit & working style (devkit-owned)
 
 This section is **outside** the managed block below, so it is this repo's own
